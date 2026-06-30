@@ -16,7 +16,7 @@ GIT_FOLDER=$GOAD_REPO/.git
 if [ ! -d $GIT_FOLDER ]
 then
     rm -rf $GOAD_REPO
-    git clone https://github.com/Orange-Cyberdefense/GOAD.git $GOAD_REPO
+    git clone https://github.com/ivespino08/GOAD.git $GOAD_REPO
     cd $GOAD_REPO
 else
     cd $GOAD_REPO

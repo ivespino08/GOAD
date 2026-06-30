@@ -2,140 +2,46 @@
 # vi: set ft=ruby :
 
 # Scenario3 Vagrantfile — virtualbox provider
-# Minimal configuration — only VMs required for the scenario.
-# Removed: pc-2, pc-6, pc-7, pc-9, pc-10 (no role in scenario.xml)
-# Retained: pc-1, pc-3, pc-4, pc-5, pc-8 (involved in traffic flows)
-#   - eth0: NAT (Vagrant management / internet access)
-#   - eth1: VirtualBox host-only private network (lab network, Ansible target)
-# Usage: cd scenario/Scenario3/providers/virtualbox && vagrant up
-
-ENV['VAGRANT_DEFAULT_PROVIDER'] = 'virtualbox'
-
-MGMT_RANGE = "192.168.57"
+# Mirrors the GOAD Vagrantfile style exactly.
+# Usage: cd ad/Scenario3/providers/virtualbox && vagrant up
 
 boxes = [
-  # ── Jumpbox ───────────────────────────────────────────────────────────────
-  # Fixed at .3 — required by GOAD's VagrantProvider.get_jumpbox_ip()
-  { :name => "PROVISIONING", :ip => "#{MGMT_RANGE}.3",  :box => "generic/ubuntu2204", :cpus => 2, :mem => 2048, :jumpbox => true },
+  # ── Jumpbox (Ansible controller) ─────────────────────────────────────────
+  { :name => "PROVISIONING", :ip => "192.168.57.3",  :box => "generic/ubuntu2204", :box_version => "4.3.12", :os => "linux", :cpus => 2, :mem => 2048 },
 
-  # ── Routers ──────────────────────────────────────────────────────────────
-  { :name => "router-1",  :ip => "#{MGMT_RANGE}.11", :box => "generic/ubuntu2204", :cpus => 1, :mem => 2048 },
-  { :name => "router-2",  :ip => "#{MGMT_RANGE}.12", :box => "generic/ubuntu2204", :cpus => 1, :mem => 2048 },
-  { :name => "router-3",  :ip => "#{MGMT_RANGE}.13", :box => "generic/ubuntu2204", :cpus => 1, :mem => 2048, :hitl => true },
-  { :name => "router-4",  :ip => "#{MGMT_RANGE}.14", :box => "generic/ubuntu2204", :cpus => 1, :mem => 2048 },
-  { :name => "router-5",  :ip => "#{MGMT_RANGE}.15", :box => "generic/ubuntu2204", :cpus => 1, :mem => 2048 },
+  # ── Routers ───────────────────────────────────────────────────────────────
+  { :name => "router-1",     :ip => "192.168.57.11", :box => "generic/ubuntu2204", :box_version => "4.3.12", :os => "linux", :cpus => 1, :mem => 2048 },
+  { :name => "router-2",     :ip => "192.168.57.12", :box => "generic/ubuntu2204", :box_version => "4.3.12", :os => "linux", :cpus => 1, :mem => 2048 },
+  { :name => "router-3",     :ip => "192.168.57.13", :box => "generic/ubuntu2204", :box_version => "4.3.12", :os => "linux", :cpus => 1, :mem => 2048 },
+  { :name => "router-4",     :ip => "192.168.57.14", :box => "generic/ubuntu2204", :box_version => "4.3.12", :os => "linux", :cpus => 1, :mem => 2048 },
+  { :name => "router-5",     :ip => "192.168.57.15", :box => "generic/ubuntu2204", :box_version => "4.3.12", :os => "linux", :cpus => 1, :mem => 2048 },
 
-  # ── PC hosts (traffic flow nodes only) ───────────────────────────────────
-  # pc-3 → pc-1  (flow 1)
-  # pc-8 → docker-11  (flow 2)
-  # pc-4 → pc-8  (flow 4)
-  # docker-12 → pc-5  (flow 3)
-  { :name => "pc-1",      :ip => "#{MGMT_RANGE}.21", :box => "generic/ubuntu2204", :cpus => 1, :mem => 2048 },
-  { :name => "pc-3",      :ip => "#{MGMT_RANGE}.23", :box => "generic/ubuntu2204", :cpus => 1, :mem => 2048 },
-  { :name => "pc-4",      :ip => "#{MGMT_RANGE}.24", :box => "generic/ubuntu2204", :cpus => 1, :mem => 2048 },
-  { :name => "pc-5",      :ip => "#{MGMT_RANGE}.25", :box => "generic/ubuntu2204", :cpus => 1, :mem => 2048 },
-  { :name => "pc-8",      :ip => "#{MGMT_RANGE}.28", :box => "generic/ubuntu2204", :cpus => 1, :mem => 2048 },
+  # ── PC hosts ──────────────────────────────────────────────────────────────
+  { :name => "pc-1",         :ip => "192.168.57.21", :box => "generic/ubuntu2204", :box_version => "4.3.12", :os => "linux", :cpus => 1, :mem => 2048 },
+  { :name => "pc-3",         :ip => "192.168.57.23", :box => "generic/ubuntu2204", :box_version => "4.3.12", :os => "linux", :cpus => 1, :mem => 2048 },
+  { :name => "pc-4",         :ip => "192.168.57.24", :box => "generic/ubuntu2204", :box_version => "4.3.12", :os => "linux", :cpus => 1, :mem => 2048 },
+  { :name => "pc-5",         :ip => "192.168.57.25", :box => "generic/ubuntu2204", :box_version => "4.3.12", :os => "linux", :cpus => 1, :mem => 2048 },
+  { :name => "pc-8",         :ip => "192.168.57.28", :box => "generic/ubuntu2204", :box_version => "4.3.12", :os => "linux", :cpus => 1, :mem => 2048 },
 
   # ── Docker (vulnerable) hosts ─────────────────────────────────────────────
-  { :name => "docker-11", :ip => "#{MGMT_RANGE}.31", :box => "generic/ubuntu2204", :cpus => 1, :mem => 2048 },
-  { :name => "docker-12", :ip => "#{MGMT_RANGE}.32", :box => "generic/ubuntu2204", :cpus => 1, :mem => 2048 },
+  { :name => "docker-11",    :ip => "192.168.57.31", :box => "generic/ubuntu2204", :box_version => "4.3.12", :os => "linux", :cpus => 1, :mem => 2048 },
+  { :name => "docker-12",    :ip => "192.168.57.32", :box => "generic/ubuntu2204", :box_version => "4.3.12", :os => "linux", :cpus => 1, :mem => 2048 },
 ]
 
 Vagrant.configure("2") do |config|
-
   config.vm.box_check_update = false
-  config.ssh.insert_key = true
 
   boxes.each do |box|
-    config.vm.define box[:name] do |vm_config|
+    config.vm.define box[:name] do |target|
+      target.vm.box         = box[:box]
+      target.vm.box_version = box[:box_version]
+      target.vm.hostname    = box[:name]
+      target.vm.network "private_network", ip: box[:ip]
 
-      vm_config.vm.box      = box[:box]
-      vm_config.vm.hostname = box[:name]
-
-      vm_config.vm.network "private_network",
-        ip: box[:ip],
-        virtualbox__intnet: false,
-        auto_config: true
-
-      vm_config.vm.boot_timeout = 600
-      vm_config.ssh.host     = box[:ip]
-      vm_config.ssh.username = "vagrant"
-
-      if box[:hitl]
-        vm_config.vm.network "private_network",
-          ip: "10.0.0.1",
-          virtualbox__intnet: "scenario3-hitl",
-          auto_config: true
+      target.vm.provider "virtualbox" do |v|
+        v.memory = box[:mem]
+        v.cpus   = box[:cpus]
       end
-
-      vm_config.vm.provider "virtualbox" do |vb|
-        vb.name   = box[:name]
-        vb.memory = box[:mem]
-        vb.cpus   = box[:cpus]
-
-        vb.customize ["modifyvm", :id, "--nictype1", "82540EM"]
-        vb.customize ["modifyvm", :id, "--nictype2", "82540EM"]
-        vb.customize ["modifyvm", :id, "--natdnshostresolver1", "on"]
-        vb.customize ["modifyvm", :id, "--nicpromisc2", "allow-all"]
-
-        if box[:hitl]
-          vb.customize ["modifyvm", :id, "--nictype3", "82540EM"]
-          vb.customize ["modifyvm", :id, "--nicpromisc3", "allow-all"]
-        end
-
-        vb.customize ["modifyvm", :id, "--audio", "none"]
-        vb.customize ["modifyvm", :id, "--usb", "off"]
-      end
-
-      vm_config.vm.provision "shell", inline: <<-SHELL
-        apt-get update -qq
-        apt-get install -y -qq python3 python3-pip
-        echo 'vagrant ALL=(ALL) NOPASSWD:ALL' > /etc/sudoers.d/vagrant
-        chmod 440 /etc/sudoers.d/vagrant
-
-        # generic/ubuntu2204 uses netplan, not NetworkManager
-        cat > /etc/netplan/99-eth1-static.yaml << NETPLAN
-network:
-  version: 2
-  ethernets:
-    eth1:
-      addresses:
-        - #{box[:ip]}/24
-      dhcp4: false
-NETPLAN
-        chmod 600 /etc/netplan/99-eth1-static.yaml
-        netplan apply
-        sleep 5
-
-        # Disable snapd seeding wait — speeds up boot, not used in this lab
-        systemctl disable snapd.seeded.service 2>/dev/null || true
-        systemctl mask snapd.seeded.service 2>/dev/null || true
-        systemctl stop snapd 2>/dev/null || true
-        systemctl disable snapd 2>/dev/null || true
-
-        # Only wait for eth1 (lab network) to come online, not all interfaces —
-        # eth0 (NAT) and any unused adapters shouldn't block boot
-        mkdir -p /etc/systemd/system/systemd-networkd-wait-online.service.d
-        cat > /etc/systemd/system/systemd-networkd-wait-online.service.d/override.conf << 'OVERRIDE'
-[Service]
-ExecStart=
-ExecStart=/lib/systemd/systemd-networkd-wait-online --interface=eth1 --timeout=30
-OVERRIDE
-        systemctl daemon-reload
-      SHELL
-
-      vm_config.vm.provision "shell", run: "always", inline: <<-SHELL
-        netplan apply
-        sleep 5
-      SHELL
-
-      # ── Jumpbox-specific provisioning ────────────────────────────────────
-      # setup_local_jumpbox.sh is NOT run by Vagrant — local_jumpbox.py
-      # SCPs the script to the jumpbox and runs it via SSH instead.
-      # Vagrant only needs to boot the PROVISIONING VM; the framework
-      # handles the rest via LocalJumpBox.provision().
-
     end
   end
-
 end

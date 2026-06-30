@@ -1,30 +1,28 @@
 ; ============================================================
 ; INVENTORY 2 of 2 — PROVIDER INVENTORY (VirtualBox)
-; scenario/Scenario3/providers/virtualbox/inventory
+; ad/Scenario3/providers/virtualbox/inventory
 ; Contains actual management IPs (192.168.57.x) from Vagrantfile.
 ; Edit this file when IPs change.
 ; ============================================================
-; VirtualBox provider inventory — mirrors ad/GOAD/providers/virtualbox/inventory in GOAD.
-; Contains the actual management IPs assigned by the Vagrantfile (192.168.57.x).
-; Ansible connects to these IPs via SSH on eth1.
-; Never edit the data/inventory — only edit this file for IP changes.
+; Per-host ansible_ssh_private_key_file rather than a templated
+; [all:vars] value — {{ inventory_hostname }} in [all:vars] was
+; resolving empty for some Ansible/inventory-merge configurations.
 
 [domain]
-PROVISIONING   ansible_host=192.168.57.3
-router-1   ansible_host=192.168.57.11
-router-2   ansible_host=192.168.57.12
-router-3   ansible_host=192.168.57.13
-router-4   ansible_host=192.168.57.14
-router-5   ansible_host=192.168.57.15
-pc-1       ansible_host=192.168.57.21
-pc-3       ansible_host=192.168.57.23
-pc-4       ansible_host=192.168.57.24
-pc-5       ansible_host=192.168.57.25
-pc-8       ansible_host=192.168.57.28
-docker-11  ansible_host=192.168.57.31
-docker-12  ansible_host=192.168.57.32
+PROVISIONING ansible_host=192.168.57.3  ansible_ssh_private_key_file=.vagrant/machines/PROVISIONING/virtualbox/private_key
+router-1     ansible_host=192.168.57.11 ansible_ssh_private_key_file=.vagrant/machines/router-1/virtualbox/private_key
+router-2     ansible_host=192.168.57.12 ansible_ssh_private_key_file=.vagrant/machines/router-2/virtualbox/private_key
+router-3     ansible_host=192.168.57.13 ansible_ssh_private_key_file=.vagrant/machines/router-3/virtualbox/private_key
+router-4     ansible_host=192.168.57.14 ansible_ssh_private_key_file=.vagrant/machines/router-4/virtualbox/private_key
+router-5     ansible_host=192.168.57.15 ansible_ssh_private_key_file=.vagrant/machines/router-5/virtualbox/private_key
+pc-1         ansible_host=192.168.57.21 ansible_ssh_private_key_file=.vagrant/machines/pc-1/virtualbox/private_key
+pc-3         ansible_host=192.168.57.23 ansible_ssh_private_key_file=.vagrant/machines/pc-3/virtualbox/private_key
+pc-4         ansible_host=192.168.57.24 ansible_ssh_private_key_file=.vagrant/machines/pc-4/virtualbox/private_key
+pc-5         ansible_host=192.168.57.25 ansible_ssh_private_key_file=.vagrant/machines/pc-5/virtualbox/private_key
+pc-8         ansible_host=192.168.57.28 ansible_ssh_private_key_file=.vagrant/machines/pc-8/virtualbox/private_key
+docker-11    ansible_host=192.168.57.31 ansible_ssh_private_key_file=.vagrant/machines/docker-11/virtualbox/private_key
+docker-12    ansible_host=192.168.57.32 ansible_ssh_private_key_file=.vagrant/machines/docker-12/virtualbox/private_key
 
 [all:vars]
 ansible_user=vagrant
-ansible_ssh_private_key_file=.vagrant/machines/{}/virtualbox/private_key
 ansible_ssh_common_args='-o StrictHostKeyChecking=no'

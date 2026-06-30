@@ -31,7 +31,7 @@ GIT_FOLDER=$SCENARIO_REPO/.git
 if [ ! -d $GIT_FOLDER ]
 then
     rm -rf $SCENARIO_REPO
-    git clone https://github.com/Orange-Cyberdefense/GOAD.git $SCENARIO_REPO
+    git clone https://github.com/ivespino08/GOAD.git $SCENARIO_REPO
     cd $SCENARIO_REPO
 else
     cd $SCENARIO_REPO

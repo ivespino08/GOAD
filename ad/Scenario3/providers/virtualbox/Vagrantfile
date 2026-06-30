@@ -92,18 +92,48 @@ Vagrant.configure("2") do |config|
         apt-get install -y -qq python3 python3-pip
         echo 'vagrant ALL=(ALL) NOPASSWD:ALL' > /etc/sudoers.d/vagrant
         chmod 440 /etc/sudoers.d/vagrant
-        systemctl restart NetworkManager
+
+        # generic/ubuntu2204 uses netplan, not NetworkManager
+        cat > /etc/netplan/99-eth1-static.yaml << NETPLAN
+network:
+  version: 2
+  ethernets:
+    eth1:
+      addresses:
+        - #{box[:ip]}/24
+      dhcp4: false
+NETPLAN
+        chmod 600 /etc/netplan/99-eth1-static.yaml
+        netplan apply
         sleep 5
+
+        # Disable snapd seeding wait — speeds up boot, not used in this lab
+        systemctl disable snapd.seeded.service 2>/dev/null || true
+        systemctl mask snapd.seeded.service 2>/dev/null || true
+        systemctl stop snapd 2>/dev/null || true
+        systemctl disable snapd 2>/dev/null || true
+
+        # Only wait for eth1 (lab network) to come online, not all interfaces —
+        # eth0 (NAT) and any unused adapters shouldn't block boot
+        mkdir -p /etc/systemd/system/systemd-networkd-wait-online.service.d
+        cat > /etc/systemd/system/systemd-networkd-wait-online.service.d/override.conf << 'OVERRIDE'
+[Service]
+ExecStart=
+ExecStart=/lib/systemd/systemd-networkd-wait-online --interface=eth1 --timeout=30
+OVERRIDE
+        systemctl daemon-reload
       SHELL
 
       vm_config.vm.provision "shell", run: "always", inline: <<-SHELL
-        systemctl restart NetworkManager
+        netplan apply
         sleep 5
       SHELL
 
-      if box[:jumpbox]
-        vm_config.vm.provision "shell", path: "../../../../scripts/setup_local_jumpbox.sh"
-      end
+      # ── Jumpbox-specific provisioning ────────────────────────────────────
+      # setup_local_jumpbox.sh is NOT run by Vagrant — local_jumpbox.py
+      # SCPs the script to the jumpbox and runs it via SSH instead.
+      # Vagrant only needs to boot the PROVISIONING VM; the framework
+      # handles the rest via LocalJumpBox.provision().
 
     end
   end

@@ -1,0 +1,42 @@
+---
+# topology-flags.yml
+# Injects CTF flag artifacts into the running vulnerable Docker containers.
+# Replaces CORE's flag injection at session load time.
+# Must run AFTER topology-docker.yml (container must be running).
+# Mirrors the style of vulnerabilities.yml — per-host flag injection via role.
+
+- import_playbook: data.yml
+  tags: 'data'
+
+# ── docker-11 flags ──────────────────────────────────────────────────────────
+# Flag 1: salted PIN hash file
+# Hint: "The PIN digest file includes its salt and operator context."
+- name: "Inject flags into docker-11"
+  hosts: docker-11
+  become: true
+  roles:
+    - { role: 'ctf/flags', tags: 'flags' }
+  vars:
+    hostname: "{{lab.hosts[dict_key].hostname}}"
+    flag_files:
+      - filename: "docker-11_operator_pin.hash"
+        container_path: "/etc/pam.d/fragments/operator_pin.hash"
+        mode: "0644"
+      - filename: "docker-11_operator_pin.hash"
+        container_path: "/opt/badges/pins/operator_pin.hash"
+        mode: "0644"
+
+# ── docker-12 flags ──────────────────────────────────────────────────────────
+# Flag 2: token embedded in HTTPS backup index page
+# Credentials: user_269d47 / pass_85a08a653f22
+- name: "Inject flags into docker-12"
+  hosts: docker-12
+  become: true
+  roles:
+    - { role: 'ctf/flags', tags: 'flags' }
+  vars:
+    hostname: "{{lab.hosts[dict_key].hostname}}"
+    flag_files:
+      - filename: "docker-12_backup_index.html"
+        container_path: "/var/www/html/backups/backup_index.html"
+        mode: "0644"

@@ -1,0 +1,46 @@
+---
+# topology-links.yml
+# Configures point-to-point (r2r) links between routers.
+# Each link is a /24 subnet shared between exactly two routers.
+# Mirrors the style of ad-trusts.yml (inter-domain relationships).
+
+- import_playbook: data.yml
+  tags: 'data'
+
+- name: "Configure router-to-router links"
+  hosts: routers
+  tasks:
+    - include_role:
+        name: "network/r2r_link"
+      vars:
+        link: "{{item}}"
+        local_router: "{{dict_key}}"
+        local_ip4: >-
+          {{
+            item.routers
+            | selectattr('id', 'equalto', dict_key)
+            | map(attribute='ip')
+            | first
+          }}
+        peer_router: >-
+          {{
+            item.routers
+            | rejectattr('id', 'equalto', dict_key)
+            | map(attribute='id')
+            | first
+          }}
+        peer_ip4: >-
+          {{
+            item.routers
+            | rejectattr('id', 'equalto', dict_key)
+            | map(attribute='ip')
+            | first
+          }}
+        link_subnet: "{{item.subnet}}"
+      loop: >-
+        {{
+          lab.topology.r2r_links
+          | selectattr('routers', 'selectattr', 'id', 'equalto', dict_key)
+        }}
+      loop_control:
+        label: "edge {{item.edge_id}} — {{item.subnet}}"

@@ -1,0 +1,30 @@
+; ============================================================
+; INVENTORY 2 of 2 — PROVIDER INVENTORY (VirtualBox)
+; scenario/Scenario3/providers/virtualbox/inventory
+; Contains actual management IPs (192.168.57.x) from Vagrantfile.
+; Edit this file when IPs change.
+; ============================================================
+; VirtualBox provider inventory — mirrors ad/GOAD/providers/virtualbox/inventory in GOAD.
+; Contains the actual management IPs assigned by the Vagrantfile (192.168.57.x).
+; Ansible connects to these IPs via SSH on eth1.
+; Never edit the data/inventory — only edit this file for IP changes.
+
+[domain]
+PROVISIONING   ansible_host=192.168.57.3
+router-1   ansible_host=192.168.57.11
+router-2   ansible_host=192.168.57.12
+router-3   ansible_host=192.168.57.13
+router-4   ansible_host=192.168.57.14
+router-5   ansible_host=192.168.57.15
+pc-1       ansible_host=192.168.57.21
+pc-3       ansible_host=192.168.57.23
+pc-4       ansible_host=192.168.57.24
+pc-5       ansible_host=192.168.57.25
+pc-8       ansible_host=192.168.57.28
+docker-11  ansible_host=192.168.57.31
+docker-12  ansible_host=192.168.57.32
+
+[all:vars]
+ansible_user=vagrant
+ansible_ssh_private_key_file=.vagrant/machines/{}/virtualbox/private_key
+ansible_ssh_common_args='-o StrictHostKeyChecking=no'

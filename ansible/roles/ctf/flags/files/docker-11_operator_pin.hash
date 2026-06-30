@@ -1,0 +1,10 @@
+# operator_pin.hash
+# Flag artifact for docker-11 (node 16) — Scenario3
+# Hint: "The PIN digest file includes its salt and operator context."
+# Format: sha256(salt + operator_name + pin)
+# Location on container: /etc/pam.d/fragments/operator_pin.hash
+#                    or: /opt/badges/pins/operator_pin.hash
+
+operator_id=op_7f3a9c
+salt=8a2f1b
+hash=5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8

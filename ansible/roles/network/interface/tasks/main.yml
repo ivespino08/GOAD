@@ -1,0 +1,21 @@
+- name: "Install network-manager"
+  ansible.builtin.package:
+    name: network-manager
+    state: present
+
+- name: "Configure interface {{interface_name}} with {{interface_ip4}}"
+  ansible.builtin.nmcli:
+    conn_name: "{{interface_name}}"
+    ifname: "{{interface_name}}"
+    type: ethernet
+    ip4: "{{interface_ip4}}"
+    gw4: "{{gateway_ip4 | default(omit)}}"
+    never_default4: "{{true if gateway_ip4 is not defined else false}}"
+    autoconnect: yes
+    state: present
+  register: interface_result
+
+- name: "Bring up {{interface_name}}"
+  ansible.builtin.command:
+    cmd: nmcli connection up "{{interface_name}}"
+  when: interface_result.changed

@@ -1,0 +1,37 @@
+---
+# topology-hitl.yml
+# Configures the Hardware-in-the-Loop (HITL) participant interface.
+# In scenario.xml this is ens19 on router-3, bridging the emulated
+# network to the physical participant LAN (10.0.0.0/24).
+# Mirrors the style of adcs.yml.
+
+- import_playbook: data.yml
+  tags: 'data'
+
+# --------------------------------------------------------------------
+# Attach HITL interface on the router that carries it (router-3)
+# --------------------------------------------------------------------
+- name: "Configure HITL participant network interface"
+  hosts: hitl_router
+  roles:
+    - { role: 'network/hitl_interface', tags: 'hitl_interface' }
+  vars:
+    hostname: "{{lab.hosts[dict_key].hostname}}"
+    hitl_interface_name: "{{lab.hosts[dict_key].hitl_interface.slug}}"
+    hitl_ip4: "{{lab.hosts[dict_key].hitl_interface.ip4}}"
+    hitl_rj45_ip4: "{{lab.hosts[dict_key].hitl_interface.rj45_ip4}}"
+    hitl_network: "{{lab.hosts[dict_key].hitl_interface.network}}"
+    hitl_attachment: "{{lab.hosts[dict_key].hitl_interface.attachment}}"
+    router_lan_ip4: "{{lab.hosts[dict_key].ip4}}"
+
+# --------------------------------------------------------------------
+# Add routing for the participant network via the HITL gateway
+# (equivalent to dns_conditional_forwarder in ad-child_domain.yml)
+# --------------------------------------------------------------------
+- name: "Add route for HITL participant network"
+  hosts: hitl_router
+  roles:
+    - { role: 'network/hitl_forwarding', tags: 'hitl_forwarding' }
+  vars:
+    hitl_network: "{{lab.hosts[dict_key].hitl_interface.network}}"
+    hitl_gateway: "{{lab.hosts[dict_key].hitl_interface.rj45_ip4 | ansible.utils.ipaddr('address')}}"

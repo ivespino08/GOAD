@@ -1,0 +1,42 @@
+- name: "Enable IP forwarding"
+  ansible.posix.sysctl:
+    name: net.ipv4.ip_forward
+    value: "1"
+    sysctl_set: yes
+    state: present
+    reload: yes
+
+- name: "Install frr"
+  ansible.builtin.package:
+    name: frr
+    state: present
+
+- name: "Deploy FRR daemons config"
+  ansible.builtin.template:
+    src: files/daemons.j2
+    dest: /etc/frr/daemons
+    owner: frr
+    group: frr
+    mode: "0640"
+  register: daemons_result
+
+- name: "Deploy FRR RIP configuration"
+  ansible.builtin.template:
+    src: files/frr.conf.j2
+    dest: /etc/frr/frr.conf
+    owner: frr
+    group: frr
+    mode: "0640"
+  register: frr_conf_result
+
+- name: "Enable and start FRR service"
+  ansible.builtin.service:
+    name: frr
+    state: started
+    enabled: yes
+
+- name: "Reload FRR to apply config changes"
+  ansible.builtin.service:
+    name: frr
+    state: reloaded
+  when: frr_conf_result.changed or daemons_result.changed

@@ -1,0 +1,24 @@
+- name: "Find all traffic scripts on {{inventory_hostname}}"
+  ansible.builtin.find:
+    paths: "{{traffic_script_dir}}"
+    patterns: "*.py"
+  register: traffic_scripts
+
+- name: "Start each traffic script as a background process"
+  ansible.builtin.shell:
+    cmd: "nohup python3 {{item.path}} > {{item.path}}.log 2>&1 &"
+  loop: "{{traffic_scripts.files}}"
+  loop_control:
+    label: "{{item.path | basename}}"
+  register: start_result
+  changed_when: start_result.rc == 0
+
+- name: "Confirm traffic scripts are running"
+  ansible.builtin.shell:
+    cmd: pgrep -f "python3 {{traffic_script_dir}}" | wc -l
+  register: running_count
+  changed_when: false
+
+- name: "Report running traffic scripts"
+  ansible.builtin.debug:
+    msg: "{{running_count.stdout | trim}} traffic script(s) running on {{inventory_hostname}}"

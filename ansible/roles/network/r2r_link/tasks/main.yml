@@ -1,0 +1,26 @@
+- name: "Set fact for r2r interface index"
+  set_fact:
+    r2r_interface_name: "{{interface_name | default('eth' + (peer_router | hash('md5') | int(base=16) % 8 + 1) | string)}}"
+
+- name: "Configure r2r interface toward {{peer_router}} ({{link_subnet}})"
+  ansible.builtin.nmcli:
+    conn_name: "r2r-{{peer_router}}"
+    ifname: "{{r2r_interface_name}}"
+    type: ethernet
+    ip4: "{{local_ip4}}"
+    never_default4: true
+    autoconnect: yes
+    state: present
+  register: r2r_result
+
+- name: "Bring up r2r interface toward {{peer_router}}"
+  ansible.builtin.command:
+    cmd: nmcli connection up "r2r-{{peer_router}}"
+  when: r2r_result.changed
+
+- name: "Add static route to peer LAN via {{peer_ip4 | ansible.utils.ipaddr('address')}}"
+  ansible.builtin.command:
+    cmd: ip route add {{link_subnet}} via {{peer_ip4 | ansible.utils.ipaddr('address')}} dev {{r2r_interface_name}}
+  register: route_add
+  failed_when: route_add.rc != 0 and 'exists' not in route_add.stderr
+  changed_when: route_add.rc == 0

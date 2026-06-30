@@ -1,0 +1,27 @@
+- name: "Set default gateway to {{gateway_ip4}} on {{interface_name}}"
+  ansible.builtin.nmcli:
+    conn_name: "{{interface_name}}"
+    ifname: "{{interface_name}}"
+    type: ethernet
+    ip4: "{{interface_ip4}}"
+    gw4: "{{gateway_ip4}}"
+    never_default4: false
+    autoconnect: yes
+    state: present
+  register: gateway_result
+
+- name: "Bring up {{interface_name}} after gateway change"
+  ansible.builtin.command:
+    cmd: nmcli connection up "{{interface_name}}"
+  when: gateway_result.changed
+
+- name: "Confirm default route via {{gateway_ip4}}"
+  ansible.builtin.command:
+    cmd: ip route show default
+  register: route_check
+  changed_when: false
+
+- name: "Add default route if missing"
+  ansible.builtin.command:
+    cmd: ip route add default via {{gateway_ip4}} dev {{interface_name}}
+  when: gateway_ip4 not in route_check.stdout

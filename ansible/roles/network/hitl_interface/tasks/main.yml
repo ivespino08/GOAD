@@ -1,0 +1,35 @@
+- name: "Check {{hitl_interface_name}} interface exists"
+  ansible.builtin.command:
+    cmd: ip link show {{hitl_interface_name}}
+  register: hitl_iface_check
+  failed_when: false
+  changed_when: false
+
+- name: "Fail if HITL interface {{hitl_interface_name}} not found"
+  ansible.builtin.fail:
+    msg: "HITL interface {{hitl_interface_name}} not found on {{inventory_hostname}} — check physical NIC attachment"
+  when: hitl_iface_check.rc != 0
+
+- name: "Configure HITL interface {{hitl_interface_name}} with {{hitl_ip4}}"
+  ansible.builtin.nmcli:
+    conn_name: "{{hitl_interface_name}}"
+    ifname: "{{hitl_interface_name}}"
+    type: ethernet
+    ip4: "{{hitl_ip4}}"
+    never_default4: true
+    autoconnect: yes
+    state: present
+  register: hitl_result
+
+- name: "Bring up HITL interface {{hitl_interface_name}}"
+  ansible.builtin.command:
+    cmd: nmcli connection up "{{hitl_interface_name}}"
+  when: hitl_result.changed
+
+- name: "Enable IP forwarding for HITL bridging"
+  ansible.posix.sysctl:
+    name: net.ipv4.ip_forward
+    value: "1"
+    sysctl_set: yes
+    state: present
+    reload: yes

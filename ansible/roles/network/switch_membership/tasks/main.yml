@@ -1,0 +1,34 @@
+- name: "Install bridge-utils"
+  ansible.builtin.package:
+    name: bridge-utils
+    state: present
+
+- name: "Create bridge {{switch_name | regex_replace('[./]', '-')}}"
+  ansible.builtin.nmcli:
+    conn_name: "br-{{switch_name | regex_replace('[./]', '-')}}"
+    ifname: "br-{{switch_name | regex_replace('[./]', '-')}}"
+    type: bridge
+    ip4: "{{lab.hosts[dict_key].ip4}}"
+    autoconnect: yes
+    state: present
+  register: bridge_result
+
+- name: "Bring up bridge {{switch_name | regex_replace('[./]', '-')}}"
+  ansible.builtin.command:
+    cmd: nmcli connection up "br-{{switch_name | regex_replace('[./]', '-')}}"
+  when: bridge_result.changed
+
+- name: "Attach LAN interface eth0 to bridge"
+  ansible.builtin.nmcli:
+    conn_name: "br-slave-eth0"
+    ifname: "eth0"
+    type: bridge-slave
+    master: "br-{{switch_name | regex_replace('[./]', '-')}}"
+    autoconnect: yes
+    state: present
+  register: slave_result
+
+- name: "Bring up bridge slave eth0"
+  ansible.builtin.command:
+    cmd: nmcli connection up "br-slave-eth0"
+  when: slave_result.changed

@@ -1,0 +1,25 @@
+version: "3.8"
+
+# CVE-2017-8386 — git-shell RCE vulnerability
+# Deployed by the docker/vuln_node role onto docker-11 and docker-12.
+# The vulnerable git service listens on port 22 (SSH/git).
+# Flags are injected by the ctf/flags role after this container is running.
+
+services:
+  git-vuln:
+    image: gitstack/gitstack:2.3.10
+    container_name: git-vuln-cve-2017-8386
+    restart: unless-stopped
+    ports:
+      - "22:22"
+      - "80:80"
+    volumes:
+      - git-data:/opt/gitstack/data
+      - /tmp/flags:/flags:ro   # flags mounted read-only from host
+    environment:
+      - GIT_HTTP_EXPORT_ALL=1
+    cap_add:
+      - NET_BIND_SERVICE
+
+volumes:
+  git-data:

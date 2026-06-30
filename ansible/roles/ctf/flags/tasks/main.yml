@@ -1,0 +1,41 @@
+- name: "Create flag staging directory"
+  ansible.builtin.file:
+    path: /tmp/flags
+    state: directory
+    mode: "0755"
+
+- name: "Copy flag artifacts for {{hostname}}"
+  ansible.builtin.copy:
+    src: "files/{{hostname}}_{{item.filename}}"
+    dest: "/tmp/flags/{{item.filename}}"
+    mode: "0644"
+  loop: "{{flag_files | default([])}}"
+  loop_control:
+    label: "{{item.filename}}"
+
+- name: "Inject flags into running container"
+  community.docker.docker_container_exec:
+    container: git-vuln-cve-2017-8386
+    command: "mkdir -p {{item.container_path | dirname}}"
+  loop: "{{flag_files | default([])}}"
+  loop_control:
+    label: "mkdir {{item.container_path | dirname}}"
+
+- name: "Copy flag file into container at correct path"
+  ansible.builtin.command:
+    cmd: >
+      docker cp /tmp/flags/{{item.filename}}
+      git-vuln-cve-2017-8386:{{item.container_path}}
+  loop: "{{flag_files | default([])}}"
+  loop_control:
+    label: "{{item.filename}} → {{item.container_path}}"
+  register: flag_copy
+  changed_when: flag_copy.rc == 0
+
+- name: "Set flag file permissions inside container"
+  community.docker.docker_container_exec:
+    container: git-vuln-cve-2017-8386
+    command: "chmod {{item.mode | default('0644')}} {{item.container_path}}"
+  loop: "{{flag_files | default([])}}"
+  loop_control:
+    label: "chmod {{item.container_path}}"

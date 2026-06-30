@@ -1,0 +1,28 @@
+- name: "Install dhclient"
+  ansible.builtin.package:
+    name: isc-dhcp-client
+    state: present
+
+- name: "Configure {{interface_name}} for DHCP"
+  ansible.builtin.nmcli:
+    conn_name: "{{interface_name}}"
+    ifname: "{{interface_name}}"
+    type: ethernet
+    method4: auto
+    autoconnect: yes
+    state: present
+  register: dhcp_result
+
+- name: "Bring up {{interface_name}} in DHCP mode"
+  ansible.builtin.command:
+    cmd: nmcli connection up "{{interface_name}}"
+  when: dhcp_result.changed
+
+- name: "Confirm DHCP lease acquired on {{interface_name}}"
+  ansible.builtin.command:
+    cmd: ip addr show {{interface_name}}
+  register: dhcp_check
+  changed_when: false
+  until: "'inet ' in dhcp_check.stdout"
+  retries: 10
+  delay: 5

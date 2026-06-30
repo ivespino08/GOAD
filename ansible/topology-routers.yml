@@ -1,0 +1,37 @@
+---
+# topology-routers.yml
+# Configures IP addresses on all router LAN and r2r interfaces.
+# Mirrors the style of ad-servers.yml / ad-child_domain.yml.
+
+- import_playbook: data.yml
+  tags: 'data'
+
+# --------------------------------------------------------------------
+# LAN-side interface — each router's primary subnet address
+# --------------------------------------------------------------------
+- name: "Configure router LAN interfaces"
+  hosts: routers
+  roles:
+    - { role: 'network/interface', tags: 'router_lan_interface' }
+  vars:
+    hostname: "{{lab.hosts[dict_key].hostname}}"
+    interface_ip4: "{{lab.hosts[dict_key].ip4}}"
+    interface_name: "eth0"
+    interface_description: "LAN — {{lab.hosts[dict_key].lan_subnet}}"
+
+# --------------------------------------------------------------------
+# Router-to-router interfaces — one interface per r2r peer
+# --------------------------------------------------------------------
+- name: "Configure router r2r interfaces"
+  hosts: routers
+  tasks:
+    - include_role:
+        name: "network/interface"
+      vars:
+        interface_ip4: "{{lab.hosts[dict_key].r2r_interfaces[peer]}}"
+        interface_name: "eth{{peer_idx + 1}}"
+        interface_description: "r2r link to {{peer}}"
+      loop: "{{lab.hosts[dict_key].r2r_interfaces.keys() | list}}"
+      loop_control:
+        loop_var: peer
+        index_var: peer_idx

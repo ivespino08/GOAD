@@ -1,0 +1,106 @@
+; ============================================================
+; INVENTORY 1 of 2 — LAB DATA INVENTORY
+; scenario/Scenario3/data/inventory
+; Provider-independent. Defines host groups and shared vars.
+; Contains NO IP addresses. Do NOT modify this file.
+; ============================================================
+; Lab data inventory — mirrors ad/<lab>/data/inventory in GOAD.
+; This file is NOT modified. It contains the lab topology logic and host groupings.
+; Provider-specific IPs live in scenario/Scenario3/providers/<provider>/inventory.
+;
+; Run playbooks as:
+;   ansible-playbook -i ../scenario/Scenario3/data/inventory \
+;                    -i ../scenario/Scenario3/providers/<provider>/inventory \
+;                    topology-routers.yml
+
+; GLOBAL CONFIG
+[all:vars]
+; domain_name : folder inside scenario/
+domain_name=Scenario3
+
+; global settings
+add_route=no
+route_gateway=192.168.0.1
+route_network=10.0.0.0/8
+
+; HTTP proxy (disable by default)
+enable_http_proxy=no
+ad_http_proxy=http://x.x.x.x:xxxx
+ad_https_proxy=http://x.x.x.x:xxxx
+
+; SSH connection (Linux hosts)
+ansible_connection=ssh
+ansible_python_interpreter=/usr/bin/python3
+
+; dict_key maps to lab.hosts[dict_key] in config.json — must match inventory hostname
+dict_key={{inventory_hostname}}
+
+; two_adapters — set to yes if hosts have a separate NAT/mgmt adapter
+two_adapters=no
+nat_adapter=eth1
+domain_adapter=eth0
+
+; LAB SCENARIO CONFIGURATION -----------------------------
+
+; all scenario nodes — used by data.yml (hosts: domain:linux_domain:extensions)
+; equivalent to [domain] in GOAD
+[domain]
+router-1  dns_domain=router-1
+router-2  dns_domain=router-1
+router-3  dns_domain=router-1
+router-4  dns_domain=router-1
+router-5  dns_domain=router-1
+pc-1      dns_domain=router-1
+pc-3      dns_domain=router-3
+pc-4      dns_domain=router-4
+pc-5      dns_domain=router-5
+pc-8      dns_domain=router-3
+docker-11 dns_domain=router-1
+docker-12 dns_domain=router-2
+
+[linux_domain]
+
+; routers — equivalent to [dc] in GOAD
+; usage: topology-routers.yml, topology-links.yml, topology-routing.yml, topology-hosts.yml
+[routers]
+router-1
+router-2
+router-3
+router-4
+router-5
+
+; the router carrying the HITL participant interface (ens19)
+; usage: topology-hitl.yml
+[hitl_router]
+router-3
+
+; PC hosts — equivalent to [server] in GOAD
+; usage: topology-hosts.yml, topology-services.yml, topology-traffic.yml
+[pcs]
+pc-1
+pc-3
+pc-4
+pc-5
+pc-8
+
+; Docker (vulnerable) hosts
+; usage: topology-hosts.yml, topology-services.yml, topology-traffic.yml
+[docker_nodes]
+docker-11
+docker-12
+
+; hosts running DHCPClient as defined in config.json services[]
+; usage: topology-services.yml
+[dhcp_clients]
+pc-1
+pc-4
+docker-11
+docker-12
+
+; convenience groups
+[all_hosts:children]
+pcs
+docker_nodes
+
+; stay empty until override
+[extensions]

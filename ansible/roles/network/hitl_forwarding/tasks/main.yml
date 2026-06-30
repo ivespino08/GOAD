@@ -1,0 +1,31 @@
+- name: "Check for existing route to {{hitl_network}}"
+  ansible.builtin.command:
+    cmd: ip route show {{hitl_network}}
+  register: hitl_route_check
+  changed_when: false
+  failed_when: false
+
+- name: "Add static route to participant network {{hitl_network}} via {{hitl_gateway}}"
+  ansible.builtin.command:
+    cmd: ip route add {{hitl_network}} via {{hitl_gateway}} dev {{hitl_interface_name | default('ens19')}}
+  when: hitl_route_check.stdout == ""
+  register: hitl_route_add
+  failed_when: hitl_route_add.rc != 0 and 'exists' not in hitl_route_add.stderr
+
+- name: "Persist HITL route via nmcli"
+  ansible.builtin.nmcli:
+    conn_name: "{{hitl_interface_name | default('ens19')}}"
+    ifname: "{{hitl_interface_name | default('ens19')}}"
+    type: ethernet
+    ip4: "{{hitl_ip4}}"
+    routes4:
+      - "{{hitl_network}} {{hitl_gateway}}"
+    never_default4: true
+    autoconnect: yes
+    state: present
+  register: hitl_persist_result
+
+- name: "Reload HITL connection to apply persisted route"
+  ansible.builtin.command:
+    cmd: nmcli connection up "{{hitl_interface_name | default('ens19')}}"
+  when: hitl_persist_result.changed

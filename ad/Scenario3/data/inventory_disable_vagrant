@@ -1,0 +1,54 @@
+[default]
+; Note: ansible_host *MUST* be an IPv4 address or setting things like DNS
+; servers will break.
+; Use this inventory when provisioning directly against existing Linux hosts
+; without Vagrant — replace IPs with your actual host addresses.
+; ------------------------------------------------
+; Scenario3 — routers
+; ------------------------------------------------
+router-1  ansible_host={{ip_range}}.11  dict_key=router-1  ansible_user=ubuntu
+router-2  ansible_host={{ip_range}}.12  dict_key=router-2  ansible_user=ubuntu
+router-3  ansible_host={{ip_range}}.13  dict_key=router-3  ansible_user=ubuntu
+router-4  ansible_host={{ip_range}}.14  dict_key=router-4  ansible_user=ubuntu
+router-5  ansible_host={{ip_range}}.15  dict_key=router-5  ansible_user=ubuntu
+; ------------------------------------------------
+; Scenario3 — PC hosts
+; ------------------------------------------------
+pc-1      ansible_host={{ip_range}}.21  dict_key=pc-1      ansible_user=ubuntu
+pc-3      ansible_host={{ip_range}}.23  dict_key=pc-3      ansible_user=ubuntu
+pc-4      ansible_host={{ip_range}}.24  dict_key=pc-4      ansible_user=ubuntu
+pc-5      ansible_host={{ip_range}}.25  dict_key=pc-5      ansible_user=ubuntu
+pc-8      ansible_host={{ip_range}}.28  dict_key=pc-8      ansible_user=ubuntu
+; ------------------------------------------------
+; Scenario3 — Docker (vulnerable) hosts
+; ------------------------------------------------
+docker-11 ansible_host={{ip_range}}.31  dict_key=docker-11 ansible_user=ubuntu
+docker-12 ansible_host={{ip_range}}.32  dict_key=docker-12 ansible_user=ubuntu
+
+[all:vars]
+; domain_name : folder inside scenario/
+domain_name=Scenario3
+
+; ip_range : first 3 octets of your management network
+ip_range=192.168.57
+
+; SSH connection (Linux)
+ansible_connection=ssh
+ansible_ssh_private_key_file=~/.ssh/id_rsa
+ansible_ssh_common_args='-o StrictHostKeyChecking=no'
+ansible_python_interpreter=/usr/bin/python3
+
+; LAB SCENARIO CONFIGURATION -----------------------------
+[domain]
+router-1
+router-2
+router-3
+router-4
+router-5
+pc-1
+pc-3
+pc-4
+pc-5
+pc-8
+docker-11
+docker-12

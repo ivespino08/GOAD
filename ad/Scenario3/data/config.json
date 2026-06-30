@@ -1,0 +1,246 @@
+{
+  "lab": {
+    "hosts": {
+      "router-1": {
+        "hostname": "router-1",
+        "type": "router",
+        "ip4": "172.18.167.1/24",
+        "lan_subnet": "172.18.167.0/24",
+        "r2r_interfaces": {
+          "router-2": "172.17.175.1/24"
+        },
+        "protocol": "RIP"
+      },
+      "router-2": {
+        "hostname": "router-2",
+        "type": "router",
+        "ip4": "172.24.124.1/24",
+        "lan_subnet": "172.24.124.0/24",
+        "r2r_interfaces": {
+          "router-1": "172.17.175.2/24",
+          "router-3": "192.168.22.1/24"
+        },
+        "protocol": "RIP"
+      },
+      "router-3": {
+        "hostname": "router-3",
+        "type": "router",
+        "ip4": "172.31.171.1/24",
+        "lan_subnet": "172.31.171.0/24",
+        "r2r_interfaces": {
+          "router-2": "192.168.22.2/24",
+          "router-4": "10.0.98.1/24"
+        },
+        "protocol": "RIP",
+        "hitl_interface": {
+          "slug": "ens19",
+          "ip4": "10.0.0.1/24",
+          "rj45_ip4": "10.0.0.21/24",
+          "network": "10.0.0.0/24",
+          "attachment": "existing_router"
+        }
+      },
+      "router-4": {
+        "hostname": "router-4",
+        "type": "router",
+        "ip4": "10.0.103.1/24",
+        "lan_subnet": "10.0.103.0/24",
+        "r2r_interfaces": {
+          "router-3": "10.0.98.2/24",
+          "router-5": "172.20.16.1/24"
+        },
+        "protocol": "RIP"
+      },
+      "router-5": {
+        "hostname": "router-5",
+        "type": "router",
+        "ip4": "10.0.61.1/24",
+        "lan_subnet": "10.0.61.0/24",
+        "r2r_interfaces": {
+          "router-4": "172.20.16.2/24"
+        },
+        "protocol": "RIP"
+      },
+      "pc-1": {
+        "hostname": "pc-1",
+        "type": "pc",
+        "ip4": "172.18.167.2/24",
+        "gateway": "172.18.167.1",
+        "lan_subnet": "172.18.167.0/24",
+        "router": "router-1",
+        "switch": "rsw-1-1",
+        "services": [
+          "DHCPClient"
+        ],
+        "vulns": []
+      },
+      "pc-3": {
+        "hostname": "pc-3",
+        "type": "pc",
+        "ip4": "172.31.171.2/24",
+        "gateway": "172.31.171.1",
+        "lan_subnet": "172.31.171.0/24",
+        "router": "router-3",
+        "switch": "rsw-3-1",
+        "services": [],
+        "vulns": []
+      },
+      "pc-4": {
+        "hostname": "pc-4",
+        "type": "pc",
+        "ip4": "10.0.103.2/24",
+        "gateway": "10.0.103.1",
+        "lan_subnet": "10.0.103.0/24",
+        "router": "router-4",
+        "switch": "rsw-4-1",
+        "services": [
+          "DHCPClient"
+        ],
+        "vulns": []
+      },
+      "pc-5": {
+        "hostname": "pc-5",
+        "type": "pc",
+        "ip4": "10.0.61.2/24",
+        "gateway": "10.0.61.1",
+        "lan_subnet": "10.0.61.0/24",
+        "router": "router-5",
+        "switch": "rsw-5-1",
+        "services": [],
+        "vulns": []
+      },
+      "pc-8": {
+        "hostname": "pc-8",
+        "type": "pc",
+        "ip4": "172.31.171.3/24",
+        "gateway": "172.31.171.1",
+        "lan_subnet": "172.31.171.0/24",
+        "router": "router-3",
+        "switch": "rsw-3-1",
+        "services": [],
+        "vulns": []
+      },
+      "docker-11": {
+        "hostname": "docker-11",
+        "type": "docker",
+        "ip4": "172.18.167.4/24",
+        "gateway": "172.18.167.1",
+        "lan_subnet": "172.18.167.0/24",
+        "router": "router-1",
+        "switch": "rsw-1-1",
+        "services": [
+          "DHCPClient"
+        ],
+        "vulns": [
+          "git/CVE-2017-8386"
+        ]
+      },
+      "docker-12": {
+        "hostname": "docker-12",
+        "type": "docker",
+        "ip4": "172.24.124.4/24",
+        "gateway": "172.24.124.1",
+        "lan_subnet": "172.24.124.0/24",
+        "router": "router-2",
+        "switch": "rsw-2-1",
+        "services": [
+          "DHCPClient"
+        ],
+        "vulns": [
+          "git/CVE-2017-8386"
+        ]
+      }
+    },
+    "topology": {
+      "seed": 1244715540,
+      "r2r_links": [
+        {
+          "edge_id": 1,
+          "subnet": "172.17.175.0/24",
+          "routers": [
+            {
+              "id": "router-1",
+              "ip": "172.17.175.1/24"
+            },
+            {
+              "id": "router-2",
+              "ip": "172.17.175.2/24"
+            }
+          ]
+        },
+        {
+          "edge_id": 2,
+          "subnet": "192.168.22.0/24",
+          "routers": [
+            {
+              "id": "router-2",
+              "ip": "192.168.22.1/24"
+            },
+            {
+              "id": "router-3",
+              "ip": "192.168.22.2/24"
+            }
+          ]
+        },
+        {
+          "edge_id": 3,
+          "subnet": "10.0.98.0/24",
+          "routers": [
+            {
+              "id": "router-3",
+              "ip": "10.0.98.1/24"
+            },
+            {
+              "id": "router-4",
+              "ip": "10.0.98.2/24"
+            }
+          ]
+        },
+        {
+          "edge_id": 4,
+          "subnet": "172.20.16.0/24",
+          "routers": [
+            {
+              "id": "router-4",
+              "ip": "172.20.16.1/24"
+            },
+            {
+              "id": "router-5",
+              "ip": "172.20.16.2/24"
+            }
+          ]
+        }
+      ],
+      "traffic": [
+        {
+          "src": "pc-3",
+          "dst": "pc-1",
+          "protocol": "TCP",
+          "rate_kbps": 128,
+          "pattern": "continuous"
+        },
+        {
+          "src": "pc-8",
+          "dst": "docker-11",
+          "protocol": "TCP",
+          "rate_kbps": 128,
+          "pattern": "continuous"
+        },
+        {
+          "src": "docker-12",
+          "dst": "pc-5",
+          "protocol": "TCP",
+          "rate_kbps": 128,
+          "pattern": "continuous"
+        },
+        {
+          "src": "pc-4",
+          "dst": "pc-8",
+          "protocol": "TCP",
+          "rate_kbps": 128,
+          "pattern": "continuous"
+        }
+      ]
+    }
+  }
+}

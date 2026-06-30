@@ -1,0 +1,36 @@
+---
+# topology-services.yml
+# Configures per-host services defined in the scenario data.
+# Mirrors the style of servers.yml.
+
+- import_playbook: data.yml
+  tags: 'data'
+
+# --------------------------------------------------------------------
+# DHCP client — hosts with "DHCPClient" in their services list
+# --------------------------------------------------------------------
+- name: "Configure DHCP client on applicable hosts"
+  hosts: dhcp_clients
+  roles:
+    - { role: 'network/services/dhcp_client', tags: 'dhcp_client' }
+  vars:
+    hostname: "{{lab.hosts[dict_key].hostname}}"
+    interface_name: "eth0"
+    lan_subnet: "{{lab.hosts[dict_key].lan_subnet}}"
+    gateway_ip4: "{{lab.hosts[dict_key].gateway}}"
+
+# --------------------------------------------------------------------
+# Additional services — loop over any services declared per host
+# Mirrors the vuln/script loop pattern in vulnerabilities.yml
+# --------------------------------------------------------------------
+- name: "Configure additional per-host services"
+  hosts: domain
+  tasks:
+    - include_role:
+        name: "network/services/{{service}}"
+      vars:
+        hostname: "{{lab.hosts[dict_key].hostname}}"
+        lan_subnet: "{{lab.hosts[dict_key].lan_subnet}}"
+      loop: "{{lab.hosts[dict_key].services | default([])}}"
+      loop_control:
+        loop_var: service

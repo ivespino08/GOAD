@@ -1,0 +1,105 @@
+NHA:
+  - build.yml
+  - ad-servers.yml
+  - ad-parent_domain.yml
+  # - ad-child_domain.yml
+  - ad-members.yml
+  - ad-trusts.yml
+  - ad-data.yml
+  - ad-gmsa.yml
+  # - laps.yml
+  - ad-relations.yml
+  - adcs.yml
+  - ad-acl.yml
+  - servers.yml
+  - security.yml
+  - vulnerabilities.yml
+
+SCCM:
+  - build.yml
+  - ad-servers.yml
+  - ad-parent_domain.yml
+  # - ad-child_domain.yml
+  - ad-members.yml
+  # - ad-trusts.yml
+  - ad-data.yml
+  # - ad-gmsa.yml
+  # - laps.yml
+  - ad-relations.yml
+  # - adcs.yml
+  - ad-acl.yml
+  - servers.yml
+  - security.yml
+  - vulnerabilities.yml
+  - sccm-install.yml
+  # Waiting 10 minutes for the install to complete
+  - wait5m.yml
+  - wait5m.yml
+  - reboot.yml
+  # reboot before launching the sccm config to finish the install
+  # Waiting 5 minutes before launching the configuration
+  - wait5m.yml
+  - dhcp.yml
+  - sccm-config.yml
+  - sccm-pxe.yml
+  # replay client install fix some issue in enrollment for CLIENT
+  - sccm-client.yml
+
+GOAD-Mini:
+  - build.yml
+  - ad-servers.yml
+  - ad-parent_domain.yml
+  - ad-data.yml
+  - ad-relations.yml
+  - adcs.yml
+  - ad-acl.yml
+  - security.yml
+  - vulnerabilities.yml
+
+DRACARYS:
+  - build.yml
+  - ad-servers.yml
+  - ad-parent_domain.yml
+  - ad-members.yml
+  - ad-enroll_linux.yml
+  - ad-data.yml
+  - ad-relations.yml
+  - ad-acl.yml
+  - klink.yml
+  - keepass.yml
+  - security.yml
+  - vulnerabilities.yml
+  - reboot.yml
+  - glpi.yml
+
+Scenario3:
+  - topology-routers.yml       # configure router LAN + r2r interfaces
+  - topology-links.yml         # configure point-to-point r2r subnets
+  - topology-hosts.yml         # assign IPs, gateways, switch membership to PCs + Docker hosts
+  - topology-routing.yml       # configure RIP on all routers
+  - topology-services.yml      # configure per-host services (DHCPClient etc.)
+  - topology-hitl.yml          # attach ens19 participant interface on router-3
+  - topology-docker.yml        # install Docker + deploy CVE-2017-8386 container (replaces CORE)
+  - topology-flags.yml         # inject CTF flag artifacts into containers (replaces CORE session load)
+  - topology-traffic.yml       # deploy + start background traffic scripts
+  - reboot.yml                 # final reboot to confirm clean state
+
+default:
+  - build.yml
+  - ad-servers.yml
+  - ad-parent_domain.yml
+  # Wait after the child domain creation before adding servers
+  - ad-child_domain.yml
+  # Waiting 5 minutes for the child domain to be ready
+  - wait5m.yml
+  - ad-members.yml
+  - ad-trusts.yml
+  - ad-data.yml
+  - ad-gmsa.yml
+  - laps.yml
+  - ad-relations.yml
+  - adcs.yml
+  - ad-acl.yml
+  - servers.yml
+  - security.yml
+  - vulnerabilities.yml

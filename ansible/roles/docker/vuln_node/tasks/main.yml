@@ -1,0 +1,89 @@
+- name: "Install Docker dependencies"
+  ansible.builtin.apt:
+    name:
+      - apt-transport-https
+      - ca-certificates
+      - curl
+      - gnupg
+      - lsb-release
+      - python3-docker
+    state: present
+    update_cache: yes
+
+- name: "Add Docker GPG key"
+  ansible.builtin.apt_key:
+    url: https://download.docker.com/linux/ubuntu/gpg
+    state: present
+
+- name: "Add Docker apt repository"
+  ansible.builtin.apt_repository:
+    repo: "deb [arch=amd64] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
+    state: present
+
+- name: "Install Docker CE and Docker Compose plugin"
+  ansible.builtin.apt:
+    name:
+      - docker-ce
+      - docker-ce-cli
+      - containerd.io
+      - docker-compose-plugin
+    state: present
+    update_cache: yes
+
+- name: "Enable and start Docker"
+  ansible.builtin.service:
+    name: docker
+    state: started
+    enabled: yes
+
+- name: "Add vagrant user to docker group"
+  ansible.builtin.user:
+    name: vagrant
+    groups: docker
+    append: yes
+
+- name: "Create flag staging directory on host"
+  ansible.builtin.file:
+    path: /tmp/flags
+    state: directory
+    mode: "0755"
+
+- name: "Copy docker-compose.yml for {{hostname}}"
+  ansible.builtin.copy:
+    src: files/docker-compose.yml
+    dest: /opt/vuln/docker-compose.yml
+    mode: "0644"
+  register: compose_result
+
+- name: "Create /opt/vuln directory"
+  ansible.builtin.file:
+    path: /opt/vuln
+    state: directory
+    mode: "0755"
+
+- name: "Pull vulnerable image"
+  community.docker.docker_image:
+    name: "gitstack/gitstack:2.3.10"
+    source: pull
+  register: pull_result
+  until: pull_result is not failed
+  retries: 3
+  delay: 10
+
+- name: "Start vulnerable container via Docker Compose"
+  ansible.builtin.command:
+    cmd: docker compose up -d
+    chdir: /opt/vuln
+  when: compose_result.changed or pull_result.changed
+  register: compose_up
+  until: compose_up is not failed
+  retries: 3
+  delay: 10
+
+- name: "Confirm container is running"
+  community.docker.docker_container_info:
+    name: git-vuln-cve-2017-8386
+  register: container_info
+  until: container_info.container.State.Running
+  retries: 10
+  delay: 5

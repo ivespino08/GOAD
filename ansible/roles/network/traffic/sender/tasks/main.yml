@@ -1,0 +1,11 @@
+- name: "Create traffic script directory"
+  ansible.builtin.file:
+    path: /tmp/traffic
+    state: directory
+    mode: "0755"
+
+- name: "Deploy sender script {{script_dest}}"
+  ansible.builtin.template:
+    src: files/traffic_sender.py.j2
+    dest: "{{script_dest}}"
+    mode: "0755"

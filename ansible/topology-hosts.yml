@@ -1,0 +1,61 @@
+---
+# topology-hosts.yml
+# Assigns static IPs, default gateways, and switch port membership
+# to all PC and Docker hosts.
+# Mirrors the style of ad-members.yml / ad-data.yml.
+
+- import_playbook: data.yml
+  tags: 'data'
+
+# --------------------------------------------------------------------
+# PC hosts
+# --------------------------------------------------------------------
+- name: "Configure PC host network interfaces"
+  hosts: pcs
+  roles:
+    - { role: 'network/interface', tags: 'host_interface' }
+    - { role: 'network/gateway', tags: 'host_gateway' }
+  vars:
+    hostname: "{{lab.hosts[dict_key].hostname}}"
+    interface_ip4: "{{lab.hosts[dict_key].ip4}}"
+    interface_name: "eth0"
+    gateway_ip4: "{{lab.hosts[dict_key].gateway}}"
+    lan_subnet: "{{lab.hosts[dict_key].lan_subnet}}"
+    connected_router: "{{lab.hosts[dict_key].router}}"
+    connected_switch: "{{lab.hosts[dict_key].switch}}"
+
+# --------------------------------------------------------------------
+# Docker hosts
+# --------------------------------------------------------------------
+- name: "Configure Docker host network interfaces"
+  hosts: docker_nodes
+  roles:
+    - { role: 'network/interface', tags: 'docker_interface' }
+    - { role: 'network/gateway', tags: 'docker_gateway' }
+  vars:
+    hostname: "{{lab.hosts[dict_key].hostname}}"
+    interface_ip4: "{{lab.hosts[dict_key].ip4}}"
+    interface_name: "eth0"
+    gateway_ip4: "{{lab.hosts[dict_key].gateway}}"
+    lan_subnet: "{{lab.hosts[dict_key].lan_subnet}}"
+    connected_router: "{{lab.hosts[dict_key].router}}"
+    connected_switch: "{{lab.hosts[dict_key].switch}}"
+
+# --------------------------------------------------------------------
+# Move all hosts into their correct switch/LAN segment
+# (equivalent to move_to_ou in the AD project)
+# --------------------------------------------------------------------
+- name: "Assign hosts to switch segments"
+  hosts: routers
+  roles:
+    - { role: 'network/switch_membership', tags: 'switch_membership' }
+  vars:
+    switch_name: "{{lab.hosts[dict_key].lan_subnet}}"
+    hosts_in_segment: >-
+      {{
+        lab.hosts
+        | dict2items
+        | selectattr('value.router', 'equalto', dict_key)
+        | map(attribute='key')
+        | list
+      }}

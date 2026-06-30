@@ -1,0 +1,105 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+# Scenario3 Vagrantfile — vmware_desktop provider
+# Minimal configuration — only VMs required for the scenario.
+# Removed: pc-2, pc-6, pc-7, pc-9, pc-10 (no role in scenario.xml)
+# Retained: pc-1, pc-3, pc-4, pc-5, pc-8 (involved in traffic flows)
+# Requires: vagrant plugin install vagrant-vmware-desktop
+#   - eth0: NAT (Vagrant management / internet access)
+#   - eth1: VMware host-only private network (lab network, Ansible target)
+# Usage: cd scenario/Scenario3/providers/vmware && vagrant up
+
+ENV['VAGRANT_DEFAULT_PROVIDER'] = 'vmware_desktop'
+
+MGMT_RANGE = "192.168.57"
+
+boxes = [
+  # ── Jumpbox ───────────────────────────────────────────────────────────────
+  # Fixed at .3 — required by GOAD's VagrantProvider.get_jumpbox_ip()
+  { :name => "PROVISIONING", :ip => "#{MGMT_RANGE}.3",  :box => "generic/ubuntu2204", :cpus => 2, :mem => 2048, :jumpbox => true },
+
+  # ── Routers ──────────────────────────────────────────────────────────────
+  { :name => "router-1",  :ip => "#{MGMT_RANGE}.11", :box => "generic/ubuntu2204", :cpus => 1, :mem => 2048 },
+  { :name => "router-2",  :ip => "#{MGMT_RANGE}.12", :box => "generic/ubuntu2204", :cpus => 1, :mem => 2048 },
+  { :name => "router-3",  :ip => "#{MGMT_RANGE}.13", :box => "generic/ubuntu2204", :cpus => 1, :mem => 2048, :hitl => true },
+  { :name => "router-4",  :ip => "#{MGMT_RANGE}.14", :box => "generic/ubuntu2204", :cpus => 1, :mem => 2048 },
+  { :name => "router-5",  :ip => "#{MGMT_RANGE}.15", :box => "generic/ubuntu2204", :cpus => 1, :mem => 2048 },
+
+  # ── PC hosts (traffic flow nodes only) ───────────────────────────────────
+  # pc-3 → pc-1  (flow 1)
+  # pc-8 → docker-11  (flow 2)
+  # pc-4 → pc-8  (flow 4)
+  # docker-12 → pc-5  (flow 3)
+  { :name => "pc-1",      :ip => "#{MGMT_RANGE}.21", :box => "generic/ubuntu2204", :cpus => 1, :mem => 2048 },
+  { :name => "pc-3",      :ip => "#{MGMT_RANGE}.23", :box => "generic/ubuntu2204", :cpus => 1, :mem => 2048 },
+  { :name => "pc-4",      :ip => "#{MGMT_RANGE}.24", :box => "generic/ubuntu2204", :cpus => 1, :mem => 2048 },
+  { :name => "pc-5",      :ip => "#{MGMT_RANGE}.25", :box => "generic/ubuntu2204", :cpus => 1, :mem => 2048 },
+  { :name => "pc-8",      :ip => "#{MGMT_RANGE}.28", :box => "generic/ubuntu2204", :cpus => 1, :mem => 2048 },
+
+  # ── Docker (vulnerable) hosts ─────────────────────────────────────────────
+  { :name => "docker-11", :ip => "#{MGMT_RANGE}.31", :box => "generic/ubuntu2204", :cpus => 1, :mem => 2048 },
+  { :name => "docker-12", :ip => "#{MGMT_RANGE}.32", :box => "generic/ubuntu2204", :cpus => 1, :mem => 2048 },
+]
+
+Vagrant.configure("2") do |config|
+
+  config.vm.box_check_update = false
+  config.ssh.insert_key = true
+
+  boxes.each do |box|
+    config.vm.define box[:name] do |vm_config|
+
+      vm_config.vm.box      = box[:box]
+      vm_config.vm.hostname = box[:name]
+
+      vm_config.vm.network "private_network",
+        ip: box[:ip],
+        auto_config: true
+
+      vm_config.vm.boot_timeout = 600
+      vm_config.ssh.host     = box[:ip]
+      vm_config.ssh.username = "vagrant"
+
+      if box[:hitl]
+        vm_config.vm.network "private_network",
+          ip: "10.0.0.1",
+          auto_config: true
+      end
+
+      vm_config.vm.provider "vmware_desktop" do |v|
+        v.vmx["displayname"]         = box[:name]
+        v.memory                     = box[:mem]
+        v.cpus                       = box[:cpus]
+        v.vmx["ethernet1.noPromisc"] = "FALSE"
+
+        if box[:hitl]
+          v.vmx["ethernet2.noPromisc"] = "FALSE"
+        end
+
+        v.vmx["sound.present"] = "FALSE"
+        v.vmx["usb.present"]   = "FALSE"
+      end
+
+      vm_config.vm.provision "shell", inline: <<-SHELL
+        apt-get update -qq
+        apt-get install -y -qq python3 python3-pip
+        echo 'vagrant ALL=(ALL) NOPASSWD:ALL' > /etc/sudoers.d/vagrant
+        chmod 440 /etc/sudoers.d/vagrant
+        systemctl restart NetworkManager
+        sleep 5
+      SHELL
+
+      vm_config.vm.provision "shell", run: "always", inline: <<-SHELL
+        systemctl restart NetworkManager
+        sleep 5
+      SHELL
+
+      if box[:jumpbox]
+        vm_config.vm.provision "shell", path: "../../../../scripts/setup_local_jumpbox.sh"
+      end
+
+    end
+  end
+
+end

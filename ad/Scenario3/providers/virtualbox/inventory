@@ -1,28 +1,33 @@
+; Inventory — Provider Inventory (VirtualBox)
+; ad/Scenario3/providers/virtualbox/inventory
+;
+; Identical to the VMware inventory. The key path is the same because
+; the Vagrant insecure key is not provider-specific.
+
 [default]
-; Note: ansible_host *MUST* be an IPv4 address or setting things like DNS
-; servers will break.
-; ------------------------------------------------
-; Scenario3 — PROVISIONING jumpbox
-; ------------------------------------------------
-PROVISIONING  ansible_host={{ip_range}}.3   dict_key=PROVISIONING
-; ------------------------------------------------
-; Scenario3 — routers
-; ------------------------------------------------
-router-1      ansible_host={{ip_range}}.11  dict_key=router-1
-router-2      ansible_host={{ip_range}}.12  dict_key=router-2
-router-3      ansible_host={{ip_range}}.13  dict_key=router-3
-router-4      ansible_host={{ip_range}}.14  dict_key=router-4
-router-5      ansible_host={{ip_range}}.15  dict_key=router-5
-; ------------------------------------------------
-; Scenario3 — PC hosts
-; ------------------------------------------------
-pc-1          ansible_host={{ip_range}}.21  dict_key=pc-1
-pc-3          ansible_host={{ip_range}}.23  dict_key=pc-3
-pc-4          ansible_host={{ip_range}}.24  dict_key=pc-4
-pc-5          ansible_host={{ip_range}}.25  dict_key=pc-5
-pc-8          ansible_host={{ip_range}}.28  dict_key=pc-8
-; ------------------------------------------------
-; Scenario3 — Docker (vulnerable) hosts
-; ------------------------------------------------
-docker-11     ansible_host={{ip_range}}.31  dict_key=docker-11
-docker-12     ansible_host={{ip_range}}.32  dict_key=docker-12
+router-1   ansible_host={{ip_range}}.11  dict_key=router-1   ansible_ssh_private_key_file=~/.vagrant.d/insecure_private_key
+router-2   ansible_host={{ip_range}}.12  dict_key=router-2   ansible_ssh_private_key_file=~/.vagrant.d/insecure_private_key
+router-3   ansible_host={{ip_range}}.13  dict_key=router-3   ansible_ssh_private_key_file=~/.vagrant.d/insecure_private_key
+router-4   ansible_host={{ip_range}}.14  dict_key=router-4   ansible_ssh_private_key_file=~/.vagrant.d/insecure_private_key
+router-5   ansible_host={{ip_range}}.15  dict_key=router-5   ansible_ssh_private_key_file=~/.vagrant.d/insecure_private_key
+pc-1       ansible_host={{ip_range}}.21  dict_key=pc-1       ansible_ssh_private_key_file=~/.vagrant.d/insecure_private_key
+pc-3       ansible_host={{ip_range}}.23  dict_key=pc-3       ansible_ssh_private_key_file=~/.vagrant.d/insecure_private_key
+pc-4       ansible_host={{ip_range}}.24  dict_key=pc-4       ansible_ssh_private_key_file=~/.vagrant.d/insecure_private_key
+pc-5       ansible_host={{ip_range}}.25  dict_key=pc-5       ansible_ssh_private_key_file=~/.vagrant.d/insecure_private_key
+pc-8       ansible_host={{ip_range}}.28  dict_key=pc-8       ansible_ssh_private_key_file=~/.vagrant.d/insecure_private_key
+docker-11  ansible_host={{ip_range}}.31  dict_key=docker-11  ansible_ssh_private_key_file=~/.vagrant.d/insecure_private_key
+docker-12  ansible_host={{ip_range}}.32  dict_key=docker-12  ansible_ssh_private_key_file=~/.vagrant.d/insecure_private_key
+
+[domain]
+router-1
+router-2
+router-3
+router-4
+router-5
+pc-1
+pc-3
+pc-4
+pc-5
+pc-8
+docker-11
+docker-12

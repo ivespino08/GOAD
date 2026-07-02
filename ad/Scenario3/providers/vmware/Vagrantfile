@@ -1,46 +1,43 @@
-# -*- mode: ruby -*-
-# vi: set ft=ruby :
-
-# Scenario3 Vagrantfile — vmware_desktop provider
-# Mirrors the GOAD Vagrantfile style exactly.
-# Usage: cd ad/Scenario3/providers/vmware && vagrant up
+# ad/Scenario3/providers/vmware/Vagrantfile
+#
+# boxes is defined at the top-level Ruby scope (outside Vagrant.configure)
+# so it is accessible regardless of how the GOAD framework loads this file.
+#
+# PROVISIONING keeps its Vagrant-generated key so local_jumpbox.py can find it.
+# All lab VMs use ssh.insert_key = false to keep the Vagrant insecure key,
+# which the jumpbox installs at ~/.vagrant.d/insecure_private_key.
 
 boxes = [
-  # ── Jumpbox (Ansible controller) ─────────────────────────────────────────
-  { :name => "PROVISIONING", :ip => "192.168.57.3",  :box => "generic/ubuntu2204", :box_version => "4.3.12", :os => "linux", :cpus => 2, :mem => 2048 },
-
-  # ── Routers ───────────────────────────────────────────────────────────────
-  { :name => "router-1",     :ip => "192.168.57.11", :box => "generic/ubuntu2204", :box_version => "4.3.12", :os => "linux", :cpus => 1, :mem => 2048 },
-  { :name => "router-2",     :ip => "192.168.57.12", :box => "generic/ubuntu2204", :box_version => "4.3.12", :os => "linux", :cpus => 1, :mem => 2048 },
-  { :name => "router-3",     :ip => "192.168.57.13", :box => "generic/ubuntu2204", :box_version => "4.3.12", :os => "linux", :cpus => 1, :mem => 2048 },
-  { :name => "router-4",     :ip => "192.168.57.14", :box => "generic/ubuntu2204", :box_version => "4.3.12", :os => "linux", :cpus => 1, :mem => 2048 },
-  { :name => "router-5",     :ip => "192.168.57.15", :box => "generic/ubuntu2204", :box_version => "4.3.12", :os => "linux", :cpus => 1, :mem => 2048 },
-
-  # ── PC hosts ──────────────────────────────────────────────────────────────
-  { :name => "pc-1",         :ip => "192.168.57.21", :box => "generic/ubuntu2204", :box_version => "4.3.12", :os => "linux", :cpus => 1, :mem => 2048 },
-  { :name => "pc-3",         :ip => "192.168.57.23", :box => "generic/ubuntu2204", :box_version => "4.3.12", :os => "linux", :cpus => 1, :mem => 2048 },
-  { :name => "pc-4",         :ip => "192.168.57.24", :box => "generic/ubuntu2204", :box_version => "4.3.12", :os => "linux", :cpus => 1, :mem => 2048 },
-  { :name => "pc-5",         :ip => "192.168.57.25", :box => "generic/ubuntu2204", :box_version => "4.3.12", :os => "linux", :cpus => 1, :mem => 2048 },
-  { :name => "pc-8",         :ip => "192.168.57.28", :box => "generic/ubuntu2204", :box_version => "4.3.12", :os => "linux", :cpus => 1, :mem => 2048 },
-
-  # ── Docker (vulnerable) hosts ─────────────────────────────────────────────
-  { :name => "docker-11",    :ip => "192.168.57.31", :box => "generic/ubuntu2204", :box_version => "4.3.12", :os => "linux", :cpus => 1, :mem => 2048 },
-  { :name => "docker-12",    :ip => "192.168.57.32", :box => "generic/ubuntu2204", :box_version => "4.3.12", :os => "linux", :cpus => 1, :mem => 2048 },
+  { name: "PROVISIONING", ip: "192.168.57.3",  memory: 2048, cpus: 2, os: "linux", jumpbox: true  },
+  { name: "router-1",     ip: "192.168.57.11", memory: 2048, cpus: 1, os: "linux", jumpbox: false },
+  { name: "router-2",     ip: "192.168.57.12", memory: 2048, cpus: 1, os: "linux", jumpbox: false },
+  { name: "router-3",     ip: "192.168.57.13", memory: 2048, cpus: 1, os: "linux", jumpbox: false },
+  { name: "router-4",     ip: "192.168.57.14", memory: 2048, cpus: 1, os: "linux", jumpbox: false },
+  { name: "router-5",     ip: "192.168.57.15", memory: 2048, cpus: 1, os: "linux", jumpbox: false },
+  { name: "pc-1",         ip: "192.168.57.21", memory: 2048, cpus: 1, os: "linux", jumpbox: false },
+  { name: "pc-3",         ip: "192.168.57.23", memory: 2048, cpus: 1, os: "linux", jumpbox: false },
+  { name: "pc-4",         ip: "192.168.57.24", memory: 2048, cpus: 1, os: "linux", jumpbox: false },
+  { name: "pc-5",         ip: "192.168.57.25", memory: 2048, cpus: 1, os: "linux", jumpbox: false },
+  { name: "pc-8",         ip: "192.168.57.28", memory: 2048, cpus: 1, os: "linux", jumpbox: false },
+  { name: "docker-11",    ip: "192.168.57.31", memory: 2048, cpus: 1, os: "linux", jumpbox: false },
+  { name: "docker-12",    ip: "192.168.57.32", memory: 2048, cpus: 1, os: "linux", jumpbox: false },
 ]
 
 Vagrant.configure("2") do |config|
-  config.vm.box_check_update = false
-
   boxes.each do |box|
-    config.vm.define box[:name] do |target|
-      target.vm.box      = box[:box]
-      target.vm.box_version = box[:box_version]
-      target.vm.hostname = box[:name]
-      target.vm.network "private_network", ip: box[:ip]
+    config.vm.define box[:name] do |vm_config|
+      vm_config.vm.box         = "generic/ubuntu2204"
+      vm_config.vm.box_version = "4.3.12"
+      vm_config.vm.hostname    = box[:name]
+      vm_config.vm.network "private_network", ip: box[:ip]
 
-      target.vm.provider "vmware_desktop" do |v|
-        v.vmx["memsize"]  = box[:mem]
-        v.vmx["numvcpus"] = box[:cpus]
+      unless box[:jumpbox]
+        vm_config.ssh.insert_key = false
+      end
+
+      vm_config.vm.provider "vmware_desktop" do |v|
+        v.memory = box[:memory]
+        v.cpus   = box[:cpus]
       end
     end
   end

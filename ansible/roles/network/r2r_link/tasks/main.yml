@@ -1,10 +1,10 @@
 # roles/network/r2r_link/tasks/main.yml
-#
-# interface_name must be passed from the calling playbook.
-# topology-links.yml derives it from the peer's position in
-# lab.hosts[dict_key].r2r_interfaces.keys(), matching the eth{{peer_idx+1}}
-# names assigned by topology-routers.yml.
 ---
+- name: "Ensure python3-netaddr is present for ipaddr filter"
+  ansible.builtin.package:
+    name: python3-netaddr
+    state: present
+
 - name: "Configure r2r interface toward {{peer_router}} ({{link_subnet}})"
   ansible.builtin.nmcli:
     conn_name: "r2r-{{peer_router}}"

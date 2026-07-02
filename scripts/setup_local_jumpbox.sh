@@ -6,7 +6,10 @@ sudo apt-get update -qq
 sudo apt-get install -y git python3-pip rsync sshpass curl
 
 # Install Ansible and required Python packages
-pip3 install --user ansible ansible-lint pywinrm jmespath
+pip3 install --user ansible ansible-lint pywinrm jmespath netaddr
+
+# Install required Ansible collections
+~/.local/bin/ansible-galaxy collection install ansible.utils community.general community.docker ansible.posix
 
 # Clone GOAD if not already present
 if [ ! -d ~/GOAD ]; then

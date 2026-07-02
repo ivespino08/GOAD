@@ -15,6 +15,7 @@ ad_https_proxy=http://x.x.x.x:xxxx
 
 ; SSH connection (Linux hosts)
 ansible_user=vagrant
+ansible_password=vagrant
 ansible_connection=ssh
 ansible_python_interpreter=/usr/bin/python3
 ansible_ssh_common_args='-o StrictHostKeyChecking=no'

@@ -1,17 +1,23 @@
 ---
 # topology-docker.yml
-# Deploys the CVE-2017-8386 vulnerable git service onto Docker host nodes.
-# This replaces CORE's Docker node management — without CORE, Docker is
-# installed and the container is started directly by Ansible.
-# Mirrors the style of servers.yml (per-role, per-host-group installs).
+# Deploys vulnerable Docker nodes. Replaces CORE's Docker node management.
+# The docker/vuln_node role is generic — vuln_name and vuln_compose_src
+# are passed per host from lab.hosts[dict_key].vulns.
+# Mirrors the style of servers.yml.
 
 - import_playbook: data.yml
+  vars:
+    data_path: "../ad/Scenario3/data"
   tags: 'data'
 
 - name: "Deploy vulnerable Docker nodes"
   hosts: docker_nodes
   become: true
-  roles:
-    - { role: 'docker/vuln_node', tags: 'docker_vuln' }
-  vars:
-    hostname: "{{lab.hosts[dict_key].hostname}}"
+  tasks:
+    - include_role:
+        name: "docker/vuln_node"
+      vars:
+        hostname: "{{lab.hosts[dict_key].hostname}}"
+        vuln_name: "{{item}}"
+        vuln_compose_src: "files/{{item | replace('/', '-')}}-docker-compose.yml"
+      loop: "{{lab.hosts[dict_key].vulns}}"

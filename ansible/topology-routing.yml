@@ -1,10 +1,11 @@
 ---
 # topology-routing.yml
-# Configures RIP routing on all routers.
-# Each router advertises its LAN subnet and all r2r link subnets it participates in.
+# Configures RIP routing on all routers via FRR.
 # Mirrors the style of ad-relations.yml.
 
 - import_playbook: data.yml
+  vars:
+    data_path: "../ad/Scenario3/data"
   tags: 'data'
 
 - name: "Configure RIP routing on all routers"
@@ -23,5 +24,4 @@
         | list
       }}
     rip_networks: "{{rip_networks_lan + rip_networks_r2r}}"
-    # Do not send RIP updates out of the LAN-facing port
     rip_passive_interfaces: ["eth0"]

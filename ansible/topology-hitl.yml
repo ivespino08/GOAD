@@ -1,16 +1,14 @@
 ---
 # topology-hitl.yml
 # Configures the Hardware-in-the-Loop (HITL) participant interface.
-# In scenario.xml this is ens19 on router-3, bridging the emulated
-# network to the physical participant LAN (10.0.0.0/24).
+# ens19 on router-3 bridges the emulated network to the participant LAN.
 # Mirrors the style of adcs.yml.
 
 - import_playbook: data.yml
+  vars:
+    data_path: "../ad/Scenario3/data"
   tags: 'data'
 
-# --------------------------------------------------------------------
-# Attach HITL interface on the router that carries it (router-3)
-# --------------------------------------------------------------------
 - name: "Configure HITL participant network interface"
   hosts: hitl_router
   roles:
@@ -24,10 +22,6 @@
     hitl_attachment: "{{lab.hosts[dict_key].hitl_interface.attachment}}"
     router_lan_ip4: "{{lab.hosts[dict_key].ip4}}"
 
-# --------------------------------------------------------------------
-# Add routing for the participant network via the HITL gateway
-# (equivalent to dns_conditional_forwarder in ad-child_domain.yml)
-# --------------------------------------------------------------------
 - name: "Add route for HITL participant network"
   hosts: hitl_router
   roles:

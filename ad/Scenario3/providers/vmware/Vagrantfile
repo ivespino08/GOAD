@@ -1,11 +1,17 @@
 # ad/Scenario3/providers/vmware/Vagrantfile
 #
-# This file defines ONLY the lab VM data array.
-# The Vagrant.configure block is supplied by the GOAD framework template at:
-#   template/provider/vmware/Vagrantfile
+# boxes must be at the top-level Ruby scope so the GOAD framework template
+# (template/provider/vmware/Vagrantfile) can access it after loading this file.
 #
-# PROVISIONING (jumpbox) VM is also added by the template — do not add it here.
-# The template uses :os to distinguish WinRM (windows) from SSH (linux) VMs.
+# The Vagrant.configure block below is additive — Vagrant merges it with the
+# template's own configure block. It is kept separate from the boxes definition
+# to preserve the top-level scope of the boxes variable.
+#
+# config.ssh.insert_key = false prevents Vagrant from replacing the default
+# insecure key with a per-VM generated key. All lab VMs then share the
+# well-known Vagrant insecure private key, which setup_local_jumpbox.sh
+# installs at ~/.vagrant.d/insecure_private_key on the jumpbox so Ansible
+# can authenticate to every host with a single key path.
 
 boxes = [
   { :name => "router-1",  :ip => "192.168.57.11", :box => "generic/ubuntu2204", :box_version => "4.3.12", :os => "linux", :cpus => 1, :mem => 2048 },
@@ -21,3 +27,7 @@ boxes = [
   { :name => "docker-11", :ip => "192.168.57.31", :box => "generic/ubuntu2204", :box_version => "4.3.12", :os => "linux", :cpus => 1, :mem => 2048 },
   { :name => "docker-12", :ip => "192.168.57.32", :box => "generic/ubuntu2204", :box_version => "4.3.12", :os => "linux", :cpus => 1, :mem => 2048 },
 ]
+
+Vagrant.configure("2") do |config|
+  config.ssh.insert_key = false
+end

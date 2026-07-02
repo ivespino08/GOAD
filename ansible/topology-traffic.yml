@@ -5,11 +5,10 @@
 # Mirrors the style of vulnerabilities.yml.
 
 - import_playbook: data.yml
+  vars:
+    data_path: "../ad/Scenario3/data"
   tags: 'data'
 
-# --------------------------------------------------------------------
-# Deploy sender scripts to source hosts
-# --------------------------------------------------------------------
 - name: "Deploy traffic sender scripts"
   hosts: domain
   tasks:
@@ -33,9 +32,6 @@
         index_var: loop_idx
         label: "{{dict_key}} → {{item.dst}} ({{item.protocol}})"
 
-# --------------------------------------------------------------------
-# Deploy receiver scripts to destination hosts
-# --------------------------------------------------------------------
 - name: "Deploy traffic receiver scripts"
   hosts: domain
   tasks:
@@ -58,9 +54,6 @@
         index_var: loop_idx
         label: "{{dict_key}} receiving from {{item.src}} ({{item.protocol}})"
 
-# --------------------------------------------------------------------
-# Start all traffic scripts on each participating host
-# --------------------------------------------------------------------
 - name: "Start traffic scripts"
   hosts: domain
   tasks:

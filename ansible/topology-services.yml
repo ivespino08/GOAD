@@ -4,11 +4,10 @@
 # Mirrors the style of servers.yml.
 
 - import_playbook: data.yml
+  vars:
+    data_path: "../ad/Scenario3/data"
   tags: 'data'
 
-# --------------------------------------------------------------------
-# DHCP client — hosts with "DHCPClient" in their services list
-# --------------------------------------------------------------------
 - name: "Configure DHCP client on applicable hosts"
   hosts: dhcp_clients
   roles:
@@ -19,10 +18,6 @@
     lan_subnet: "{{lab.hosts[dict_key].lan_subnet}}"
     gateway_ip4: "{{lab.hosts[dict_key].gateway}}"
 
-# --------------------------------------------------------------------
-# Additional services — loop over any services declared per host
-# Mirrors the vuln/script loop pattern in vulnerabilities.yml
-# --------------------------------------------------------------------
 - name: "Configure additional per-host services"
   hosts: domain
   tasks:

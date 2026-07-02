@@ -4,11 +4,10 @@
 # Mirrors the style of ad-servers.yml / ad-child_domain.yml.
 
 - import_playbook: data.yml
+  vars:
+    data_path: "../ad/Scenario3/data"
   tags: 'data'
 
-# --------------------------------------------------------------------
-# LAN-side interface — each router's primary subnet address
-# --------------------------------------------------------------------
 - name: "Configure router LAN interfaces"
   hosts: routers
   roles:
@@ -19,9 +18,6 @@
     interface_name: "eth0"
     interface_description: "LAN — {{lab.hosts[dict_key].lan_subnet}}"
 
-# --------------------------------------------------------------------
-# Router-to-router interfaces — one interface per r2r peer
-# --------------------------------------------------------------------
 - name: "Configure router r2r interfaces"
   hosts: routers
   tasks:

@@ -1,15 +1,14 @@
 ---
 # topology-hosts.yml
-# Assigns static IPs, default gateways, and switch port membership
+# Assigns static IPs, default gateways, and switch segment membership
 # to all PC and Docker hosts.
-# Mirrors the style of ad-members.yml / ad-data.yml.
+# Mirrors the style of ad-members.yml.
 
 - import_playbook: data.yml
+  vars:
+    data_path: "../ad/Scenario3/data"
   tags: 'data'
 
-# --------------------------------------------------------------------
-# PC hosts
-# --------------------------------------------------------------------
 - name: "Configure PC host network interfaces"
   hosts: pcs
   roles:
@@ -24,9 +23,6 @@
     connected_router: "{{lab.hosts[dict_key].router}}"
     connected_switch: "{{lab.hosts[dict_key].switch}}"
 
-# --------------------------------------------------------------------
-# Docker hosts
-# --------------------------------------------------------------------
 - name: "Configure Docker host network interfaces"
   hosts: docker_nodes
   roles:
@@ -41,10 +37,6 @@
     connected_router: "{{lab.hosts[dict_key].router}}"
     connected_switch: "{{lab.hosts[dict_key].switch}}"
 
-# --------------------------------------------------------------------
-# Move all hosts into their correct switch/LAN segment
-# (equivalent to move_to_ou in the AD project)
-# --------------------------------------------------------------------
 - name: "Assign hosts to switch segments"
   hosts: routers
   roles:

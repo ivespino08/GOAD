@@ -1,3 +1,5 @@
+# roles/network/gateway/tasks/main.yml
+---
 - name: "Set default gateway to {{gateway_ip4}} on {{interface_name}}"
   ansible.builtin.nmcli:
     conn_name: "{{interface_name}}"

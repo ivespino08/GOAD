@@ -1,3 +1,10 @@
+# roles/network/services/dhcp_client/tasks/main.yml
+---
+- name: "Update apt cache before installing dhclient"
+  ansible.builtin.apt:
+    update_cache: yes
+    cache_valid_time: 3600
+
 - name: "Install dhclient"
   ansible.builtin.package:
     name: isc-dhcp-client

@@ -1,3 +1,10 @@
+# roles/docker/vuln_node/tasks/main.yml
+#
+# Generic role — vuln_name and vuln_compose_src are passed as vars
+# from topology-docker.yml. vuln_name drives directory names and
+# container labels; vuln_compose_src is the path to the compose file
+# to copy (e.g. "files/git-CVE-2017-8386-docker-compose.yml").
+---
 - name: "Install Docker dependencies"
   ansible.builtin.apt:
     name:
@@ -42,39 +49,24 @@
     groups: docker
     append: yes
 
-- name: "Create flag staging directory on host"
+- name: "Create /opt/vuln/{{ vuln_name | replace('/', '-') }} directory"
   ansible.builtin.file:
-    path: /tmp/flags
+    path: "/opt/vuln/{{ vuln_name | replace('/', '-') }}"
     state: directory
     mode: "0755"
 
-- name: "Copy docker-compose.yml for {{hostname}}"
+- name: "Copy docker-compose.yml for {{ vuln_name }}"
   ansible.builtin.copy:
-    src: files/docker-compose.yml
-    dest: /opt/vuln/docker-compose.yml
+    src: "{{ vuln_compose_src }}"
+    dest: "/opt/vuln/{{ vuln_name | replace('/', '-') }}/docker-compose.yml"
     mode: "0644"
   register: compose_result
-
-- name: "Create /opt/vuln directory"
-  ansible.builtin.file:
-    path: /opt/vuln
-    state: directory
-    mode: "0755"
-
-- name: "Pull vulnerable image"
-  community.docker.docker_image:
-    name: "gitstack/gitstack:2.3.10"
-    source: pull
-  register: pull_result
-  until: pull_result is not failed
-  retries: 3
-  delay: 10
 
 - name: "Start vulnerable container via Docker Compose"
   ansible.builtin.command:
     cmd: docker compose up -d
-    chdir: /opt/vuln
-  when: compose_result.changed or pull_result.changed
+    chdir: "/opt/vuln/{{ vuln_name | replace('/', '-') }}"
+  when: compose_result.changed
   register: compose_up
   until: compose_up is not failed
   retries: 3
@@ -82,7 +74,7 @@
 
 - name: "Confirm container is running"
   community.docker.docker_container_info:
-    name: git-vuln-cve-2017-8386
+    name: "{{ vuln_name | replace('/', '-') }}"
   register: container_info
   until: container_info.container.State.Running
   retries: 10

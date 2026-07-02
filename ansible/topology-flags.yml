@@ -2,7 +2,10 @@
 # topology-flags.yml
 # Injects CTF flag artifacts into running Docker containers.
 # Must run AFTER topology-docker.yml.
-# Mirrors the style of vulnerabilities.yml.
+#
+# Flag file naming: the ctf/flags role looks for files/{{hostname}}_{{item.filename}}
+# so filename should be the BASE NAME ONLY (without hostname prefix).
+# e.g. filename: "operator_pin.hash" → role finds files/docker-11_operator_pin.hash
 
 - import_playbook: data.yml
   vars:
@@ -16,12 +19,11 @@
     - { role: 'ctf/flags', tags: 'flags' }
   vars:
     hostname: "{{lab.hosts[dict_key].hostname}}"
-    container_name: "git-vuln-cve-2017-8386"
     flag_files:
-      - filename: "docker-11_operator_pin.hash"
+      - filename: "operator_pin.hash"
         container_path: "/etc/pam.d/fragments/operator_pin.hash"
         mode: "0644"
-      - filename: "docker-11_operator_pin.hash"
+      - filename: "operator_pin.hash"
         container_path: "/opt/badges/pins/operator_pin.hash"
         mode: "0644"
 
@@ -32,8 +34,7 @@
     - { role: 'ctf/flags', tags: 'flags' }
   vars:
     hostname: "{{lab.hosts[dict_key].hostname}}"
-    container_name: "git-vuln-cve-2017-8386"
     flag_files:
-      - filename: "docker-12_backup_index.html"
+      - filename: "backup_index.html"
         container_path: "/var/www/html/backups/backup_index.html"
         mode: "0644"

@@ -1,3 +1,10 @@
+# roles/ctf/flags/tasks/main.yml
+#
+# NOTE: container name is hardcoded as git-vuln-cve-2017-8386.
+# For other scenarios, update this role or add a container_name variable.
+# Flag file source convention: files/{{hostname}}_{{item.filename}}
+# So topology-flags.yml should pass filename WITHOUT the hostname prefix.
+---
 - name: "Create flag staging directory"
   ansible.builtin.file:
     path: /tmp/flags

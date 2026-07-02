@@ -1,3 +1,5 @@
+# roles/network/rip/tasks/main.yml
+---
 - name: "Enable IP forwarding"
   ansible.posix.sysctl:
     name: net.ipv4.ip_forward
@@ -5,6 +7,11 @@
     sysctl_set: yes
     state: present
     reload: yes
+
+- name: "Update apt cache before installing frr"
+  ansible.builtin.apt:
+    update_cache: yes
+    cache_valid_time: 3600
 
 - name: "Install frr"
   ansible.builtin.package:

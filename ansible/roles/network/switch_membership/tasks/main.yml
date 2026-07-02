@@ -1,3 +1,10 @@
+# roles/network/switch_membership/tasks/main.yml
+---
+- name: "Update apt cache before installing bridge-utils"
+  ansible.builtin.apt:
+    update_cache: yes
+    cache_valid_time: 3600
+
 - name: "Install bridge-utils"
   ansible.builtin.package:
     name: bridge-utils

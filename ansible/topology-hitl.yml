@@ -1,4 +1,8 @@
 ---
+# topology-hitl.yml
+# Configures the Hardware-in-the-Loop (HITL) participant interface.
+# ens19 on router-3 bridges the emulated network to the participant LAN.
+
 - import_playbook: data.yml
   vars:
     data_path: "../ad/Scenario3/data"
@@ -24,5 +28,10 @@
   roles:
     - { role: 'network/hitl_forwarding', tags: 'hitl_forwarding' }
   vars:
+    # hitl_ip4 and hitl_interface_name required by the forwarding role's
+    # nmcli persist task — must be passed here even though they were also
+    # passed to the hitl_interface play above.
+    hitl_interface_name: "{{lab.hosts[dict_key].hitl_interface.slug}}"
+    hitl_ip4: "{{lab.hosts[dict_key].hitl_interface.ip4}}"
     hitl_network: "{{lab.hosts[dict_key].hitl_interface.network}}"
     hitl_gateway: "{{lab.hosts[dict_key].hitl_interface.rj45_ip4 | ansible.utils.ipaddr('address')}}"

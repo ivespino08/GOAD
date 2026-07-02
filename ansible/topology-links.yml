@@ -1,8 +1,4 @@
 ---
-# topology-links.yml
-# Configures point-to-point (r2r) links between routers.
-# Mirrors the style of ad-trusts.yml.
-
 - import_playbook: data.yml
   vars:
     data_path: "../ad/Scenario3/data"
@@ -10,6 +6,7 @@
 
 - name: "Configure router-to-router links"
   hosts: routers
+  become: true
   tasks:
     - include_role:
         name: "network/r2r_link"

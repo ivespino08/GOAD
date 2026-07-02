@@ -1,9 +1,4 @@
 ---
-# topology-hitl.yml
-# Configures the Hardware-in-the-Loop (HITL) participant interface.
-# ens19 on router-3 bridges the emulated network to the participant LAN.
-# Mirrors the style of adcs.yml.
-
 - import_playbook: data.yml
   vars:
     data_path: "../ad/Scenario3/data"
@@ -11,6 +6,7 @@
 
 - name: "Configure HITL participant network interface"
   hosts: hitl_router
+  become: true
   roles:
     - { role: 'network/hitl_interface', tags: 'hitl_interface' }
   vars:
@@ -24,6 +20,7 @@
 
 - name: "Add route for HITL participant network"
   hosts: hitl_router
+  become: true
   roles:
     - { role: 'network/hitl_forwarding', tags: 'hitl_forwarding' }
   vars:

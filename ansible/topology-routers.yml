@@ -10,6 +10,7 @@
 
 - name: "Configure router LAN interfaces"
   hosts: routers
+  become: true
   roles:
     - { role: 'network/interface', tags: 'router_lan_interface' }
   vars:
@@ -20,6 +21,7 @@
 
 - name: "Configure router r2r interfaces"
   hosts: routers
+  become: true
   tasks:
     - include_role:
         name: "network/interface"

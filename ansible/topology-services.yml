@@ -1,8 +1,4 @@
 ---
-# topology-services.yml
-# Configures per-host services defined in the scenario data.
-# Mirrors the style of servers.yml.
-
 - import_playbook: data.yml
   vars:
     data_path: "../ad/Scenario3/data"
@@ -10,6 +6,7 @@
 
 - name: "Configure DHCP client on applicable hosts"
   hosts: dhcp_clients
+  become: true
   roles:
     - { role: 'network/services/dhcp_client', tags: 'dhcp_client' }
   vars:
@@ -20,6 +17,7 @@
 
 - name: "Configure additional per-host services"
   hosts: domain
+  become: true
   tasks:
     - include_role:
         name: "network/services/{{service}}"

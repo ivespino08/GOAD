@@ -1,8 +1,4 @@
 ---
-# topology-routing.yml
-# Configures RIP routing on all routers via FRR.
-# Mirrors the style of ad-relations.yml.
-
 - import_playbook: data.yml
   vars:
     data_path: "../ad/Scenario3/data"
@@ -10,6 +6,7 @@
 
 - name: "Configure RIP routing on all routers"
   hosts: routers
+  become: true
   roles:
     - { role: 'network/rip', tags: 'rip' }
   vars:

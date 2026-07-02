@@ -1,9 +1,4 @@
 ---
-# topology-traffic.yml
-# Deploys and starts background traffic generation scripts on nodes.
-# Traffic flows are defined in lab.topology.traffic in config.json.
-# Mirrors the style of vulnerabilities.yml.
-
 - import_playbook: data.yml
   vars:
     data_path: "../ad/Scenario3/data"
@@ -11,6 +6,7 @@
 
 - name: "Deploy traffic sender scripts"
   hosts: domain
+  become: true
   tasks:
     - include_role:
         name: "network/traffic/sender"
@@ -34,6 +30,7 @@
 
 - name: "Deploy traffic receiver scripts"
   hosts: domain
+  become: true
   tasks:
     - include_role:
         name: "network/traffic/receiver"
@@ -56,6 +53,7 @@
 
 - name: "Start traffic scripts"
   hosts: domain
+  become: true
   tasks:
     - include_role:
         name: "network/traffic/start"

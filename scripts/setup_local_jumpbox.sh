@@ -10,7 +10,7 @@ pip3 install --user ansible ansible-lint pywinrm
 
 # Clone GOAD if not already present
 if [ ! -d ~/GOAD ]; then
-  git clone https://github.com/Orange-Cyberdefense/GOAD.git ~/GOAD
+  git clone https://github.com/ivespino08/GOAD.git ~/GOAD
 fi
 
 # Configure goad.ini — sets ip_range so {{ip_range}} substitution resolves

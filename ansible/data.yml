@@ -14,14 +14,18 @@
     - name: find domain_adapter
       set_fact:
        domain_adapter="{{item.connection_name}}"
-      when: item.ipv4.address == hostvars[dict_key].ansible_host
+      when:
+        - item is mapping
+        - item.ipv4.address == hostvars[dict_key].ansible_host
       with_items: "{{ ansible_interfaces }}"
       run_once: true
 
     - name: find nat_adapter
       set_fact:
        nat_adapter="{{item.connection_name}}"
-      when: item.ipv4.address != hostvars[dict_key].ansible_host
+      when:
+        - item is mapping
+        - item.ipv4.address != hostvars[dict_key].ansible_host
       with_items: "{{ ansible_interfaces }}"
       run_once: true
 

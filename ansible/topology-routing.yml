@@ -1,4 +1,11 @@
 ---
+# topology-routing.yml
+# Configures RIP routing on all routers via FRR.
+#
+# r2r_subnets is read directly from config.json (per-router field) rather than
+# derived by filtering lab.topology.r2r_links — the filter pattern that was
+# used previously required jmespath and used an invalid nested selectattr call.
+
 - import_playbook: data.yml
   vars:
     data_path: "../ad/Scenario3/data"
@@ -13,12 +20,6 @@
     routing_protocol: "{{lab.hosts[dict_key].protocol}}"
     rip_networks_lan:
       - "{{lab.hosts[dict_key].lan_subnet}}"
-    rip_networks_r2r: >-
-      {{
-        lab.topology.r2r_links
-        | selectattr('routers', 'selectattr', 'id', 'equalto', dict_key)
-        | map(attribute='subnet')
-        | list
-      }}
+    rip_networks_r2r: "{{lab.hosts[dict_key].r2r_subnets | default([])}}"
     rip_networks: "{{rip_networks_lan + rip_networks_r2r}}"
     rip_passive_interfaces: ["eth0"]

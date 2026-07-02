@@ -9,6 +9,7 @@
         "r2r_interfaces": {
           "router-2": "172.17.175.1/24"
         },
+        "r2r_subnets": ["172.17.175.0/24"],
         "protocol": "RIP"
       },
       "router-2": {
@@ -20,6 +21,7 @@
           "router-1": "172.17.175.2/24",
           "router-3": "192.168.22.1/24"
         },
+        "r2r_subnets": ["172.17.175.0/24", "192.168.22.0/24"],
         "protocol": "RIP"
       },
       "router-3": {
@@ -31,6 +33,7 @@
           "router-2": "192.168.22.2/24",
           "router-4": "10.0.98.1/24"
         },
+        "r2r_subnets": ["192.168.22.0/24", "10.0.98.0/24"],
         "protocol": "RIP",
         "hitl_interface": {
           "slug": "ens19",
@@ -49,6 +52,7 @@
           "router-3": "10.0.98.2/24",
           "router-5": "172.20.16.1/24"
         },
+        "r2r_subnets": ["10.0.98.0/24", "172.20.16.0/24"],
         "protocol": "RIP"
       },
       "router-5": {
@@ -59,6 +63,7 @@
         "r2r_interfaces": {
           "router-4": "172.20.16.2/24"
         },
+        "r2r_subnets": ["172.20.16.0/24"],
         "protocol": "RIP"
       },
       "pc-1": {
@@ -69,9 +74,7 @@
         "lan_subnet": "172.18.167.0/24",
         "router": "router-1",
         "switch": "rsw-1-1",
-        "services": [
-          "DHCPClient"
-        ],
+        "services": ["DHCPClient"],
         "vulns": []
       },
       "pc-3": {
@@ -93,9 +96,7 @@
         "lan_subnet": "10.0.103.0/24",
         "router": "router-4",
         "switch": "rsw-4-1",
-        "services": [
-          "DHCPClient"
-        ],
+        "services": ["DHCPClient"],
         "vulns": []
       },
       "pc-5": {
@@ -128,12 +129,8 @@
         "lan_subnet": "172.18.167.0/24",
         "router": "router-1",
         "switch": "rsw-1-1",
-        "services": [
-          "DHCPClient"
-        ],
-        "vulns": [
-          "git/CVE-2017-8386"
-        ]
+        "services": ["DHCPClient"],
+        "vulns": ["git/CVE-2017-8386"]
       },
       "docker-12": {
         "hostname": "docker-12",
@@ -143,12 +140,8 @@
         "lan_subnet": "172.24.124.0/24",
         "router": "router-2",
         "switch": "rsw-2-1",
-        "services": [
-          "DHCPClient"
-        ],
-        "vulns": [
-          "git/CVE-2017-8386"
-        ]
+        "services": ["DHCPClient"],
+        "vulns": ["git/CVE-2017-8386"]
       }
     },
     "topology": {
@@ -158,88 +151,40 @@
           "edge_id": 1,
           "subnet": "172.17.175.0/24",
           "routers": [
-            {
-              "id": "router-1",
-              "ip": "172.17.175.1/24"
-            },
-            {
-              "id": "router-2",
-              "ip": "172.17.175.2/24"
-            }
+            {"id": "router-1", "ip": "172.17.175.1/24"},
+            {"id": "router-2", "ip": "172.17.175.2/24"}
           ]
         },
         {
           "edge_id": 2,
           "subnet": "192.168.22.0/24",
           "routers": [
-            {
-              "id": "router-2",
-              "ip": "192.168.22.1/24"
-            },
-            {
-              "id": "router-3",
-              "ip": "192.168.22.2/24"
-            }
+            {"id": "router-2", "ip": "192.168.22.1/24"},
+            {"id": "router-3", "ip": "192.168.22.2/24"}
           ]
         },
         {
           "edge_id": 3,
           "subnet": "10.0.98.0/24",
           "routers": [
-            {
-              "id": "router-3",
-              "ip": "10.0.98.1/24"
-            },
-            {
-              "id": "router-4",
-              "ip": "10.0.98.2/24"
-            }
+            {"id": "router-3", "ip": "10.0.98.1/24"},
+            {"id": "router-4", "ip": "10.0.98.2/24"}
           ]
         },
         {
           "edge_id": 4,
           "subnet": "172.20.16.0/24",
           "routers": [
-            {
-              "id": "router-4",
-              "ip": "172.20.16.1/24"
-            },
-            {
-              "id": "router-5",
-              "ip": "172.20.16.2/24"
-            }
+            {"id": "router-4", "ip": "172.20.16.1/24"},
+            {"id": "router-5", "ip": "172.20.16.2/24"}
           ]
         }
       ],
       "traffic": [
-        {
-          "src": "pc-3",
-          "dst": "pc-1",
-          "protocol": "TCP",
-          "rate_kbps": 128,
-          "pattern": "continuous"
-        },
-        {
-          "src": "pc-8",
-          "dst": "docker-11",
-          "protocol": "TCP",
-          "rate_kbps": 128,
-          "pattern": "continuous"
-        },
-        {
-          "src": "docker-12",
-          "dst": "pc-5",
-          "protocol": "TCP",
-          "rate_kbps": 128,
-          "pattern": "continuous"
-        },
-        {
-          "src": "pc-4",
-          "dst": "pc-8",
-          "protocol": "TCP",
-          "rate_kbps": 128,
-          "pattern": "continuous"
-        }
+        {"src": "pc-3",     "dst": "pc-1",      "protocol": "TCP", "rate_kbps": 128, "pattern": "continuous"},
+        {"src": "pc-8",     "dst": "docker-11",  "protocol": "TCP", "rate_kbps": 128, "pattern": "continuous"},
+        {"src": "docker-12","dst": "pc-5",       "protocol": "TCP", "rate_kbps": 128, "pattern": "continuous"},
+        {"src": "pc-4",     "dst": "pc-8",       "protocol": "TCP", "rate_kbps": 128, "pattern": "continuous"}
       ]
     }
   }

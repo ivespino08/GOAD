@@ -1,4 +1,12 @@
 ---
+# topology-links.yml
+# Configures point-to-point (r2r) links between routers.
+#
+# Loops over ALL r2r_links and uses `when` to skip links the current
+# router is not part of — avoids selectattr/rejectattr which require jmespath.
+# Peer/local IPs are derived via list index arithmetic (r2r links always
+# have exactly 2 routers), so no attribute-based filtering is needed.
+
 - import_playbook: data.yml
   vars:
     data_path: "../ad/Scenario3/data"
@@ -11,46 +19,23 @@
     - include_role:
         name: "network/r2r_link"
       vars:
-        # eth0=NAT, eth1=management — r2r links start at eth2 (index+2).
-        # Uses the peer's position in r2r_interfaces.keys() — same ordered
-        # list topology-routers.yml iterates with peer_idx — so both
-        # playbooks assign the same interface name to the same peer.
+        _ids: "{{item.routers | map(attribute='id') | list}}"
+        _ips: "{{item.routers | map(attribute='ip') | list}}"
+        _local_idx: "{{_ids.index(dict_key)}}"
+        _peer_idx:  "{{1 - _ids.index(dict_key)}}"
+        local_router: "{{dict_key}}"
+        local_ip4:   "{{_ips[_local_idx | int]}}"
+        peer_router: "{{_ids[_peer_idx | int]}}"
+        peer_ip4:    "{{_ips[_peer_idx | int]}}"
+        link_subnet: "{{item.subnet}}"
+        # eth0=NAT, eth1=management, eth2+=r2r (offset +2)
         interface_name: >-
           {{"eth" + (
             (lab.hosts[dict_key].r2r_interfaces.keys() | list).index(
-              item.routers
-              | rejectattr('id', 'equalto', dict_key)
-              | map(attribute='id')
-              | first
+              _ids[_peer_idx | int]
             ) + 2
           ) | string}}
-        local_router: "{{dict_key}}"
-        local_ip4: >-
-          {{
-            item.routers
-            | selectattr('id', 'equalto', dict_key)
-            | map(attribute='ip')
-            | first
-          }}
-        peer_router: >-
-          {{
-            item.routers
-            | rejectattr('id', 'equalto', dict_key)
-            | map(attribute='id')
-            | first
-          }}
-        peer_ip4: >-
-          {{
-            item.routers
-            | rejectattr('id', 'equalto', dict_key)
-            | map(attribute='ip')
-            | first
-          }}
-        link_subnet: "{{item.subnet}}"
-      loop: >-
-        {{
-          lab.topology.r2r_links
-          | selectattr('routers', 'selectattr', 'id', 'equalto', dict_key)
-        }}
+      loop: "{{lab.topology.r2r_links}}"
+      when: dict_key in (item.routers | map(attribute='id') | list)
       loop_control:
         label: "edge {{item.edge_id}} — {{item.subnet}}"

@@ -1,12 +1,4 @@
 ---
-# topology-links.yml
-# Configures point-to-point (r2r) links between routers.
-#
-# interface_name is derived from the peer's position in
-# lab.hosts[dict_key].r2r_interfaces.keys() — the same ordered list
-# topology-routers.yml iterates with peer_idx — so both playbooks assign
-# the same eth{{n}} name to the same physical interface.
-
 - import_playbook: data.yml
   vars:
     data_path: "../ad/Scenario3/data"
@@ -19,9 +11,10 @@
     - include_role:
         name: "network/r2r_link"
       vars:
-        # Derive interface name by finding peer's index in the r2r_interfaces
-        # key order — must match the eth{{peer_idx+1}} assignment in
-        # topology-routers.yml exactly.
+        # eth0=NAT, eth1=management — r2r links start at eth2 (index+2).
+        # Uses the peer's position in r2r_interfaces.keys() — same ordered
+        # list topology-routers.yml iterates with peer_idx — so both
+        # playbooks assign the same interface name to the same peer.
         interface_name: >-
           {{"eth" + (
             (lab.hosts[dict_key].r2r_interfaces.keys() | list).index(
@@ -29,7 +22,7 @@
               | rejectattr('id', 'equalto', dict_key)
               | map(attribute='id')
               | first
-            ) + 1
+            ) + 2
           ) | string}}
         local_router: "{{dict_key}}"
         local_ip4: >-

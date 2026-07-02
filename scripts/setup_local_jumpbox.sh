@@ -5,12 +5,12 @@ set -e
 sudo apt-get update -qq
 sudo apt-get install -y git python3-pip rsync sshpass curl
 
-# Install Ansible
-pip3 install --user ansible ansible-lint pywinrm
+# Install Ansible and required Python packages
+pip3 install --user ansible ansible-lint pywinrm jmespath
 
 # Clone GOAD if not already present
 if [ ! -d ~/GOAD ]; then
-  git clone https://github.com/ivespino08/GOAD.git ~/GOAD
+  git clone https://github.com/Orange-Cyberdefense/GOAD.git ~/GOAD
 fi
 
 # Configure goad.ini — sets ip_range so {{ip_range}} substitution resolves

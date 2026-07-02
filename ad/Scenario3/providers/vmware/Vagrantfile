@@ -1,17 +1,11 @@
 # ad/Scenario3/providers/vmware/Vagrantfile
 #
-# boxes must be at the top-level Ruby scope so the GOAD framework template
-# (template/provider/vmware/Vagrantfile) can access it after loading this file.
+# boxes defines the lab VMs. The GOAD framework template adds the management
+# network (eth1, 192.168.57.x) and PROVISIONING VM automatically.
 #
-# The Vagrant.configure block below is additive — Vagrant merges it with the
-# template's own configure block. It is kept separate from the boxes definition
-# to preserve the top-level scope of the boxes variable.
-#
-# config.ssh.insert_key = false prevents Vagrant from replacing the default
-# insecure key with a per-VM generated key. All lab VMs then share the
-# well-known Vagrant insecure private key, which setup_local_jumpbox.sh
-# installs at ~/.vagrant.d/insecure_private_key on the jumpbox so Ansible
-# can authenticate to every host with a single key path.
+# r2r_links adds additional adapters to each router for point-to-point links.
+# Adapter slot numbering: 1=NAT(eth0), 2=management(eth1), 3+=r2r(eth2+).
+# Each r2r subnet is isolated on its own VMware vmnet.
 
 boxes = [
   { :name => "router-1",  :ip => "192.168.57.11", :box => "generic/ubuntu2204", :box_version => "4.3.12", :os => "linux", :cpus => 1, :mem => 2048 },
@@ -28,6 +22,27 @@ boxes = [
   { :name => "docker-12", :ip => "192.168.57.32", :box => "generic/ubuntu2204", :box_version => "4.3.12", :os => "linux", :cpus => 1, :mem => 2048 },
 ]
 
+# Point-to-point r2r links — IPs from config.json r2r_interfaces.
+# Key order matches lab.hosts[router].r2r_interfaces.keys() so that
+# adapter 3 = eth2 = peer_idx 0, adapter 4 = eth3 = peer_idx 1, etc.
+r2r_links = {
+  "router-1" => ["172.17.175.1"],
+  "router-2" => ["172.17.175.2", "192.168.22.1"],
+  "router-3" => ["192.168.22.2", "10.0.98.1"],
+  "router-4" => ["10.0.98.2",   "172.20.16.1"],
+  "router-5" => ["172.20.16.2"],
+}
+
 Vagrant.configure("2") do |config|
   config.ssh.insert_key = false
+
+  r2r_links.each do |vm_name, ips|
+    config.vm.define vm_name do |vm_config|
+      ips.each_with_index do |ip, idx|
+        vm_config.vm.network "private_network",
+          ip: ip,
+          adapter: idx + 3   # slot 1=NAT, 2=management, 3+=r2r
+      end
+    end
+  end
 end

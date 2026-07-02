@@ -1,17 +1,12 @@
 # ad/Scenario3/providers/virtualbox/Vagrantfile
 #
-# boxes must be at the top-level Ruby scope so the GOAD framework template
-# (template/provider/virtualbox/Vagrantfile) can access it after loading this file.
+# boxes defines the lab VMs. The GOAD framework template adds the management
+# network (eth1, 192.168.57.x) and PROVISIONING VM automatically.
 #
-# The Vagrant.configure block below is additive — Vagrant merges it with the
-# template's own configure block. It is kept separate from the boxes definition
-# to preserve the top-level scope of the boxes variable.
-#
-# config.ssh.insert_key = false prevents Vagrant from replacing the default
-# insecure key with a per-VM generated key. All lab VMs then share the
-# well-known Vagrant insecure private key, which setup_local_jumpbox.sh
-# installs at ~/.vagrant.d/insecure_private_key on the jumpbox so Ansible
-# can authenticate to every host with a single key path.
+# r2r_links adds additional adapters to each router for point-to-point links.
+# Adapter slot numbering: 1=NAT(eth0), 2=management(eth1), 3+=r2r(eth2+).
+# virtualbox__intnet creates fully isolated internal networks between VMs
+# sharing the same intnet name — no host access, no other VM leakage.
 
 boxes = [
   { :name => "router-1",  :ip => "192.168.57.11", :box => "generic/ubuntu2204", :box_version => "4.3.12", :os => "linux", :cpus => 1, :mem => 2048 },
@@ -28,6 +23,30 @@ boxes = [
   { :name => "docker-12", :ip => "192.168.57.32", :box => "generic/ubuntu2204", :box_version => "4.3.12", :os => "linux", :cpus => 1, :mem => 2048 },
 ]
 
+# Point-to-point r2r links — IPs from config.json r2r_interfaces.
+# intnet names pair exactly the two routers that share each link.
+r2r_links = {
+  "router-1" => [{ ip: "172.17.175.1", intnet: "goad-r1r2" }],
+  "router-2" => [{ ip: "172.17.175.2", intnet: "goad-r1r2" },
+                 { ip: "192.168.22.1",  intnet: "goad-r2r3" }],
+  "router-3" => [{ ip: "192.168.22.2",  intnet: "goad-r2r3" },
+                 { ip: "10.0.98.1",     intnet: "goad-r3r4" }],
+  "router-4" => [{ ip: "10.0.98.2",     intnet: "goad-r3r4" },
+                 { ip: "172.20.16.1",   intnet: "goad-r4r5" }],
+  "router-5" => [{ ip: "172.20.16.2",   intnet: "goad-r4r5" }],
+}
+
 Vagrant.configure("2") do |config|
   config.ssh.insert_key = false
+
+  r2r_links.each do |vm_name, links|
+    config.vm.define vm_name do |vm_config|
+      links.each_with_index do |link, idx|
+        vm_config.vm.network "private_network",
+          ip: link[:ip],
+          adapter: idx + 3,                          # slot 1=NAT, 2=management, 3+=r2r
+          virtualbox__intnet: link[:intnet]          # isolated internal network
+      end
+    end
+  end
 end

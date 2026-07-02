@@ -1,8 +1,4 @@
 ---
-# topology-routers.yml
-# Configures IP addresses on all router LAN and r2r interfaces.
-# Mirrors the style of ad-servers.yml / ad-child_domain.yml.
-
 - import_playbook: data.yml
   vars:
     data_path: "../ad/Scenario3/data"
@@ -27,7 +23,8 @@
         name: "network/interface"
       vars:
         interface_ip4: "{{lab.hosts[dict_key].r2r_interfaces[peer]}}"
-        interface_name: "eth{{peer_idx + 1}}"
+        # eth0=NAT, eth1=management — r2r links start at eth2 (peer_idx+2)
+        interface_name: "eth{{peer_idx + 2}}"
         interface_description: "r2r link to {{peer}}"
       loop: "{{lab.hosts[dict_key].r2r_interfaces.keys() | list}}"
       loop_control:

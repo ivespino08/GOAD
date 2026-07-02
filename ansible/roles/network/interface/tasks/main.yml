@@ -1,13 +1,15 @@
 # roles/network/interface/tasks/main.yml
 ---
-- name: "Update apt cache before installing network-manager"
+- name: "Update apt cache before installing dependencies"
   ansible.builtin.apt:
     update_cache: yes
     cache_valid_time: 3600
 
-- name: "Install network-manager"
+- name: "Install network-manager and netaddr"
   ansible.builtin.package:
-    name: network-manager
+    name:
+      - network-manager
+      - python3-netaddr
     state: present
 
 - name: "Configure interface {{interface_name}} with {{interface_ip4}}"

@@ -5,11 +5,6 @@
     update_cache: yes
     cache_valid_time: 3600
 
-- name: "Update apt cache before installing bridge-utils"
-  ansible.builtin.apt:
-    update_cache: yes
-    cache_valid_time: 3600
-
 - name: "Install bridge-utils and python3-netaddr"
   ansible.builtin.package:
     name:

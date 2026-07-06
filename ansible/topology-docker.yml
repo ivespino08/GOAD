@@ -4,6 +4,12 @@
 # The docker/vuln_node role is generic — vuln_name and vuln_compose_src
 # are passed per host from lab.hosts[dict_key].vulns.
 # Mirrors the style of servers.yml.
+#
+# vuln_compose_src is forced to lowercase: vulns entries like
+# "git/CVE-2017-8386" would otherwise produce "git-CVE-2017-8386-...",
+# which fails to match the actual lowercase filename on disk
+# (files/git-cve-2017-8386-docker-compose.yml) on case-sensitive
+# Linux filesystems.
 
 - import_playbook: data.yml
   vars:
@@ -19,5 +25,5 @@
       vars:
         hostname: "{{lab.hosts[dict_key].hostname}}"
         vuln_name: "{{item}}"
-        vuln_compose_src: "files/{{item | replace('/', '-')}}-docker-compose.yml"
+        vuln_compose_src: "files/{{item | replace('/', '-') | lower}}-docker-compose.yml"
       loop: "{{lab.hosts[dict_key].vulns}}"

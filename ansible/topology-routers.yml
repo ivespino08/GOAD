@@ -9,28 +9,18 @@
 # Router LAN gateway IPs are added as secondary addresses on eth1.
 # There is no dedicated LAN interface — the management interface carries
 # both the management IP and the lab LAN IP as a secondary.
+#
+# NOTE: r2r interface addressing (eth2/eth3) is NOT configured here.
+# It used to be configured via the network/interface role in this file
+# AND again via the network/r2r_link role in topology-links.yml — two
+# separate nmcli connection profiles fighting over the same device.
+# network/r2r_link fully owns r2r interface addressing (IP + peer route),
+# so the duplicate play was removed. See topology-links.yml.
 
 - import_playbook: data.yml
   vars:
     data_path: "../ad/Scenario3/data"
   tags: 'data'
-
-# Configure r2r interface IPs (eth2, eth3...) using the interface role.
-# peer_idx+2 skips eth0 (NAT) and eth1 (management).
-- name: "Configure router r2r interfaces"
-  hosts: routers
-  become: true
-  tasks:
-    - include_role:
-        name: "network/interface"
-      vars:
-        interface_ip4: "{{lab.hosts[dict_key].r2r_interfaces[peer]}}"
-        interface_name: "eth{{peer_idx + 2}}"
-        interface_description: "r2r link to {{peer}}"
-      loop: "{{lab.hosts[dict_key].r2r_interfaces.keys() | list}}"
-      loop_control:
-        loop_var: peer
-        index_var: peer_idx
 
 # Add the router's LAN gateway IP as a secondary address on eth1.
 # FRR sees this as a connected route for the LAN subnet and advertises

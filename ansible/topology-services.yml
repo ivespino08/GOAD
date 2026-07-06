@@ -1,29 +1,45 @@
 ---
+# topology-services.yml
+#
+# CHANGED: this playbook previously configured DHCP on eth0 for hosts
+# tagged "DHCPClient" in config.json. Two problems made that non-functional:
+#   1. eth0 is the Vagrant NAT adapter — every other playbook in this repo
+#      treats it as "never touch"; DHCP was being requested on the wrong
+#      interface entirely.
+#   2. No DHCP server exists anywhere in this topology, so the "confirm
+#      lease acquired" task would retry and then hard-fail provisioning.
+#
+# Every pc/docker host in config.json already carries a static ip4,
+# gateway, and lan_subnet — DHCP was never actually required for
+# addressing. The "DHCPClient" tag in config.json's per-host "services"
+# list is scenario metadata (useful if a scenario wants to model a host
+# as a DHCP client for CTF realism/attack-surface purposes), not a literal
+# provisioning instruction — so it's no longer read here.
+#
+# All pcs and docker_nodes get a plain default route via their router's
+# LAN IP on eth1 (their lab-facing interface, per topology-hosts.yml).
+# `ip route replace` is idempotent, so this is safe to re-run.
+#
+# The former second play here (`include_role: name: "network/services/{{service}}"`)
+# is removed: it attempted to load a role named after the raw services
+# string (e.g. "network/services/DHCPClient"), which doesn't exist —
+# the real role directory is "dhcp_client" (lowercase/underscored). It
+# would hard-fail on any host with a non-empty services list. If a future
+# scenario needs real per-host services provisioned this way, reintroduce
+# this pattern with an explicit string mapping (e.g. `{{service | lower}}`)
+# and matching role directories.
+
 - import_playbook: data.yml
   vars:
     data_path: "../ad/Scenario3/data"
   tags: 'data'
 
-- name: "Configure DHCP client on applicable hosts"
-  hosts: dhcp_clients
-  become: true
-  roles:
-    - { role: 'network/services/dhcp_client', tags: 'dhcp_client' }
-  vars:
-    hostname: "{{lab.hosts[dict_key].hostname}}"
-    interface_name: "eth0"
-    lan_subnet: "{{lab.hosts[dict_key].lan_subnet}}"
-    gateway_ip4: "{{lab.hosts[dict_key].gateway}}"
-
-- name: "Configure additional per-host services"
-  hosts: domain
+- name: "Add default route via router LAN gateway"
+  hosts: pcs:docker_nodes
   become: true
   tasks:
-    - include_role:
-        name: "network/services/{{service}}"
-      vars:
-        hostname: "{{lab.hosts[dict_key].hostname}}"
-        lan_subnet: "{{lab.hosts[dict_key].lan_subnet}}"
-      loop: "{{lab.hosts[dict_key].services | default([])}}"
-      loop_control:
-        loop_var: service
+    - name: "Ensure default route via {{lab.hosts[dict_key].gateway}} on eth1"
+      ansible.builtin.command:
+        cmd: ip route replace default via {{lab.hosts[dict_key].gateway}} dev eth1
+      register: gw_route
+      changed_when: gw_route.rc == 0

@@ -1,13 +1,19 @@
 # roles/network/r2r_link/tasks/main.yml
+#
+# Fully owns r2r interface addressing (IP + peer route) for eth2/eth3.
+# conn_name matches interface_name (e.g. "eth2") rather than a separate
+# "r2r-{{peer_router}}" name — this reuses/updates the same nmcli
+# connection profile instead of creating a second one on the same
+# device, which previously caused two competing profiles per interface.
 ---
 - name: "Ensure python3-netaddr is present for ipaddr filter"
   ansible.builtin.package:
     name: python3-netaddr
     state: present
 
-- name: "Configure r2r interface toward {{peer_router}} ({{link_subnet}})"
+- name: "Configure r2r interface {{interface_name}} toward {{peer_router}} ({{link_subnet}})"
   ansible.builtin.nmcli:
-    conn_name: "r2r-{{peer_router}}"
+    conn_name: "{{interface_name}}"
     ifname: "{{interface_name}}"
     type: ethernet
     ip4: "{{local_ip4}}"
@@ -16,9 +22,9 @@
     state: present
   register: r2r_result
 
-- name: "Bring up r2r interface toward {{peer_router}}"
+- name: "Bring up r2r interface {{interface_name}}"
   ansible.builtin.command:
-    cmd: nmcli connection up "r2r-{{peer_router}}"
+    cmd: nmcli connection up "{{interface_name}}"
   when: r2r_result.changed
 
 - name: "Add static route to peer LAN via {{peer_ip4 | ansible.utils.ipaddr('address')}}"

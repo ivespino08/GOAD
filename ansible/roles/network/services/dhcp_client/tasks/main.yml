@@ -5,9 +5,12 @@
     update_cache: yes
     cache_valid_time: 3600
 
-- name: "Install dhclient"
+- name: "Install dhclient, network-manager and netaddr"
   ansible.builtin.package:
-    name: isc-dhcp-client
+    name:
+      - isc-dhcp-client
+      - network-manager
+      - python3-netaddr
     state: present
 
 - name: "Configure {{interface_name}} for DHCP"

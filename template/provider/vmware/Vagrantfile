@@ -7,15 +7,14 @@ ENV['VAGRANT_DEFAULT_PROVIDER'] = 'vmware_desktop'
 {{extensions}}
 
 {% if use_provisioning_vm %}
-boxes.append(
+boxes.unshift(
     { :name => "PROVISIONING",
       :ip => "{{ip_range}}.3",
       :box => "bento/ubuntu-22.04",
       :box_version => "202401.31.0",
       :os => "linux",
       :cpus => 2,
-      :mem => 2000,
-      :forwarded_port => [ {:guest => 22, :host => 2210, :id => "ssh"} ]
+      :mem => 2000
     }
 )
 {% endif %}

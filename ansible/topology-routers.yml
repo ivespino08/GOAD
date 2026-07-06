@@ -1,20 +1,22 @@
 ---
+# topology-routers.yml
+# Interface layout per router VM:
+#   eth0 = NAT (do not touch — Vagrant management)
+#   eth1 = management 192.168.57.x (added by template :ip)
+#   eth2 = first r2r link (added by template :networks[0], peer_idx 0)
+#   eth3 = second r2r link (added by template :networks[1], peer_idx 1)
+#
+# Router LAN gateway IPs are added as secondary addresses on eth1.
+# There is no dedicated LAN interface — the management interface carries
+# both the management IP and the lab LAN IP as a secondary.
+
 - import_playbook: data.yml
   vars:
     data_path: "../ad/Scenario3/data"
   tags: 'data'
 
-- name: "Configure router LAN interfaces"
-  hosts: routers
-  become: true
-  roles:
-    - { role: 'network/interface', tags: 'router_lan_interface' }
-  vars:
-    hostname: "{{lab.hosts[dict_key].hostname}}"
-    interface_ip4: "{{lab.hosts[dict_key].ip4}}"
-    interface_name: "eth0"
-    interface_description: "LAN — {{lab.hosts[dict_key].lan_subnet}}"
-
+# Configure r2r interface IPs (eth2, eth3...) using the interface role.
+# peer_idx+2 skips eth0 (NAT) and eth1 (management).
 - name: "Configure router r2r interfaces"
   hosts: routers
   become: true
@@ -23,10 +25,23 @@
         name: "network/interface"
       vars:
         interface_ip4: "{{lab.hosts[dict_key].r2r_interfaces[peer]}}"
-        # eth0=NAT, eth1=management — r2r links start at eth2 (peer_idx+2)
         interface_name: "eth{{peer_idx + 2}}"
         interface_description: "r2r link to {{peer}}"
       loop: "{{lab.hosts[dict_key].r2r_interfaces.keys() | list}}"
       loop_control:
         loop_var: peer
         index_var: peer_idx
+
+# Add the router's LAN gateway IP as a secondary address on eth1.
+# FRR sees this as a connected route for the LAN subnet and advertises
+# it to r2r neighbours via RIP.
+- name: "Add router LAN IP to eth1"
+  hosts: routers
+  become: true
+  tasks:
+    - name: "Add {{lab.hosts[dict_key].ip4}} to eth1"
+      ansible.builtin.command:
+        cmd: ip addr add {{lab.hosts[dict_key].ip4}} dev eth1
+      register: lan_ip
+      failed_when: lan_ip.rc != 0 and 'File exists' not in lan_ip.stderr
+      changed_when: lan_ip.rc == 0

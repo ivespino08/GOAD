@@ -1,18 +1,31 @@
 # ad/Scenario3/providers/vmware/Vagrantfile
 #
-# boxes defines the lab VMs. The GOAD framework template adds the management
-# network (eth1, 192.168.57.x) and PROVISIONING VM automatically.
+# The GOAD framework substitutes this file's content at the {{lab}}
+# placeholder inside template/provider/vmware/Vagrantfile, placing it
+# inside the template's existing Vagrant.configure block.
 #
-# r2r_links adds additional adapters to each router for point-to-point links.
-# Adapter slot numbering: 1=NAT(eth0), 2=management(eth1), 3+=r2r(eth2+).
-# Each r2r subnet is isolated on its own VMware vmnet.
+# :networks adds extra private_network adapters AFTER the management
+# adapter (eth1). The template's boxes.each loop reads :networks and
+# creates them in order, so:
+#   eth0 = NAT (automatic)
+#   eth1 = :ip (management, 192.168.57.x)
+#   eth2 = :networks[0] (first r2r link, peer_idx 0)
+#   eth3 = :networks[1] (second r2r link, peer_idx 1)
+#
+# :networks order MUST match r2r_interfaces key order in config.json
+# because topology-routers.yml uses peer_idx+2 for interface naming.
 
 boxes = [
-  { :name => "router-1",  :ip => "192.168.57.11", :box => "generic/ubuntu2204", :box_version => "4.3.12", :os => "linux", :cpus => 1, :mem => 2048 },
-  { :name => "router-2",  :ip => "192.168.57.12", :box => "generic/ubuntu2204", :box_version => "4.3.12", :os => "linux", :cpus => 1, :mem => 2048 },
-  { :name => "router-3",  :ip => "192.168.57.13", :box => "generic/ubuntu2204", :box_version => "4.3.12", :os => "linux", :cpus => 1, :mem => 2048 },
-  { :name => "router-4",  :ip => "192.168.57.14", :box => "generic/ubuntu2204", :box_version => "4.3.12", :os => "linux", :cpus => 1, :mem => 2048 },
-  { :name => "router-5",  :ip => "192.168.57.15", :box => "generic/ubuntu2204", :box_version => "4.3.12", :os => "linux", :cpus => 1, :mem => 2048 },
+  { :name => "router-1",  :ip => "192.168.57.11", :box => "generic/ubuntu2204", :box_version => "4.3.12", :os => "linux", :cpus => 1, :mem => 2048,
+    :networks => ["172.17.175.1"] },
+  { :name => "router-2",  :ip => "192.168.57.12", :box => "generic/ubuntu2204", :box_version => "4.3.12", :os => "linux", :cpus => 1, :mem => 2048,
+    :networks => ["172.17.175.2", "192.168.22.1"] },
+  { :name => "router-3",  :ip => "192.168.57.13", :box => "generic/ubuntu2204", :box_version => "4.3.12", :os => "linux", :cpus => 1, :mem => 2048,
+    :networks => ["192.168.22.2", "10.0.98.1"] },
+  { :name => "router-4",  :ip => "192.168.57.14", :box => "generic/ubuntu2204", :box_version => "4.3.12", :os => "linux", :cpus => 1, :mem => 2048,
+    :networks => ["10.0.98.2", "172.20.16.1"] },
+  { :name => "router-5",  :ip => "192.168.57.15", :box => "generic/ubuntu2204", :box_version => "4.3.12", :os => "linux", :cpus => 1, :mem => 2048,
+    :networks => ["172.20.16.2"] },
   { :name => "pc-1",      :ip => "192.168.57.21", :box => "generic/ubuntu2204", :box_version => "4.3.12", :os => "linux", :cpus => 1, :mem => 2048 },
   { :name => "pc-3",      :ip => "192.168.57.23", :box => "generic/ubuntu2204", :box_version => "4.3.12", :os => "linux", :cpus => 1, :mem => 2048 },
   { :name => "pc-4",      :ip => "192.168.57.24", :box => "generic/ubuntu2204", :box_version => "4.3.12", :os => "linux", :cpus => 1, :mem => 2048 },
@@ -22,27 +35,6 @@ boxes = [
   { :name => "docker-12", :ip => "192.168.57.32", :box => "generic/ubuntu2204", :box_version => "4.3.12", :os => "linux", :cpus => 1, :mem => 2048 },
 ]
 
-# Point-to-point r2r links — IPs from config.json r2r_interfaces.
-# Key order matches lab.hosts[router].r2r_interfaces.keys() so that
-# adapter 3 = eth2 = peer_idx 0, adapter 4 = eth3 = peer_idx 1, etc.
-r2r_links = {
-  "router-1" => ["172.17.175.1"],
-  "router-2" => ["172.17.175.2", "192.168.22.1"],
-  "router-3" => ["192.168.22.2", "10.0.98.1"],
-  "router-4" => ["10.0.98.2",   "172.20.16.1"],
-  "router-5" => ["172.20.16.2"],
-}
-
 Vagrant.configure("2") do |config|
   config.ssh.insert_key = false
-
-  r2r_links.each do |vm_name, ips|
-    config.vm.define vm_name do |vm_config|
-      ips.each_with_index do |ip, idx|
-        vm_config.vm.network "private_network",
-          ip: ip,
-          adapter: idx + 3   # slot 1=NAT, 2=management, 3+=r2r
-      end
-    end
-  end
 end

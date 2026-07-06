@@ -55,8 +55,17 @@ boxes.append(
       # issues/49
       target.vm.synced_folder '.', '/vagrant', disabled: true
 
-      # IP
+      # Management IP (eth1 — slot 2, after NAT on eth0)
       target.vm.network :private_network, ip: box[:ip]
+
+      # Additional networks for r2r links (eth2, eth3, ... — slots 3+)
+      # Add :networks => ["ip1", "ip2"] to a box hash to create extra adapters.
+      # Adapters appear in order: eth2 = networks[0], eth3 = networks[1], etc.
+      if box.has_key?(:networks)
+        box[:networks].each do |net_ip|
+          target.vm.network :private_network, ip: net_ip
+        end
+      end
 
       # OS specific
       if box[:os] == "windows"
@@ -75,7 +84,7 @@ boxes.append(
 
       if box.has_key?(:forwarded_port)
         # forwarded port explicit
-        box[:forwarded_port] do |forwarded_port|
+        box[:forwarded_port].each do |forwarded_port|
           target.vm.network :forwarded_port, guest: forwarded_port[:guest], host: forwarded_port[:host], host_ip: "127.0.0.1", id: forwarded_port[:id]
         end
       end

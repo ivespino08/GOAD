@@ -1,10 +1,10 @@
 ---
 # topology-routing.yml
 # Configures RIP routing on all routers via FRR.
-#
-# r2r_subnets is read directly from config.json (per-router field) rather than
-# derived by filtering lab.topology.r2r_links — the filter pattern that was
-# used previously required jmespath and used an invalid nested selectattr call.
+# eth0 (NAT) and eth1 (management) are both passive — RIP must only
+# run on eth2/eth3 (r2r interfaces) to enforce the multi-hop chain.
+# If RIP ran on eth1, all routers would be on the same broadcast domain
+# and learn direct routes to all subnets, bypassing the chain.
 
 - import_playbook: data.yml
   vars:
@@ -22,4 +22,4 @@
       - "{{lab.hosts[dict_key].lan_subnet}}"
     rip_networks_r2r: "{{lab.hosts[dict_key].r2r_subnets | default([])}}"
     rip_networks: "{{rip_networks_lan + rip_networks_r2r}}"
-    rip_passive_interfaces: ["eth0"]
+    rip_passive_interfaces: ["eth0", "eth1"]

@@ -6,6 +6,10 @@
 # Flag file naming: the ctf/flags role looks for files/{{hostname}}_{{item.filename}}
 # so filename should be the BASE NAME ONLY (without hostname prefix).
 # e.g. filename: "operator_pin.hash" → role finds files/docker-11_operator_pin.hash
+#
+# container_name must match the same derivation used in topology-docker.yml
+# ("{app}-vuln-{cve_id|lower}") and the container_name set in that vuln's
+# docker-compose.yml — the ctf/flags role no longer hardcodes this.
 
 - import_playbook: data.yml
   vars:
@@ -19,6 +23,7 @@
     - { role: 'ctf/flags', tags: 'flags' }
   vars:
     hostname: "{{lab.hosts[dict_key].hostname}}"
+    container_name: "git-vuln-cve-2017-8386"
     flag_files:
       - filename: "operator_pin.hash"
         container_path: "/etc/pam.d/fragments/operator_pin.hash"
@@ -34,6 +39,7 @@
     - { role: 'ctf/flags', tags: 'flags' }
   vars:
     hostname: "{{lab.hosts[dict_key].hostname}}"
+    container_name: "git-vuln-cve-2017-8386"
     flag_files:
       - filename: "backup_index.html"
         container_path: "/var/www/html/backups/backup_index.html"

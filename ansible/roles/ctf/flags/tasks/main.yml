@@ -1,7 +1,8 @@
 # roles/ctf/flags/tasks/main.yml
 #
-# NOTE: container name is hardcoded as git-vuln-cve-2017-8386.
-# For other scenarios, update this role or add a container_name variable.
+# container_name is now passed in from the calling playbook (e.g.
+# topology-flags.yml) instead of being hardcoded here — it must match
+# whatever container_name topology-docker.yml derived/used for that host.
 # Flag file source convention: files/{{hostname}}_{{item.filename}}
 # So topology-flags.yml should pass filename WITHOUT the hostname prefix.
 ---
@@ -22,7 +23,7 @@
 
 - name: "Inject flags into running container"
   community.docker.docker_container_exec:
-    container: git-vuln-cve-2017-8386
+    container: "{{container_name}}"
     command: "mkdir -p {{item.container_path | dirname}}"
   loop: "{{flag_files | default([])}}"
   loop_control:
@@ -32,7 +33,7 @@
   ansible.builtin.command:
     cmd: >
       docker cp /tmp/flags/{{item.filename}}
-      git-vuln-cve-2017-8386:{{item.container_path}}
+      {{container_name}}:{{item.container_path}}
   loop: "{{flag_files | default([])}}"
   loop_control:
     label: "{{item.filename}} → {{item.container_path}}"
@@ -41,7 +42,7 @@
 
 - name: "Set flag file permissions inside container"
   community.docker.docker_container_exec:
-    container: git-vuln-cve-2017-8386
+    container: "{{container_name}}"
     command: "chmod {{item.mode | default('0644')}} {{item.container_path}}"
   loop: "{{flag_files | default([])}}"
   loop_control:

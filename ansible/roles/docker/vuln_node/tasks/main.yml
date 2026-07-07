@@ -1,9 +1,10 @@
 # roles/docker/vuln_node/tasks/main.yml
 #
-# Generic role — vuln_name and vuln_compose_src are passed as vars
-# from topology-docker.yml. vuln_name drives directory names and
-# container labels; vuln_compose_src is the path to the compose file
-# to copy (e.g. "files/git-CVE-2017-8386-docker-compose.yml").
+# Generic role — vuln_name, vuln_compose_src, and container_name are
+# passed as vars from topology-docker.yml. vuln_name drives directory
+# names; vuln_compose_src is the path to the compose file to copy;
+# container_name must match the container_name set inside that compose
+# file exactly (used to confirm the container actually started).
 ---
 - name: "Install Docker dependencies"
   ansible.builtin.apt:
@@ -72,10 +73,10 @@
   retries: 3
   delay: 10
 
-- name: "Confirm container is running"
+- name: "Confirm container {{ container_name }} is running"
   community.docker.docker_container_info:
-    name: "{{ vuln_name | replace('/', '-') }}"
+    name: "{{ container_name }}"
   register: container_info
-  until: container_info.container.State.Running
+  until: container_info.container is not none and container_info.container.State.Running
   retries: 10
   delay: 5

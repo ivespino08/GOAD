@@ -10,6 +10,12 @@
 # which fails to match the actual lowercase filename on disk
 # (files/git-cve-2017-8386-docker-compose.yml) on case-sensitive
 # Linux filesystems.
+#
+# container_name is derived as "{app}-vuln-{cve_id|lower}" from the
+# vulns entry (e.g. "git/CVE-2017-8386" -> "git-vuln-cve-2017-8386").
+# This MUST match the container_name set in that vuln's docker-compose.yml
+# — the role's "confirm container running" check and the ctf/flags role
+# both look the container up by this exact name, not by vuln_name itself.
 
 - import_playbook: data.yml
   vars:
@@ -26,4 +32,5 @@
         hostname: "{{lab.hosts[dict_key].hostname}}"
         vuln_name: "{{item}}"
         vuln_compose_src: "files/{{item | replace('/', '-') | lower}}-docker-compose.yml"
+        container_name: "{{item.split('/')[0]}}-vuln-{{item.split('/')[1] | lower}}"
       loop: "{{lab.hosts[dict_key].vulns}}"

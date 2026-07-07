@@ -1,3 +1,21 @@
+# roles/network/hitl_interface/tasks/main.yml
+#
+# Previously had no package install task at all — would fail with
+# "Failed to find required executable nmcli" the moment it ran, same
+# class of bug as r2r_link. Added here before the interface check.
+---
+- name: "Update apt cache before installing network-manager"
+  ansible.builtin.apt:
+    update_cache: yes
+    cache_valid_time: 3600
+
+- name: "Install network-manager and python3-netaddr"
+  ansible.builtin.package:
+    name:
+      - network-manager
+      - python3-netaddr
+    state: present
+
 - name: "Check {{hitl_interface_name}} interface exists"
   ansible.builtin.command:
     cmd: ip link show {{hitl_interface_name}}

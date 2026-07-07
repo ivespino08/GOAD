@@ -5,10 +5,11 @@
     update_cache: yes
     cache_valid_time: 3600
 
-- name: "Install bridge-utils and python3-netaddr"
+- name: "Install bridge-utils, network-manager, and python3-netaddr"
   ansible.builtin.package:
     name:
       - bridge-utils
+      - network-manager
       - python3-netaddr
     state: present
 

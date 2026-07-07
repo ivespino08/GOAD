@@ -66,6 +66,23 @@ boxes.unshift(
         end
       end
 
+      # Bridged adapter for hardware-in-the-loop (HITL) participant networks.
+      # Unlike :networks above (all private_network / virtual-only), this
+      # bridges the VM to a real physical NIC on the host, so it can reach
+      # actual external hardware (e.g. router-3's ens19 in Scenario3).
+      # Add :bridge_adapter => "<host NIC name>" to a box hash to enable it.
+      #
+      # IMPORTANT: the resulting guest interface name is NOT guaranteed to
+      # match whatever slug you've picked in config.json (e.g. "ens19") —
+      # it depends on predictable-network-interface-naming and PCI bus
+      # ordering on the specific host/hypervisor. After `vagrant reload`,
+      # SSH in and confirm with `ip link show` before trusting the name
+      # baked into config.json; update config.json rather than the role
+      # if they don't match.
+      if box.has_key?(:bridge_adapter)
+        target.vm.network "public_network", bridge: box[:bridge_adapter]
+      end
+
       # OS specific
       if box[:os] == "windows"
         target.vm.guest = :windows

@@ -78,7 +78,7 @@ Scenario3:
   - topology-hosts.yml         # assign IPs, gateways, switch membership to PCs + Docker hosts
   - topology-routing.yml       # configure RIP on all routers
   - topology-services.yml      # configure per-host services (DHCPClient etc.)
-  - topology-hitl.yml          # attach ens19 participant interface on router-3
+  #- topology-hitl.yml          # attach ens19 participant interface on router-3
   - topology-docker.yml        # install Docker + deploy CVE-2017-8386 container (replaces CORE)
   - topology-flags.yml         # inject CTF flag artifacts into containers (replaces CORE session load)
   - topology-traffic.yml       # deploy + start background traffic scripts

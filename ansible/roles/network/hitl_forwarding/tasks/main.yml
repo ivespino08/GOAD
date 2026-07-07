@@ -1,3 +1,20 @@
+# roles/network/hitl_forwarding/tasks/main.yml
+#
+# Previously had no package install task at all — same bug class as
+# r2r_link and hitl_interface. Added here before the route/nmcli tasks.
+---
+- name: "Update apt cache before installing network-manager"
+  ansible.builtin.apt:
+    update_cache: yes
+    cache_valid_time: 3600
+
+- name: "Install network-manager and python3-netaddr"
+  ansible.builtin.package:
+    name:
+      - network-manager
+      - python3-netaddr
+    state: present
+
 - name: "Check for existing route to {{hitl_network}}"
   ansible.builtin.command:
     cmd: ip route show {{hitl_network}}

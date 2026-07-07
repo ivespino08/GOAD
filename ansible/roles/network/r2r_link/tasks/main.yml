@@ -5,10 +5,21 @@
 # "r2r-{{peer_router}}" name — this reuses/updates the same nmcli
 # connection profile instead of creating a second one on the same
 # device, which previously caused two competing profiles per interface.
+#
+# Installs network-manager itself (not just python3-netaddr) — this role
+# must not assume another role has already installed it. That assumption
+# broke when topology-routers.yml's redundant interface play was removed.
 ---
-- name: "Ensure python3-netaddr is present for ipaddr filter"
+- name: "Update apt cache before installing network-manager"
+  ansible.builtin.apt:
+    update_cache: yes
+    cache_valid_time: 3600
+
+- name: "Install network-manager and python3-netaddr"
   ansible.builtin.package:
-    name: python3-netaddr
+    name:
+      - network-manager
+      - python3-netaddr
     state: present
 
 - name: "Configure r2r interface {{interface_name}} toward {{peer_router}} ({{link_subnet}})"

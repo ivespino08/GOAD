@@ -1,8 +1,15 @@
 # roles/network/gateway/tasks/main.yml
 ---
-- name: "Ensure python3-netaddr is present for nmcli module"
+- name: "Update apt cache before installing network-manager"
+  ansible.builtin.apt:
+    update_cache: yes
+    cache_valid_time: 3600
+
+- name: "Install network-manager and python3-netaddr"
   ansible.builtin.package:
-    name: python3-netaddr
+    name:
+      - network-manager
+      - python3-netaddr
     state: present
 
 - name: "Set default gateway to {{gateway_ip4}} on {{interface_name}}"

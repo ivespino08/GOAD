@@ -1,7 +1,31 @@
+---
+# reboot.yml
+#
+# Shared across scenarios — some (like this one) are all-Linux, others
+# are Windows/AD-domain GOAD scenarios. win_reboot and ansible.builtin.reboot
+# are mutually exclusive by OS (Ansible's own docs for each explicitly
+# point to the other for the opposite platform), so this file can't just
+# pick one module for the whole "domain" group. It now branches per-host
+# on ansible_facts['os_family'] instead, so a single run works across
+# mixed-OS scenarios as well as all-Linux ones like Scenario3.
+#
+# become is applied only to the Linux task, not at the play level —
+# Windows/WinRM connections don't use become the same way (no sudo),
+# and setting become: true globally can break the Windows reboot task.
+
 - name: "Reboot all"
   hosts: domain
+  gather_facts: true
   tasks:
-    - name: "reboot"
-      win_reboot:
+    - name: "Reboot Windows hosts"
+      ansible.windows.win_reboot:
         reboot_timeout: 1000
         post_reboot_delay: 200
+      when: ansible_facts['os_family'] == "Windows"
+
+    - name: "Reboot Linux hosts"
+      ansible.builtin.reboot:
+        reboot_timeout: 1000
+        post_reboot_delay: 200
+      become: true
+      when: ansible_facts['os_family'] != "Windows"

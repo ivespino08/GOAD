@@ -2,7 +2,11 @@
 <html>
 <!-- backup_index.html — flag artifact for docker-12 (node 17) — Scenario3 -->
 <!-- Credentials required: user_269d47 / pass_85a08a653f22             -->
-<!-- Accessible at: https://<docker-12-ip>/backups/backup_index.html   -->
+<!-- Reached via the git-shell RCE (CVE-2017-8386): after gaining        -->
+<!-- command execution through the `less` !cmd escape, read this file   -->
+<!-- directly, e.g.: cat /home/git/backups/backup_index.html            -->
+<!-- There is no web server in this environment — do not expect this    -->
+<!-- file to be reachable over HTTP.                                    -->
 <head><title>Backup Index</title></head>
 <body>
   <h1>Backup Index</h1>

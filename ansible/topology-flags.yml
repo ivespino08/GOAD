@@ -42,5 +42,10 @@
     container_name: "git-vuln-cve-2017-8386"
     flag_files:
       - filename: "backup_index.html"
-        container_path: "/var/www/html/backups/backup_index.html"
+        # /home/git exists in the vulhub/git image and is owned by uid 33
+        # (the same uid the git-shell RCE lands as — see README's note
+        # that git/www-data share uid 33). No web server exists in this
+        # environment, so this is reached by cat'ing the file after
+        # exploiting CVE-2017-8386, not over HTTP.
+        container_path: "/home/git/backups/backup_index.html"
         mode: "0644"

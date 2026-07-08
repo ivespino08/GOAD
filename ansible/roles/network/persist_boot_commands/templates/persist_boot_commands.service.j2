@@ -1,0 +1,16 @@
+[Unit]
+Description={{persist_description | default(persist_unit_name)}}
+After=network-online.target{% if persist_after is defined %}{% for u in persist_after %} {{u}}{% endfor %}{% endif %}
+
+Wants=network-online.target{% if persist_after is defined %}{% for u in persist_after %} {{u}}{% endfor %}{% endif %}
+
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+{% for cmd in persist_commands %}
+ExecStart=/bin/sh -c '{{cmd}}'
+{% endfor %}
+
+[Install]
+WantedBy=multi-user.target

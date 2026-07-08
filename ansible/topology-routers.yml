@@ -6,32 +6,32 @@
 #   eth2 = first r2r link (added by template :networks[0], peer_idx 0)
 #   eth3 = second r2r link (added by template :networks[1], peer_idx 1)
 #
-# Router LAN gateway IPs are added as secondary addresses on eth1.
+# Router LAN gateway IPs are added as secondary addresses on eth1,
+# PERSISTENTLY, via a systemd oneshot unit (see
+# roles/network/persist_boot_commands). This used to be a bare
+# `ip addr add`, invisible to NetworkManager — any reboot silently
+# wiped it, breaking RIP's LAN-subnet advertisement until this file
+# was re-run by hand. Same underlying bug as topology-hosts.yml.
+#
 # There is no dedicated LAN interface — the management interface carries
 # both the management IP and the lab LAN IP as a secondary.
 #
 # NOTE: r2r interface addressing (eth2/eth3) is NOT configured here.
-# It used to be configured via the network/interface role in this file
-# AND again via the network/r2r_link role in topology-links.yml — two
-# separate nmcli connection profiles fighting over the same device.
-# network/r2r_link fully owns r2r interface addressing (IP + peer route),
-# so the duplicate play was removed. See topology-links.yml.
+# network/r2r_link (in topology-links.yml) fully owns r2r interface
+# addressing (IP + peer route) via nmcli, which is already persistent.
 
 - import_playbook: data.yml
   vars:
     data_path: "../ad/Scenario3/data"
   tags: 'data'
 
-# Add the router's LAN gateway IP as a secondary address on eth1.
-# FRR sees this as a connected route for the LAN subnet and advertises
-# it to r2r neighbours via RIP.
-- name: "Add router LAN IP to eth1"
+- name: "Persist router LAN IP on eth1"
   hosts: routers
   become: true
-  tasks:
-    - name: "Add {{lab.hosts[dict_key].ip4}} to eth1"
-      ansible.builtin.command:
-        cmd: ip addr add {{lab.hosts[dict_key].ip4}} dev eth1
-      register: lan_ip
-      failed_when: lan_ip.rc != 0 and 'File exists' not in lan_ip.stderr
-      changed_when: lan_ip.rc == 0
+  roles:
+    - role: 'network/persist_boot_commands'
+      vars:
+        persist_unit_name: "lab-ip-eth1"
+        persist_description: "Persist router LAN gateway IP on eth1 across reboots"
+        persist_commands:
+          - "ip addr add {{lab.hosts[dict_key].ip4}} dev eth1 || true"

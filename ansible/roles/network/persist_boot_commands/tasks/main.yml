@@ -1,0 +1,39 @@
+# roles/network/persist_boot_commands/tasks/main.yml
+#
+# Persists one or more shell commands to re-run automatically at every
+# boot, via a oneshot systemd unit. Needed anywhere a raw `ip addr add`
+# or `ip route add/replace` command is used instead of an nmcli-managed
+# connection profile — NetworkManager has no awareness of addresses/
+# routes added this way, so they are silently wiped on every reboot.
+# This was the root cause of pc-4 losing both its lab IP and its default
+# route after reboot.yml was run against the "domain" group.
+#
+# vars:
+#   persist_unit_name: short name, becomes {{persist_unit_name}}.service
+#   persist_description: human-readable description for the unit
+#   persist_after: optional list of extra unit names this unit should
+#     wait for (beyond network-online.target) — use this to guarantee
+#     ordering when one persisted command depends on another having
+#     already run (e.g. a default route depending on a lab IP already
+#     being present on the same interface).
+#   persist_commands: list of shell command strings to run at boot, in
+#     order. Each should tolerate being re-run when already applied
+#     (e.g. append `|| true`).
+---
+- name: "Deploy persistent boot unit {{persist_unit_name}}.service"
+  ansible.builtin.template:
+    src: persist_boot_commands.service.j2
+    dest: "/etc/systemd/system/{{persist_unit_name}}.service"
+    mode: "0644"
+  register: persist_unit_result
+
+- name: "Reload systemd units"
+  ansible.builtin.systemd:
+    daemon_reload: yes
+  when: persist_unit_result.changed
+
+- name: "Enable and start {{persist_unit_name}}.service"
+  ansible.builtin.systemd:
+    name: "{{persist_unit_name}}.service"
+    enabled: yes
+    state: started

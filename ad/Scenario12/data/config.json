@@ -1,0 +1,59 @@
+{
+  "lab": {
+    "hosts": {
+      "docker-1": {"hostname": "docker-1", "type": "docker", "ip4": "172.23.255.3/24", "lan_subnet": "172.23.255.0/24", "switch": "sw-11", "services": ["SSH"], "vulns": []},
+      "docker-2": {"hostname": "docker-2", "type": "docker", "ip4": "172.23.255.4/24", "lan_subnet": "172.23.255.0/24", "switch": "sw-11", "services": ["SSH"], "vulns": []},
+      "docker-3": {"hostname": "docker-3", "type": "docker", "ip4": "172.23.255.5/24", "lan_subnet": "172.23.255.0/24", "switch": "sw-11", "services": ["SSH"], "vulns": []},
+      "docker-4": {"hostname": "docker-4", "type": "docker", "ip4": "172.23.255.6/24", "lan_subnet": "172.23.255.0/24", "switch": "sw-11", "services": ["SSH"], "vulns": []},
+      "docker-5": {"hostname": "docker-5", "type": "docker", "ip4": "172.23.255.7/24", "lan_subnet": "172.23.255.0/24", "switch": "sw-11", "services": ["SSH"], "vulns": []},
+      "docker-6": {
+        "hostname": "docker-6",
+        "type": "docker",
+        "ip4": "172.23.255.8/24",
+        "lan_subnet": "172.23.255.0/24",
+        "switch": "sw-11",
+        "services": ["SSH"],
+        "vulns": ["httpd/CVE-2021-40438"],
+        "container_name": "httpd-vuln-cve-2021-40438",
+        "vuln_deploy_dir": "httpd-cve-2021-40438",
+        "_vuln_deploy_note": "Real files now provided (Dockerfile + docker-compose.yml). This is a two-container CVE: 'apache' (build: ., the vulnerable mod_proxy/AJP front door, port 8080->80) reverse-proxies via AJP to a plain 'tomcat' backend (vulhub/tomcat:8.5.19, no exposed port -- only reachable through apache's ProxyPass). Only apache needed container_name for the role's confirm-running check; tomcat got one too (tomcat-backend-cve-2021-40438) purely for operator clarity, not required by any role logic."
+      },
+      "docker-7": {"hostname": "docker-7", "type": "docker", "ip4": "172.23.255.9/24", "lan_subnet": "172.23.255.0/24", "switch": "sw-11", "services": ["SSH"], "vulns": []},
+      "docker-8": {"hostname": "docker-8", "type": "docker", "ip4": "172.23.255.10/24", "lan_subnet": "172.23.255.0/24", "switch": "sw-11", "services": ["SSH"], "vulns": []},
+      "docker-9": {"hostname": "docker-9", "type": "docker", "ip4": "172.23.255.11/24", "lan_subnet": "172.23.255.0/24", "switch": "sw-11", "services": ["SSH"], "vulns": []},
+      "docker-10": {
+        "hostname": "docker-10",
+        "type": "docker",
+        "ip4": "172.23.255.12/24",
+        "lan_subnet": "172.23.255.0/24",
+        "switch": "sw-11",
+        "services": ["SSH"],
+        "vulns": [],
+        "flag_node_id": "flagnode/git-deploy-key-repo",
+        "flag_node_deploy_dir": "git-deploy-key-repo",
+        "flag_node_container_name": "flagnode-git-deploy-key-repo",
+        "_flag_node_note": "Not a CVE -- this host runs a small custom TCP service (files/git-deploy-key-repo/) implementing exactly the AUTH/LIST/GET protocol and values from the XML's git_deploy_key_repo flag-node-generator. Deployed via topology-flagnodes.yml (new), reusing docker/vuln_node unmodified since it doesn't care whether the directory it deploys is a real CVE or not.",
+        "_flag_node_reference": {
+          "port": 19418,
+          "username": "user_db1031",
+          "password": "pass_2b4a4bceef4a",
+          "endpoint_path": "/repo/deploy.env",
+          "flag": "FLAG{eab5e71d80bdc38bdddd}",
+          "api_key": "ak_c3f462cc42e1d12afd9effb58337",
+          "source_repo": "deploy_repo",
+          "version_banner": "git-simulated-git"
+        }
+      }
+    },
+    "topology": {
+      "seed": null,
+      "r2r_links": [],
+      "traffic": [],
+      "_topology_note": "No routers, no r2r links, no routing plan, no traffic flows in this scenario's XML (routers: [], routing_plan: {}, r2r_subnets: [], Traffic section explicit_count=0/weight_sum=0). All 10 docker hosts sit on one flat switch (sw-11, 172.23.255.0/24) with no router in between -- topology-routers.yml/topology-links.yml/topology-routing.yml/topology-traffic.yml are all omitted from playbooks.yml for this scenario rather than included as no-ops."
+    },
+    "hitl": {
+      "enabled": false,
+      "_note": "XML has HardwareInLoop enabled=true, attachment='existing_router' on ens19 (10.0.0.21/24) -- but this topology has zero routers, so there's nothing for it to attach to. Per your decision, HITL is skipped entirely for this scenario (treated as disabled) rather than adding a router just to host it. topology-hitl.yml omitted from playbooks.yml."
+    }
+  }
+}

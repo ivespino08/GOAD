@@ -100,7 +100,8 @@
             "container_path": "/root/secrets.txt",
             "mode": "0644",
             "_flag_value_for_reference": "FLAG{a7530499e1b72e2be7145caf}",
-            "_note": "Placeholder content -- see build notes. Real artifact: /tmp/vulns/flag_generators_runs/flow-newscenario22/01_textfile_username_password_docker-1/artifacts/secrets.txt on the generating machine."
+            "_note": "Placeholder content -- see build notes. Real artifact: /tmp/vulns/flag_generators_runs/flow-newscenario22/01_textfile_username_password_docker-1/artifacts/secrets.txt on the generating machine.",
+            "_consumption_note": "This block is documentation only -- the real topology-flags.yml (now included in this delivery) hardcodes flag_files directly per-host rather than reading them from config.json. This entry is kept here purely as a human-readable cross-reference; it's not consumed by anything."
           }
         ]
       },
@@ -123,7 +124,8 @@
             "container_path": "/opt/app/secrets.txt",
             "mode": "0644",
             "_flag_value_for_reference": "FLAG{22253af8d765055d9120862a}",
-            "_note": "Placeholder content, likely wrong format (generator name implies a binary artifact) -- see build notes. Real artifact: /tmp/vulns/flag_generators_runs/flow-newscenario22/02_binary_embed_text_docker-2/artifacts/secrets.txt on the generating machine."
+            "_note": "Placeholder content, likely wrong format (generator name implies a binary artifact) -- see build notes. Real artifact: /tmp/vulns/flag_generators_runs/flow-newscenario22/02_binary_embed_text_docker-2/artifacts/secrets.txt on the generating machine.",
+            "_consumption_note": "Documentation only -- see docker-1's flag_files entry above; the real topology-flags.yml hardcodes this per-host instead."
           }
         ]
       },

@@ -95,6 +95,13 @@ Challenge5:
   - topology-traffic.yml
   - reboot.yml
 
+Scenario12:
+  - topology-hosts.yml
+  - topology-docker.yml
+  - topology-flagnodes.yml
+  - topology-services.yml
+  - reboot.yml
+
 default:
   - build.yml
   - ad-servers.yml

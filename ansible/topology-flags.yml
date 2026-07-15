@@ -5,47 +5,45 @@
 #
 # Flag file naming: the ctf/flags role looks for files/{{hostname}}_{{item.filename}}
 # so filename should be the BASE NAME ONLY (without hostname prefix).
-# e.g. filename: "operator_pin.hash" → role finds files/docker-11_operator_pin.hash
+# e.g. filename: "secrets.txt" → role finds files/docker-1_secrets.txt
 #
 # container_name must match the same derivation used in topology-docker.yml
-# ("{app}-vuln-{cve_id|lower}") and the container_name set in that vuln's
-# docker-compose.yml — the ctf/flags role no longer hardcodes this.
+# and the container_name set in that vuln's docker-compose.yml.
+#
+# CHALLENGE5-SPECIFIC FILE: your real topology-flags.yml (Scenario3) hardcodes
+# per-host plays with literal hostnames and flag_files inline in the playbook —
+# it does NOT read flag_files from config.json generically the way I'd assumed
+# when I put a "flag_files" block into Challenge5's config.json earlier. That
+# config.json data was never actually consumed by anything; this file is the
+# real mechanism, adapted to Challenge5's two hosts/containers/paths below.
 
 - import_playbook: data.yml
   vars:
-    data_path: "../ad/Scenario3/data"
+    data_path: "../ad/Challenge5/data"
   tags: 'data'
 
-- name: "Inject flags into docker-11"
-  hosts: docker-11
+- name: "Inject flags into docker-1"
+  hosts: docker-1
   become: true
   roles:
     - { role: 'ctf/flags', tags: 'flags' }
   vars:
     hostname: "{{lab.hosts[dict_key].hostname}}"
-    container_name: "git-vuln-cve-2017-8386"
+    container_name: "couchdb-vuln-cve-2017-12635"
     flag_files:
-      - filename: "operator_pin.hash"
-        container_path: "/etc/pam.d/fragments/operator_pin.hash"
-        mode: "0644"
-      - filename: "operator_pin.hash"
-        container_path: "/opt/badges/pins/operator_pin.hash"
+      - filename: "secrets.txt"
+        container_path: "/root/secrets.txt"
         mode: "0644"
 
-- name: "Inject flags into docker-12"
-  hosts: docker-12
+- name: "Inject flags into docker-2"
+  hosts: docker-2
   become: true
   roles:
     - { role: 'ctf/flags', tags: 'flags' }
   vars:
     hostname: "{{lab.hosts[dict_key].hostname}}"
-    container_name: "git-vuln-cve-2017-8386"
+    container_name: "struts2-vuln-s2-015"
     flag_files:
-      - filename: "backup_index.html"
-        # /home/git exists in the vulhub/git image and is owned by uid 33
-        # (the same uid the git-shell RCE lands as — see README's note
-        # that git/www-data share uid 33). No web server exists in this
-        # environment, so this is reached by cat'ing the file after
-        # exploiting CVE-2017-8386, not over HTTP.
-        container_path: "/home/git/backups/backup_index.html"
+      - filename: "secrets.txt"
+        container_path: "/opt/app/secrets.txt"
         mode: "0644"

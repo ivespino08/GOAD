@@ -1,0 +1,34 @@
+# Scenario12 -- flat 10-host Docker LAN, no routers.
+# Unlike Challenge200/Challenge5, no host here needs a :networks entry: there's no
+# r2r mesh, and per the existing topology-hosts.yml convention, each host's LAN IP
+# (172.23.255.x here) is added as a *secondary* address on the same eth1 that
+# carries the management IP below -- not a dedicated adapter. That means this
+# scenario needs zero extra vmnets beyond the one shared management network every
+# GOAD scenario already uses, unlike Challenge200/5's 6 extra r2r vmnets each.
+
+boxes = [
+  { :name => "docker-1", :ip => "192.168.57.11", :box => "generic/ubuntu2204",
+    :box_version => "4.3.12", :os => "linux", :cpus => 1, :mem => 2048 },
+  { :name => "docker-2", :ip => "192.168.57.12", :box => "generic/ubuntu2204",
+    :box_version => "4.3.12", :os => "linux", :cpus => 1, :mem => 2048 },
+  { :name => "docker-3", :ip => "192.168.57.13", :box => "generic/ubuntu2204",
+    :box_version => "4.3.12", :os => "linux", :cpus => 1, :mem => 2048 },
+  { :name => "docker-4", :ip => "192.168.57.14", :box => "generic/ubuntu2204",
+    :box_version => "4.3.12", :os => "linux", :cpus => 1, :mem => 2048 },
+  { :name => "docker-5", :ip => "192.168.57.15", :box => "generic/ubuntu2204",
+    :box_version => "4.3.12", :os => "linux", :cpus => 1, :mem => 2048 },
+  { :name => "docker-6", :ip => "192.168.57.16", :box => "generic/ubuntu2204",
+    :box_version => "4.3.12", :os => "linux", :cpus => 1, :mem => 2048 },
+  { :name => "docker-7", :ip => "192.168.57.17", :box => "generic/ubuntu2204",
+    :box_version => "4.3.12", :os => "linux", :cpus => 1, :mem => 2048 },
+  { :name => "docker-8", :ip => "192.168.57.18", :box => "generic/ubuntu2204",
+    :box_version => "4.3.12", :os => "linux", :cpus => 1, :mem => 2048 },
+  { :name => "docker-9", :ip => "192.168.57.19", :box => "generic/ubuntu2204",
+    :box_version => "4.3.12", :os => "linux", :cpus => 1, :mem => 2048 },
+  { :name => "docker-10", :ip => "192.168.57.20", :box => "generic/ubuntu2204",
+    :box_version => "4.3.12", :os => "linux", :cpus => 1, :mem => 2048 },
+]
+
+Vagrant.configure("2") do |config|
+  config.ssh.insert_key = false
+end

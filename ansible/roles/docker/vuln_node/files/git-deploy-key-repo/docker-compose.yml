@@ -1,0 +1,8 @@
+version: '3'
+services:
+  git-deploy-key-repo:
+    build: .
+    container_name: flagnode-git-deploy-key-repo
+    ports:
+      - "19418:19418"
+    restart: unless-stopped

@@ -1,0 +1,23 @@
+[default]
+docker-1    ansible_host={{ip_range}}.11  dict_key=docker-1    ansible_ssh_private_key_file=~/.vagrant.d/insecure_private_key
+docker-2    ansible_host={{ip_range}}.12  dict_key=docker-2    ansible_ssh_private_key_file=~/.vagrant.d/insecure_private_key
+docker-3    ansible_host={{ip_range}}.13  dict_key=docker-3    ansible_ssh_private_key_file=~/.vagrant.d/insecure_private_key
+docker-4    ansible_host={{ip_range}}.14  dict_key=docker-4    ansible_ssh_private_key_file=~/.vagrant.d/insecure_private_key
+docker-5    ansible_host={{ip_range}}.15  dict_key=docker-5    ansible_ssh_private_key_file=~/.vagrant.d/insecure_private_key
+docker-6    ansible_host={{ip_range}}.16  dict_key=docker-6    ansible_ssh_private_key_file=~/.vagrant.d/insecure_private_key
+docker-7    ansible_host={{ip_range}}.17  dict_key=docker-7    ansible_ssh_private_key_file=~/.vagrant.d/insecure_private_key
+docker-8    ansible_host={{ip_range}}.18  dict_key=docker-8    ansible_ssh_private_key_file=~/.vagrant.d/insecure_private_key
+docker-9    ansible_host={{ip_range}}.19  dict_key=docker-9    ansible_ssh_private_key_file=~/.vagrant.d/insecure_private_key
+docker-10   ansible_host={{ip_range}}.20  dict_key=docker-10   ansible_ssh_private_key_file=~/.vagrant.d/insecure_private_key
+
+[domain]
+docker-1
+docker-2
+docker-3
+docker-4
+docker-5
+docker-6
+docker-7
+docker-8
+docker-9
+docker-10

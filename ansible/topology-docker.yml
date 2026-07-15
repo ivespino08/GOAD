@@ -17,19 +17,22 @@
 # — the role's "confirm container running" check and the ctf/flags role
 # both look the container up by this exact name, not by vuln_name itself.
 #
-# vuln_deploy_dir (NEW, Challenge5) — optional, set per host in config.json.
-# Some vulns need more than a single compose file copied in: couchdb/CVE-2017-12635
-# bind-mounts a relative ./init.sh, and struts2/s2-015 has no "image:" at all
-# ("build: ." — needs its Dockerfile + war file alongside docker-compose.yml to
-# build locally). For those, config.json sets lab.hosts[dict_key].vuln_deploy_dir
-# to a directory name under docker/vuln_node/files/ containing everything that
-# vuln needs; the role copies the whole directory instead of just vuln_compose_src.
-# When absent (Scenario3's git CVE, Challenge200's struts2 vulns), behavior is
-# unchanged — single compose file only, same as before this change.
+# vuln_deploy_dir — optional, set per host in config.json. Some vulns need
+# more than a single compose file copied in (support files, or a local
+# build context). For those, config.json sets
+# lab.hosts[dict_key].vuln_deploy_dir to a directory name under
+# docker/vuln_node/files/ containing everything that vuln needs; the role
+# copies the whole directory instead of just vuln_compose_src. When absent,
+# behavior is unchanged — single compose file only.
+#
+# SCENARIO12-SPECIFIC CHANGE from the shared/original file: data_path
+# corrected to ../ad/Scenario12/data (was hardcoded to Scenario3's data
+# path). This file is per-scenario, not actually shared — see delivery
+# notes for why data_path can't just be templated from inventory instead.
 
 - import_playbook: data.yml
   vars:
-    data_path: "../ad/Scenario3/data"
+    data_path: "../ad/Scenario12/data"
   tags: 'data'
 
 - name: "Deploy vulnerable Docker nodes"
@@ -45,3 +48,4 @@
         vuln_deploy_dir: "{{lab.hosts[dict_key].vuln_deploy_dir | default(omit)}}"
         container_name: "{{lab.hosts[dict_key].container_name | default(item.split('/')[0] + '-vuln-' + item.split('/')[1] | lower)}}"
       loop: "{{lab.hosts[dict_key].vulns}}"
+      when: lab.hosts[dict_key].vulns is defined

@@ -19,10 +19,24 @@
 # Every pc/docker host already has a static ip4/gateway/lan_subnet, so
 # a plain static default route is used for all of them uniformly;
 # "DHCPClient" in config.json is scenario metadata only, not read here.
+#
+# SCENARIO12-SPECIFIC CHANGES from your original file:
+#   1. data_path corrected to ../ad/Scenario12/data (was hardcoded to
+#      Scenario3's data path -- this file is per-scenario, not shared;
+#      see the delivery notes for why that can't just be templated).
+#   2. Added `when: lab.hosts[dict_key].gateway is defined`. Scenario12 is
+#      a flat 10-host LAN with no routers, so none of these hosts have a
+#      gateway in config.json -- without this guard, the Jinja templating
+#      on persist_commands would hard-fail with an undefined-variable
+#      error on every host, since {{lab.hosts[dict_key].gateway}} has
+#      nothing to resolve to. With the guard, this play now safely
+#      no-ops for all 10 hosts today, and "just works" if a future
+#      version of this scenario adds a router and sets a gateway on
+#      any host.
 
 - import_playbook: data.yml
   vars:
-    data_path: "../ad/Scenario3/data"
+    data_path: "../ad/Scenario12/data"
   tags: 'data'
 
 - name: "Persist default route via router LAN gateway"
@@ -36,3 +50,4 @@
         persist_after: ["lab-ip-eth1.service"]
         persist_commands:
           - "ip route replace default via {{lab.hosts[dict_key].gateway}} dev eth1 || true"
+      when: lab.hosts[dict_key].gateway is defined

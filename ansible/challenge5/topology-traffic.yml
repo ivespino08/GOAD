@@ -1,7 +1,7 @@
 ---
 - import_playbook: ../data.yml
   vars:
-    data_path: "../../ad/Challenge5/data"
+    data_path: "../ad/Challenge5/data"
   tags: 'data'
 
 - name: "Deploy traffic sender scripts"

@@ -21,7 +21,7 @@
 # "DHCPClient" in config.json is scenario metadata only, not read here.
 #
 # SCENARIO12-SPECIFIC CHANGES from your original file:
-#   1. data_path corrected to ../../ad/Scenario12/data (was hardcoded to
+#   1. data_path corrected to ../ad/Scenario12/data (was hardcoded to
 #      Scenario3's data path -- this file is per-scenario, not shared;
 #      see the delivery notes for why that can't just be templated).
 #   2. Added `when: lab.hosts[dict_key].gateway is defined`. Scenario12 is
@@ -36,7 +36,7 @@
 
 - import_playbook: ../data.yml
   vars:
-    data_path: "../../ad/Scenario12/data"
+    data_path: "../ad/Scenario12/data"
   tags: 'data'
 
 - name: "Persist default route via router LAN gateway"

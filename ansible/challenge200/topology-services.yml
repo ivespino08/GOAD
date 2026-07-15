@@ -22,7 +22,7 @@
 
 - import_playbook: ../data.yml
   vars:
-    data_path: "../../ad/Challenge200/data"
+    data_path: "../ad/Challenge200/data"
   tags: 'data'
 
 - name: "Persist default route via router LAN gateway"

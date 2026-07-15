@@ -28,13 +28,13 @@
 # ../ad/Scenario3/data, copied verbatim from your real file without adjusting
 # it. That meant this playbook would have loaded Scenario3's config.json
 # instead of Challenge5's the moment it actually ran. Fixed to
-# ../../ad/Challenge5/data — this file is per-scenario, not shared across
+# ../ad/Challenge5/data — this file is per-scenario, not shared across
 # scenarios the way I'd assumed; see delivery notes for why data_path can't
 # just be templated from inventory instead.
 
 - import_playbook: ../data.yml
   vars:
-    data_path: "../../ad/Challenge5/data"
+    data_path: "../ad/Challenge5/data"
   tags: 'data'
 
 - name: "Deploy vulnerable Docker nodes"

@@ -26,13 +26,13 @@
 # behavior is unchanged — single compose file only.
 #
 # SCENARIO12-SPECIFIC CHANGE from the shared/original file: data_path
-# corrected to ../../ad/Scenario12/data (was hardcoded to Scenario3's data
+# corrected to ../ad/Scenario12/data (was hardcoded to Scenario3's data
 # path). This file is per-scenario, not actually shared — see delivery
 # notes for why data_path can't just be templated from inventory instead.
 
 - import_playbook: ../data.yml
   vars:
-    data_path: "../../ad/Scenario12/data"
+    data_path: "../ad/Scenario12/data"
   tags: 'data'
 
 - name: "Deploy vulnerable Docker nodes"

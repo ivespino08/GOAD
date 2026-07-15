@@ -19,7 +19,7 @@
 
 - import_playbook: ../data.yml
   vars:
-    data_path: "../../ad/Scenario12/data"
+    data_path: "../ad/Scenario12/data"
   tags: 'data'
 
 - name: "Deploy flag-node services"

@@ -1,0 +1,40 @@
+---
+# topology-hosts.yml
+# Adds each host's lab IP as a secondary address on eth1 — PERSISTENTLY,
+# via a systemd oneshot unit (see roles/network/persist_boot_commands).
+#
+# This used to be a bare `ip addr add`, invisible to NetworkManager.
+# Any reboot (e.g. via reboot.yml, which targets the whole "domain"
+# group) silently wiped it, breaking cross-subnet reachability for
+# every pc/docker host until this file was re-run by hand. Confirmed
+# as the root cause of pc-4 losing its lab IP and connected route.
+#
+# eth0 = NAT (do not touch)
+# eth1 = management (192.168.57.x) + lab IP (secondary, persisted)
+
+- import_playbook: ../data.yml
+  vars:
+    data_path: "../../ad/Challenge200/data"
+  tags: 'data'
+
+- name: "Persist PC lab IPs on eth1"
+  hosts: pcs
+  become: true
+  roles:
+    - role: 'network/persist_boot_commands'
+      vars:
+        persist_unit_name: "lab-ip-eth1"
+        persist_description: "Persist lab IP on eth1 across reboots"
+        persist_commands:
+          - "ip addr add {{lab.hosts[dict_key].ip4}} dev eth1 || true"
+
+- name: "Persist Docker host lab IPs on eth1"
+  hosts: docker_nodes
+  become: true
+  roles:
+    - role: 'network/persist_boot_commands'
+      vars:
+        persist_unit_name: "lab-ip-eth1"
+        persist_description: "Persist lab IP on eth1 across reboots"
+        persist_commands:
+          - "ip addr add {{lab.hosts[dict_key].ip4}} dev eth1 || true"

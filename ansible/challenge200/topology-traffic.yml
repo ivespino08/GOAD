@@ -1,0 +1,61 @@
+---
+- import_playbook: ../data.yml
+  vars:
+    data_path: "../../ad/Challenge200/data"
+  tags: 'data'
+
+- name: "Deploy traffic sender scripts"
+  hosts: domain
+  become: true
+  tasks:
+    - include_role:
+        name: "network/traffic/sender"
+      vars:
+        flow: "{{item}}"
+        src_ip4: "{{lab.hosts[dict_key].ip4 | ansible.utils.ipaddr('address')}}"
+        dst_ip4: "{{lab.hosts[item.dst].ip4 | ansible.utils.ipaddr('address')}}"
+        protocol: "{{item.protocol}}"
+        rate_kbps: "{{item.rate_kbps}}"
+        pattern: "{{item.pattern}}"
+        script_dest: "/tmp/traffic/traffic_{{dict_key}}_send{{loop_idx + 1}}.py"
+      loop: >-
+        {{
+          lab.topology.traffic
+          | selectattr('src', 'equalto', dict_key)
+          | list
+        }}
+      loop_control:
+        index_var: loop_idx
+        label: "{{dict_key}} → {{item.dst}} ({{item.protocol}})"
+
+- name: "Deploy traffic receiver scripts"
+  hosts: domain
+  become: true
+  tasks:
+    - include_role:
+        name: "network/traffic/receiver"
+      vars:
+        flow: "{{item}}"
+        bind_ip4: "{{lab.hosts[dict_key].ip4 | ansible.utils.ipaddr('address')}}"
+        protocol: "{{item.protocol}}"
+        rate_kbps: "{{item.rate_kbps}}"
+        pattern: "{{item.pattern}}"
+        script_dest: "/tmp/traffic/traffic_{{dict_key}}_recv{{loop_idx + 1}}.py"
+      loop: >-
+        {{
+          lab.topology.traffic
+          | selectattr('dst', 'equalto', dict_key)
+          | list
+        }}
+      loop_control:
+        index_var: loop_idx
+        label: "{{dict_key}} receiving from {{item.src}} ({{item.protocol}})"
+
+- name: "Start traffic scripts"
+  hosts: domain
+  become: true
+  tasks:
+    - include_role:
+        name: "network/traffic/start"
+      vars:
+        traffic_script_dir: "/tmp/traffic"

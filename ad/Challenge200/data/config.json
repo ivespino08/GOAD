@@ -1,0 +1,183 @@
+{
+  "lab": {
+    "hosts": {
+      "router-1": {
+        "hostname": "router-1",
+        "type": "router",
+        "ip4": "172.18.63.1/24",
+        "lan_subnet": "172.18.63.0/24",
+        "r2r_interfaces": {
+          "router-4": "172.18.244.1/24",
+          "router-3": "192.168.245.1/24",
+          "router-5": "172.17.254.1/24",
+          "router-2": "10.103.31.1/24"
+        },
+        "r2r_subnets": [
+          "172.18.244.0/24",
+          "192.168.245.0/24",
+          "172.17.254.0/24",
+          "10.103.31.0/24"
+        ],
+        "vxlan_interfaces": []
+      },
+      "router-2": {
+        "hostname": "router-2",
+        "type": "router",
+        "ip4": "172.18.118.1/24",
+        "lan_subnet": "172.18.118.0/24",
+        "r2r_interfaces": {
+          "router-4": "10.78.182.1/24",
+          "router-1": "10.103.31.2/24"
+        },
+        "r2r_subnets": [
+          "10.78.182.0/24",
+          "10.103.31.0/24"
+        ],
+        "vxlan_interfaces": []
+      },
+      "router-3": {
+        "hostname": "router-3",
+        "type": "router",
+        "ip4": "192.168.204.1/24",
+        "lan_subnet": "192.168.204.0/24",
+        "r2r_interfaces": {
+          "router-1": "192.168.245.2/24",
+          "router-5": "192.168.132.1/24"
+        },
+        "r2r_subnets": [
+          "192.168.245.0/24",
+          "192.168.132.0/24"
+        ],
+        "vxlan_interfaces": []
+      },
+      "router-4": {
+        "hostname": "router-4",
+        "type": "router",
+        "ip4": "10.131.50.1/24",
+        "lan_subnet": "10.131.50.0/24",
+        "r2r_interfaces": {
+          "router-2": "10.78.182.2/24",
+          "router-1": "172.18.244.2/24"
+        },
+        "r2r_subnets": [
+          "10.78.182.0/24",
+          "172.18.244.0/24"
+        ],
+        "vxlan_interfaces": []
+      },
+      "router-5": {
+        "hostname": "router-5",
+        "type": "router",
+        "ip4": null,
+        "lan_subnet": null,
+        "r2r_interfaces": {
+          "router-1": "172.17.254.2/24",
+          "router-3": "192.168.132.2/24"
+        },
+        "r2r_subnets": [
+          "172.17.254.0/24",
+          "192.168.132.0/24"
+        ],
+        "vxlan_interfaces": [],
+        "_note": "No hosts/switch attached in this scenario (router_id 5 has no entries in switches_detail). ip4/lan_subnet left null rather than the XML's unexplained 10.0.0.5/16 -- that value doesn't fit the /24-gateway convention every other router uses and isn't backed by a switches_detail entry, so it looks like planner leftover rather than a real LAN. Confirm before assigning any LAN IP here."
+      },
+      "docker-1": {
+        "hostname": "docker-1",
+        "type": "docker",
+        "ip4": "172.18.63.3/24",
+        "lan_subnet": "172.18.63.0/24",
+        "gateway": "172.18.63.1",
+        "router": "router-1",
+        "switch": "rsw-1-1",
+        "services": ["SSH", "HTTP"],
+        "vulns": ["struts2/s2-057"],
+        "container_name": "struts2-vuln-s2-057",
+        "flag_files": [
+          {
+            "filename": "secrets.txt",
+            "container_path": "/root/secrets.txt",
+            "mode": "0644",
+            "_flag_value_for_reference": "FLAG{fbb986c3b2972a53f3ab724f}",
+            "_note": "Placeholder content -- see build notes. Real artifact lives at /tmp/vulns/flag_generators_runs/flow-newscenario22/01_textfile_username_password_docker-1/artifacts/secrets.txt on the machine that generated the solution file; swap in the real file if available."
+          }
+        ]
+      },
+      "docker-2": {
+        "hostname": "docker-2",
+        "type": "docker",
+        "ip4": "172.18.118.3/24",
+        "lan_subnet": "172.18.118.0/24",
+        "gateway": "172.18.118.1",
+        "router": "router-2",
+        "switch": "rsw-2-1",
+        "services": ["SSH", "HTTP"],
+        "vulns": ["struts2/s2-048"],
+        "container_name": "struts2-vuln-s2-048",
+        "flag_files": [
+          {
+            "filename": "secrets.txt",
+            "container_path": "/opt/app/secrets.txt",
+            "mode": "0644",
+            "_flag_value_for_reference": "FLAG{3a62a74dbf8aa160301c583e}",
+            "_note": "Placeholder content -- see build notes. Real artifact (a 'binary embed text' generator output, also named secrets.txt) lives at /tmp/vulns/flag_generators_runs/flow-newscenario22/02_binary_embed_text_docker-2/artifacts/secrets.txt on the machine that generated the solution file; swap in the real file if available -- it's likely a binary, not plain ASCII, and this placeholder is plain text."
+          }
+        ]
+      },
+      "pc-3": {
+        "hostname": "pc-3",
+        "type": "pc",
+        "ip4": "192.168.204.3/24",
+        "lan_subnet": "192.168.204.0/24",
+        "gateway": "192.168.204.1",
+        "router": "router-3",
+        "switch": "rsw-3-1",
+        "services": ["SSH", "HTTP"],
+        "vulns": []
+      },
+      "server-4": {
+        "hostname": "server-4",
+        "type": "server",
+        "ip4": "10.131.50.3/24",
+        "lan_subnet": "10.131.50.0/24",
+        "gateway": "10.131.50.1",
+        "router": "router-4",
+        "switch": "rsw-4-1",
+        "services": ["SSH", "HTTP"],
+        "vulns": []
+      }
+    },
+    "topology": {
+      "seed": 899128307,
+      "r2r_links": [
+        {"routers": ["router-2", "router-4"], "subnet": "10.78.182.0/24"},
+        {"routers": ["router-1", "router-4"], "subnet": "172.18.244.0/24"},
+        {"routers": ["router-1", "router-3"], "subnet": "192.168.245.0/24"},
+        {"routers": ["router-1", "router-5"], "subnet": "172.17.254.0/24"},
+        {"routers": ["router-1", "router-2"], "subnet": "10.103.31.0/24"},
+        {"routers": ["router-3", "router-5"], "subnet": "192.168.132.0/24"}
+      ],
+      "traffic": [
+        {
+          "src": "pc-3",
+          "dst": "docker-1",
+          "protocol": "TCP",
+          "dst_ip": "172.18.63.3",
+          "dst_port": 5006,
+          "pattern": "continuous",
+          "rate_kbps": 128,
+          "period_s": 10.0,
+          "jitter_pct": 0.0
+        }
+      ],
+      "_traffic_note": "The XML's Traffic <section> (pattern=burst, period_s=2.0, jitter_pct=35.0) is the density-based generation intent; traffic_summary.flows (pattern=continuous, period_s=10.0, jitter_pct=0.0) is what the planner actually resolved into a concrete flow. Used the resolved flow values here, matching how Scenario3's topology.traffic was populated from resolved flows rather than the section's macro parameters. Flag this to the designer if burst/128kbps/2s was the intended in-game behavior -- as written only one flow (pc-3 -> docker-1) is instantiated; the 'predicted_allow_rules' entries (docker-2->server-4, pc-3->server-4, server-4->docker-1) are preview-only synthetic allow-rule suggestions, not actual traffic flows, and were not added to this list."
+    },
+    "flags": {
+      "enabled": true,
+      "_note": "Superseded by Challenge200_solution.json / Challenge200_vulns.json, uploaded after the initial pass. The XML's own FlagSequencing said flags_enabled=false with an empty flag_assignments list, but the solution file gives concrete resolved flag values and an edge docker-1(6) -> docker-2(7), so that's now treated as authoritative and topology-flags.yml is wired back in.",
+      "chain": [
+        {"host": "docker-1", "position": 1, "generator_id": "textfile_username_password"},
+        {"host": "docker-2", "position": 2, "generator_id": "binary_embed_text"}
+      ]
+    }
+  }
+}

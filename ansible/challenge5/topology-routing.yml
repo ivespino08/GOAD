@@ -1,0 +1,25 @@
+---
+# topology-routing.yml
+# Configures RIP routing on all routers via FRR.
+# eth0 (NAT) and eth1 (management) are both passive — RIP must only
+# run on eth2/eth3 (r2r interfaces) to enforce the multi-hop chain.
+# If RIP ran on eth1, all routers would be on the same broadcast domain
+# and learn direct routes to all subnets, bypassing the chain.
+
+- import_playbook: ../data.yml
+  vars:
+    data_path: "../../ad/Challenge5/data"
+  tags: 'data'
+
+- name: "Configure RIP routing on all routers"
+  hosts: routers
+  become: true
+  roles:
+    - { role: 'network/rip', tags: 'rip' }
+  vars:
+    routing_protocol: "{{lab.hosts[dict_key].protocol}}"
+    rip_networks_lan:
+      - "{{lab.hosts[dict_key].lan_subnet}}"
+    rip_networks_r2r: "{{lab.hosts[dict_key].r2r_subnets | default([])}}"
+    rip_networks: "{{rip_networks_lan + rip_networks_r2r}}"
+    rip_passive_interfaces: ["eth0", "eth1"]

@@ -1,0 +1,17 @@
+# TODO: replace with the real Vulhub compose file before deploying.
+#
+# Same situation as struts2-s2-057-docker-compose.yml -- the XML points at:
+#   /app/outputs/installed_vuln_catalogs/03-17-26-18-54-57-c80183/content/vulhub/struts2/s2-048/docker-compose.yml
+# on the generating machine, which I haven't seen. Please copy that file in here,
+# or paste its contents back to me, rather than have me guess image/tag/ports.
+#
+# container_name must be set to: struts2-vuln-s2-048
+
+version: '3'
+services:
+  struts2:
+    # image: <fill in from the real vulhub struts2/s2-048/docker-compose.yml>
+    container_name: struts2-vuln-s2-048
+    ports:
+      - "8080:8080"
+    restart: unless-stopped

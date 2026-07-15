@@ -1,0 +1,38 @@
+---
+# topology-links.yml
+# Configures r2r links on eth2/eth3 (physical adapters from :networks in Vagrantfile).
+# interface_name uses peer_idx+2 to match topology-routers.yml exactly.
+
+- import_playbook: ../data.yml
+  vars:
+    data_path: "../../ad/Challenge5/data"
+  tags: 'data'
+
+- name: "Configure router-to-router links"
+  hosts: routers
+  become: true
+  tasks:
+    - include_role:
+        name: "network/r2r_link"
+      vars:
+        _ids: "{{item.routers | map(attribute='id') | list}}"
+        _ips: "{{item.routers | map(attribute='ip') | list}}"
+        _peer_idx: "{{1 - _ids.index(dict_key)}}"
+        local_router: "{{dict_key}}"
+        local_ip4:   "{{_ips[_ids.index(dict_key)]}}"
+        peer_router: "{{_ids[_peer_idx | int]}}"
+        peer_ip4:    "{{_ips[_peer_idx | int]}}"
+        link_subnet: "{{item.subnet}}"
+        # eth0=NAT, eth1=management, eth2+=r2r (offset +2).
+        # Peer's position in r2r_interfaces.keys() matches :networks order
+        # in the Vagrantfile, so adapter slots are consistent.
+        interface_name: >-
+          {{"eth" + (
+            (lab.hosts[dict_key].r2r_interfaces.keys() | list).index(
+              _ids[_peer_idx | int]
+            ) + 2
+          ) | string}}
+      loop: "{{lab.topology.r2r_links}}"
+      when: dict_key in (item.routers | map(attribute='id') | list)
+      loop_control:
+        label: "edge {{item.edge_id}} — {{item.subnet}}"

@@ -1,0 +1,38 @@
+---
+# topology-services.yml
+#
+# Adds a default route via each pc/docker host's router LAN gateway,
+# PERSISTENTLY, via a systemd oneshot unit (see
+# roles/network/persist_boot_commands). This used to be a bare
+# `ip route replace default`, invisible to NetworkManager — any reboot
+# silently wiped it alongside the lab IP itself (see topology-hosts.yml),
+# which is exactly what happened to pc-4 after reboot.yml was run.
+#
+# persist_after ensures this unit only runs once the lab-ip-eth1 unit
+# (from topology-hosts.yml) has already applied the host's lab IP —
+# the default route's gateway needs to already be within a connected
+# subnet on eth1 before the route add will succeed.
+#
+# Historical note: this file used to configure DHCP on eth0 (the wrong,
+# NAT interface) for hosts tagged "DHCPClient" in config.json, with no
+# DHCP server anywhere in the topology to actually hand out a lease.
+# Every pc/docker host already has a static ip4/gateway/lan_subnet, so
+# a plain static default route is used for all of them uniformly;
+# "DHCPClient" in config.json is scenario metadata only, not read here.
+
+- import_playbook: ../data.yml
+  vars:
+    data_path: "../../ad/Challenge5/data"
+  tags: 'data'
+
+- name: "Persist default route via router LAN gateway"
+  hosts: pcs:docker_nodes
+  become: true
+  roles:
+    - role: 'network/persist_boot_commands'
+      vars:
+        persist_unit_name: "lab-default-route"
+        persist_description: "Persist default route via router LAN gateway across reboots"
+        persist_after: ["lab-ip-eth1.service"]
+        persist_commands:
+          - "ip route replace default via {{lab.hosts[dict_key].gateway}} dev eth1 || true"

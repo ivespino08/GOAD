@@ -1,0 +1,51 @@
+---
+# topology-docker.yml
+# Deploys vulnerable Docker nodes. Replaces CORE's Docker node management.
+# The docker/vuln_node role is generic — vuln_name and vuln_compose_src
+# are passed per host from lab.hosts[dict_key].vulns.
+# Mirrors the style of servers.yml.
+#
+# vuln_compose_src is forced to lowercase: vulns entries like
+# "git/CVE-2017-8386" would otherwise produce "git-CVE-2017-8386-...",
+# which fails to match the actual lowercase filename on disk
+# (files/git-cve-2017-8386-docker-compose.yml) on case-sensitive
+# Linux filesystems.
+#
+# container_name is derived as "{app}-vuln-{cve_id|lower}" from the
+# vulns entry (e.g. "git/CVE-2017-8386" -> "git-vuln-cve-2017-8386").
+# This MUST match the container_name set in that vuln's docker-compose.yml
+# — the role's "confirm container running" check and the ctf/flags role
+# both look the container up by this exact name, not by vuln_name itself.
+#
+# vuln_deploy_dir — optional, set per host in config.json. Some vulns need
+# more than a single compose file copied in (support files, or a local
+# build context). For those, config.json sets
+# lab.hosts[dict_key].vuln_deploy_dir to a directory name under
+# docker/vuln_node/files/ containing everything that vuln needs; the role
+# copies the whole directory instead of just vuln_compose_src. When absent,
+# behavior is unchanged — single compose file only.
+#
+# SCENARIO12-SPECIFIC CHANGE from the shared/original file: data_path
+# corrected to ../../ad/Scenario12/data (was hardcoded to Scenario3's data
+# path). This file is per-scenario, not actually shared — see delivery
+# notes for why data_path can't just be templated from inventory instead.
+
+- import_playbook: ../data.yml
+  vars:
+    data_path: "../../ad/Scenario12/data"
+  tags: 'data'
+
+- name: "Deploy vulnerable Docker nodes"
+  hosts: docker_nodes
+  become: true
+  tasks:
+    - include_role:
+        name: "docker/vuln_node"
+      vars:
+        hostname: "{{lab.hosts[dict_key].hostname}}"
+        vuln_name: "{{item}}"
+        vuln_compose_src: "files/{{item | replace('/', '-') | lower}}-docker-compose.yml"
+        vuln_deploy_dir: "{{lab.hosts[dict_key].vuln_deploy_dir | default(omit)}}"
+        container_name: "{{lab.hosts[dict_key].container_name | default(item.split('/')[0] + '-vuln-' + item.split('/')[1] | lower)}}"
+      loop: "{{lab.hosts[dict_key].vulns}}"
+      when: lab.hosts[dict_key].vulns is defined

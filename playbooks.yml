@@ -84,22 +84,33 @@ Scenario3:
   - topology-traffic.yml       # deploy + start background traffic scripts
   - reboot.yml                 # final reboot to confirm clean state
 
+Challenge200:
+  - challenge200/topology-routers.yml
+  - challenge200/topology-links.yml
+  - challenge200/topology-hosts.yml
+  - challenge200/topology-routing.yml
+  - challenge200/topology-services.yml
+  - challenge200/topology-docker.yml
+  - challenge200/topology-flags.yml
+  - challenge200/topology-traffic.yml
+  - reboot.yml
+
 Challenge5:
-  - topology-routers.yml
-  - topology-links.yml
-  - topology-hosts.yml
-  - topology-routing.yml
-  - topology-services.yml
-  - topology-docker.yml
-  - topology-flags.yml
-  - topology-traffic.yml
+  - challenge5/topology-routers.yml
+  - challenge5/topology-links.yml
+  - challenge5/topology-hosts.yml
+  - challenge5/topology-routing.yml
+  - challenge5/topology-services.yml
+  - challenge5/topology-docker.yml
+  - challenge5/topology-flags.yml
+  - challenge5/topology-traffic.yml
   - reboot.yml
 
 Scenario12:
-  - topology-hosts.yml
-  - topology-docker.yml
-  - topology-flagnodes.yml
-  - topology-services.yml
+  - scenario12/topology-hosts.yml
+  - scenario12/topology-docker.yml
+  - scenario12/topology-flagnodes.yml
+  - scenario12/topology-services.yml
   - reboot.yml
 
 default:

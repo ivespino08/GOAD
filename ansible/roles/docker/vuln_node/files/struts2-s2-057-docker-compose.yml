@@ -1,0 +1,26 @@
+# TODO: replace with the real Vulhub compose file before deploying.
+#
+# The scenario XML points at an already-installed local copy of this exact file:
+#   /app/outputs/installed_vuln_catalogs/03-17-26-18-54-57-c80183/content/vulhub/struts2/s2-057/docker-compose.yml
+# That path is on the machine that generated the XML, not in this conversation, so I
+# have not seen its actual contents. Several Vulhub Struts2 entries build their image
+# from a local Dockerfile/context rather than pulling a prebuilt tag, and exact
+# image/tag/port/build-context details vary per CVE entry -- guessing here risks
+# shipping exactly the kind of "plausible-looking but wrong" compose file the
+# Scenario3 build log flagged as a repeat mistake (see: CVE-2017-8386 image-name fix).
+#
+# Recommended: copy the real file from the path above into this location, or paste
+# its contents back to me and I'll drop it in verbatim and wire up container_name to
+# match the {{app}}-vuln-{{cve_id|lower}} convention (struts2-vuln-s2-057) that
+# topology-docker.yml and topology-flags.yml both expect.
+#
+# container_name must be set to: struts2-vuln-s2-057
+
+version: '3'
+services:
+  struts2:
+    # image: <fill in from the real vulhub struts2/s2-057/docker-compose.yml>
+    container_name: struts2-vuln-s2-057
+    ports:
+      - "8080:8080"
+    restart: unless-stopped

@@ -1,0 +1,36 @@
+---
+# topology-flagnodes.yml (NEW)
+#
+# Deploys self-contained "flag node" services -- hosts whose sole purpose is
+# delivering a challenge flag over some protocol, rather than running a known
+# CVE. Scenario12's docker-10 (a simulated git-deploy-key-repo service) is the
+# first scenario to need this.
+#
+# Deliberately reuses docker/vuln_node completely unmodified: that role already
+# does exactly what's needed here (copy a directory, docker compose up --or--
+# build, confirm a named container is running) and has no actual dependency on
+# the thing it deploys being a real vulnerability -- "vuln_name" is just used to
+# derive a directory name under /opt/vuln/. No role changes were needed for this.
+#
+# lab.hosts[dict_key].flag_node_deploy_dir (config.json) points at the directory
+# under docker/vuln_node/files/ holding this flag node's Dockerfile/compose/etc.
+# lab.hosts[dict_key].flag_node_container_name is the container name to confirm.
+# Hosts without flag_node_deploy_dir defined are skipped entirely.
+
+- import_playbook: ../data.yml
+  vars:
+    data_path: "../../ad/Scenario12/data"
+  tags: 'data'
+
+- name: "Deploy flag-node services"
+  hosts: docker_nodes
+  become: true
+  tasks:
+    - include_role:
+        name: "docker/vuln_node"
+      vars:
+        hostname: "{{ lab.hosts[dict_key].hostname }}"
+        vuln_name: "{{ lab.hosts[dict_key].flag_node_id }}"
+        vuln_deploy_dir: "{{ lab.hosts[dict_key].flag_node_deploy_dir }}"
+        container_name: "{{ lab.hosts[dict_key].flag_node_container_name }}"
+      when: lab.hosts[dict_key].flag_node_deploy_dir is defined

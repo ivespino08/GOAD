@@ -1,0 +1,49 @@
+---
+# topology-flags.yml
+# Injects CTF flag artifacts into running Docker containers.
+# Must run AFTER topology-docker.yml.
+#
+# Flag file naming: the ctf/flags role looks for files/{{hostname}}_{{item.filename}}
+# so filename should be the BASE NAME ONLY (without hostname prefix).
+# e.g. filename: "secrets.txt" → role finds files/challenge5-docker-1_secrets.txt (hostname var below is scenario-qualified purely for this lookup -- hosts: still targets the real inventory host)
+#
+# container_name must match the same derivation used in topology-docker.yml
+# and the container_name set in that vuln's docker-compose.yml.
+#
+# CHALLENGE5-SPECIFIC FILE: your real topology-flags.yml (Scenario3) hardcodes
+# per-host plays with literal hostnames and flag_files inline in the playbook —
+# it does NOT read flag_files from config.json generically the way I'd assumed
+# when I put a "flag_files" block into Challenge5's config.json earlier. That
+# config.json data was never actually consumed by anything; this file is the
+# real mechanism, adapted to Challenge5's two hosts/containers/paths below.
+
+- import_playbook: ../data.yml
+  vars:
+    data_path: "../../ad/Challenge5/data"
+  tags: 'data'
+
+- name: "Inject flags into docker-1"
+  hosts: docker-1
+  become: true
+  roles:
+    - { role: 'ctf/flags', tags: 'flags' }
+  vars:
+    hostname: "challenge5-{{lab.hosts[dict_key].hostname}}"
+    container_name: "couchdb-vuln-cve-2017-12635"
+    flag_files:
+      - filename: "secrets.txt"
+        container_path: "/root/secrets.txt"
+        mode: "0644"
+
+- name: "Inject flags into docker-2"
+  hosts: docker-2
+  become: true
+  roles:
+    - { role: 'ctf/flags', tags: 'flags' }
+  vars:
+    hostname: "challenge5-{{lab.hosts[dict_key].hostname}}"
+    container_name: "struts2-vuln-s2-015"
+    flag_files:
+      - filename: "secrets.txt"
+        container_path: "/opt/app/secrets.txt"
+        mode: "0644"

@@ -1,0 +1,37 @@
+---
+# topology-routers.yml
+# Interface layout per router VM:
+#   eth0 = NAT (do not touch — Vagrant management)
+#   eth1 = management 192.168.57.x (added by template :ip)
+#   eth2 = first r2r link (added by template :networks[0], peer_idx 0)
+#   eth3 = second r2r link (added by template :networks[1], peer_idx 1)
+#
+# Router LAN gateway IPs are added as secondary addresses on eth1,
+# PERSISTENTLY, via a systemd oneshot unit (see
+# roles/network/persist_boot_commands). This used to be a bare
+# `ip addr add`, invisible to NetworkManager — any reboot silently
+# wiped it, breaking RIP's LAN-subnet advertisement until this file
+# was re-run by hand. Same underlying bug as topology-hosts.yml.
+#
+# There is no dedicated LAN interface — the management interface carries
+# both the management IP and the lab LAN IP as a secondary.
+#
+# NOTE: r2r interface addressing (eth2/eth3) is NOT configured here.
+# network/r2r_link (in topology-links.yml) fully owns r2r interface
+# addressing (IP + peer route) via nmcli, which is already persistent.
+
+- import_playbook: ../data.yml
+  vars:
+    data_path: "../../ad/Challenge200/data"
+  tags: 'data'
+
+- name: "Persist router LAN IP on eth1"
+  hosts: routers
+  become: true
+  roles:
+    - role: 'network/persist_boot_commands'
+      vars:
+        persist_unit_name: "lab-ip-eth1"
+        persist_description: "Persist router LAN gateway IP on eth1 across reboots"
+        persist_commands:
+          - "ip addr add {{lab.hosts[dict_key].ip4}} dev eth1 || true"

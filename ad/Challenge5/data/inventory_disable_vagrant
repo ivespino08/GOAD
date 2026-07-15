@@ -1,0 +1,32 @@
+[default]
+; Note: ansible_host *MUST* be an IPv4 address or setting things like DNS
+; servers will break.
+; Use this inventory instead of the provider inventory when running
+; directly against existing Linux hosts without Vagrant.
+; ------------------------------------------------
+; Challenge5 — routers
+; ------------------------------------------------
+router-1      ansible_host={{ip_range}}.11  dict_key=router-1
+router-2      ansible_host={{ip_range}}.12  dict_key=router-2
+router-3      ansible_host={{ip_range}}.13  dict_key=router-3
+router-4      ansible_host={{ip_range}}.14  dict_key=router-4
+router-5      ansible_host={{ip_range}}.15  dict_key=router-5
+; ------------------------------------------------
+; Challenge5 — PC/server hosts
+; ------------------------------------------------
+pc-3          ansible_host={{ip_range}}.23  dict_key=pc-3
+server-4      ansible_host={{ip_range}}.24  dict_key=server-4
+; ------------------------------------------------
+; Challenge5 — Docker (vulnerable) hosts
+; ------------------------------------------------
+docker-1      ansible_host={{ip_range}}.21  dict_key=docker-1
+docker-2      ansible_host={{ip_range}}.22  dict_key=docker-2
+
+[all:vars]
+domain_name=Challenge5
+ip_range=192.168.57
+ansible_user=ubuntu
+ansible_connection=ssh
+ansible_python_interpreter=/usr/bin/python3
+ansible_ssh_private_key_file=~/.ssh/id_rsa
+ansible_ssh_common_args='-o StrictHostKeyChecking=no'

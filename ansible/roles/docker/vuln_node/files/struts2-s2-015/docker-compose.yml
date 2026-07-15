@@ -1,0 +1,7 @@
+version: '2'
+services:
+ struts2:
+   build: .
+   container_name: struts2-vuln-s2-015
+   ports:
+    - "8080:8080"

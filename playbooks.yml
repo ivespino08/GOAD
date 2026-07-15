@@ -84,6 +84,17 @@ Scenario3:
   - topology-traffic.yml       # deploy + start background traffic scripts
   - reboot.yml                 # final reboot to confirm clean state
 
+Challenge5:
+  - topology-routers.yml
+  - topology-links.yml
+  - topology-hosts.yml
+  - topology-routing.yml
+  - topology-services.yml
+  - topology-docker.yml
+  - topology-flags.yml
+  - topology-traffic.yml
+  - reboot.yml
+
 default:
   - build.yml
   - ad-servers.yml

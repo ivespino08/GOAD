@@ -5,6 +5,15 @@
 # names; vuln_compose_src is the path to the compose file to copy;
 # container_name must match the container_name set inside that compose
 # file exactly (used to confirm the container actually started).
+#
+# vuln_deploy_dir (NEW, Challenge5) — optional. When set, the role copies the
+# whole files/{{vuln_deploy_dir}}/ directory to the remote host instead of just
+# vuln_compose_src. Needed whenever a vuln's compose file references other local
+# files: couchdb/CVE-2017-12635 bind-mounts a relative ./init.sh; struts2/s2-015
+# has "build: ." instead of "image:", so its Dockerfile and war file need to be
+# on the remote host too before "docker compose up" can build the image locally.
+# When vuln_deploy_dir is absent, behavior is byte-for-byte the same as before —
+# single compose file only.
 ---
 - name: "Install Docker dependencies"
   ansible.builtin.apt:
@@ -56,18 +65,31 @@
     state: directory
     mode: "0755"
 
-- name: "Copy docker-compose.yml for {{ vuln_name }}"
+- name: "Copy vuln deploy directory for {{ vuln_name }} (docker-compose.yml + support files/build context)"
+  ansible.builtin.copy:
+    src: "files/{{ vuln_deploy_dir }}/"
+    dest: "/opt/vuln/{{ vuln_name | replace('/', '-') }}/"
+    mode: preserve
+  when: vuln_deploy_dir is defined
+  register: compose_result_dir
+
+- name: "Copy docker-compose.yml for {{ vuln_name }} (legacy single-file mode)"
   ansible.builtin.copy:
     src: "{{ vuln_compose_src }}"
     dest: "/opt/vuln/{{ vuln_name | replace('/', '-') }}/docker-compose.yml"
     mode: "0644"
-  register: compose_result
+  when: vuln_deploy_dir is not defined
+  register: compose_result_file
+
+- name: "Determine whether the compose deploy actually changed"
+  ansible.builtin.set_fact:
+    compose_result_changed: "{{ (compose_result_dir.changed | default(false)) or (compose_result_file.changed | default(false)) }}"
 
 - name: "Start vulnerable container via Docker Compose"
   ansible.builtin.command:
     cmd: docker compose up -d
     chdir: "/opt/vuln/{{ vuln_name | replace('/', '-') }}"
-  when: compose_result.changed
+  when: compose_result_changed
   register: compose_up
   until: compose_up is not failed
   retries: 3

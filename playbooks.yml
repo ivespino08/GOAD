@@ -109,7 +109,6 @@ Challenge5:
 Scenario12:
   - scenario12/topology-hosts.yml
   - scenario12/topology-docker.yml
-  - scenario12/topology-flagnodes.yml
   - scenario12/topology-services.yml
   - reboot.yml
 

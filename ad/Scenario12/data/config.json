@@ -16,7 +16,8 @@
         "vulns": ["httpd/CVE-2021-40438"],
         "container_name": "httpd-vuln-cve-2021-40438",
         "vuln_deploy_dir": "httpd-cve-2021-40438",
-        "_vuln_deploy_note": "Real files now provided (Dockerfile + docker-compose.yml). This is a two-container CVE: 'apache' (build: ., the vulnerable mod_proxy/AJP front door, port 8080->80) reverse-proxies via AJP to a plain 'tomcat' backend (vulhub/tomcat:8.5.19, no exposed port -- only reachable through apache's ProxyPass). Only apache needed container_name for the role's confirm-running check; tomcat got one too (tomcat-backend-cve-2021-40438) purely for operator clarity, not required by any role logic."
+        "_vuln_deploy_note": "Real files provided (Dockerfile + docker-compose.yml). Three containers now: 'apache' (build: ., the vulnerable mod_proxy/AJP front door, port 8080->80), 'tomcat' (vulhub/tomcat:8.5.19, its originally-intended proxy backend, no exposed port), and 'flag-vault' (new -- a minimal internal-only static file server, no exposed port at all, not referenced anywhere in apache's vhost config).",
+        "_flag_note": "The flag was originally on docker-10, delivered by an unrelated standalone service with no connection to this vuln. Moved here per design decision: the flag (same value, FLAG{eab5e71d80bdc38bdddd}, same deploy.env/API-key content as before) now lives on 'flag-vault', which has no host port mapping and isn't in apache's ProxyPass config -- it's only reachable from inside docker-6's own compose network. Retrieving it requires using the CVE-2021-40438 SSRF to make apache proxy to flag-vault:8000/deploy.env instead of its configured tomcat:8009 target. I built the vulnerable environment and the internal target; I did not write or include the actual SSRF payload/request needed to trigger the redirect -- that's the intended challenge for whoever plays this."
       },
       "docker-7": {"hostname": "docker-7", "type": "docker", "ip4": "172.23.255.9/24", "lan_subnet": "172.23.255.0/24", "switch": "sw-11", "services": ["SSH"], "vulns": []},
       "docker-8": {"hostname": "docker-8", "type": "docker", "ip4": "172.23.255.10/24", "lan_subnet": "172.23.255.0/24", "switch": "sw-11", "services": ["SSH"], "vulns": []},
@@ -29,20 +30,7 @@
         "switch": "sw-11",
         "services": ["SSH"],
         "vulns": [],
-        "flag_node_id": "flagnode/git-deploy-key-repo",
-        "flag_node_deploy_dir": "git-deploy-key-repo",
-        "flag_node_container_name": "flagnode-git-deploy-key-repo",
-        "_flag_node_note": "Not a CVE -- this host runs a small custom TCP service (files/git-deploy-key-repo/) implementing exactly the AUTH/LIST/GET protocol and values from the XML's git_deploy_key_repo flag-node-generator. Deployed via topology-flagnodes.yml (new), reusing docker/vuln_node unmodified since it doesn't care whether the directory it deploys is a real CVE or not.",
-        "_flag_node_reference": {
-          "port": 19418,
-          "username": "user_db1031",
-          "password": "pass_2b4a4bceef4a",
-          "endpoint_path": "/repo/deploy.env",
-          "flag": "FLAG{eab5e71d80bdc38bdddd}",
-          "api_key": "ak_c3f462cc42e1d12afd9effb58337",
-          "source_repo": "deploy_repo",
-          "version_banner": "git-simulated-git"
-        }
+        "_note": "No longer a flag node as of this redesign -- the flag moved to docker-6's internal flag-vault service, gated behind CVE-2021-40438 instead of being an unrelated standalone service. docker-10 is back to being a plain, unremarkable filler host, matching what the raw topology data (vulnerabilities_by_node) always said about it anyway -- it only carried a flag before because of the XML's separate FlagSequencing metadata, which this redesign intentionally overrides. The now-unused git-deploy-key-repo service files are left in place under docker/vuln_node/files/ rather than deleted, in case you want to reuse that pattern elsewhere."
       }
     },
     "topology": {

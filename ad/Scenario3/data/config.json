@@ -142,6 +142,17 @@
         "switch": "rsw-2-1",
         "services": ["DHCPClient"],
         "vulns": ["git/CVE-2017-8386"]
+      },
+      "attacker-1": {
+        "hostname": "attacker-1",
+        "type": "attacker",
+        "ip4": "172.18.167.5/24",
+        "gateway": "172.18.167.1",
+        "lan_subnet": "172.18.167.0/24",
+        "router": "router-1",
+        "switch": "rsw-1-1",
+        "services": [],
+        "vulns": []
       }
     },
     "topology": {

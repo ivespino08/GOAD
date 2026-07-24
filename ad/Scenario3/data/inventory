@@ -24,6 +24,7 @@ pc-5
 pc-8
 docker-11
 docker-12
+attacker-1
 
 [routers]
 router-1
@@ -32,16 +33,27 @@ router-3
 router-4
 router-5
 
+; attacker-1 is deliberately ALSO listed under [pcs] (not just [attacker]
+; below) so it inherits topology-hosts.yml's and topology-services.yml's
+; existing "hosts: pcs" plays -- persistent lab IP + persistent default
+; route via router-1 -- with zero changes needed to either of those files.
 [pcs]
 pc-1
 pc-3
 pc-4
 pc-5
 pc-8
+attacker-1
 
 [docker_nodes]
 docker-11
 docker-12
+
+; Separate group for the new topology-attacker.yml play (Docker + solver
+; clone) -- distinct from [pcs] above since none of pc-1/3/4/5/8 need that
+; provisioning, only this one host does.
+[attacker]
+attacker-1
 
 [hitl_router]
 router-3

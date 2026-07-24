@@ -1,15 +1,30 @@
-; ad/Scenario3/data/inventory
-; Provider-agnostic. Defines host groups and SSH defaults. No IPs, no dict_key —
-; those come from the provider inventory (providers/vmware/inventory or
-; providers/virtualbox/inventory), which is passed alongside this file via a
-; second -i flag.
+; Inventory — Provider Inventory (VMware)
+; ad/Scenario3/providers/vmware/inventory
 ;
-; RECONSTRUCTED this session: this file was not part of your upload (the file
-; named "inventory" you supplied is actually providers/vmware/inventory —
-; IPs/dict_key, no groups). Every topology play in ansible/scenario3/ targets
-; a group defined here (routers, pcs, docker_nodes) — without this file those
-; plays have nothing to match and silently run against zero hosts. Content
-; below matches config.json's hosts exactly.
+; {{ip_range}} is substituted by Utils.replace_in_file() in the GOAD
+; framework before Ansible runs. Value comes from ip_range in ~/.goad/goad.ini.
+;
+; All lab VMs share the Vagrant insecure private key because the Vagrantfile
+; sets config.ssh.insert_key = false for all non-PROVISIONING VMs.
+; setup_local_jumpbox.sh installs the key at ~/.vagrant.d/insecure_private_key.
+;
+; PROVISIONING uses its own generated key (not listed here — the framework
+; resolves it via local_jumpbox.py get_jumpbox_key() directly).
+
+[default]
+router-1   ansible_host={{ip_range}}.11  dict_key=router-1   ansible_ssh_private_key_file=~/.vagrant.d/insecure_private_key
+router-2   ansible_host={{ip_range}}.12  dict_key=router-2   ansible_ssh_private_key_file=~/.vagrant.d/insecure_private_key
+router-3   ansible_host={{ip_range}}.13  dict_key=router-3   ansible_ssh_private_key_file=~/.vagrant.d/insecure_private_key
+router-4   ansible_host={{ip_range}}.14  dict_key=router-4   ansible_ssh_private_key_file=~/.vagrant.d/insecure_private_key
+router-5   ansible_host={{ip_range}}.15  dict_key=router-5   ansible_ssh_private_key_file=~/.vagrant.d/insecure_private_key
+pc-1       ansible_host={{ip_range}}.21  dict_key=pc-1       ansible_ssh_private_key_file=~/.vagrant.d/insecure_private_key
+pc-3       ansible_host={{ip_range}}.23  dict_key=pc-3       ansible_ssh_private_key_file=~/.vagrant.d/insecure_private_key
+pc-4       ansible_host={{ip_range}}.24  dict_key=pc-4       ansible_ssh_private_key_file=~/.vagrant.d/insecure_private_key
+pc-5       ansible_host={{ip_range}}.25  dict_key=pc-5       ansible_ssh_private_key_file=~/.vagrant.d/insecure_private_key
+pc-8       ansible_host={{ip_range}}.28  dict_key=pc-8       ansible_ssh_private_key_file=~/.vagrant.d/insecure_private_key
+docker-11  ansible_host={{ip_range}}.31  dict_key=docker-11  ansible_ssh_private_key_file=~/.vagrant.d/insecure_private_key
+docker-12  ansible_host={{ip_range}}.32  dict_key=docker-12  ansible_ssh_private_key_file=~/.vagrant.d/insecure_private_key
+attacker-1 ansible_host={{ip_range}}.40  dict_key=attacker-1 ansible_ssh_private_key_file=~/.vagrant.d/insecure_private_key
 
 [domain]
 router-1
@@ -25,51 +40,3 @@ pc-8
 docker-11
 docker-12
 attacker-1
-
-[routers]
-router-1
-router-2
-router-3
-router-4
-router-5
-
-; attacker-1 is deliberately ALSO listed under [pcs] (not just [attacker]
-; below) so it inherits topology-hosts.yml's and topology-services.yml's
-; existing "hosts: pcs" plays -- persistent lab IP + persistent default
-; route via router-1 -- with zero changes needed to either of those files.
-[pcs]
-pc-1
-pc-3
-pc-4
-pc-5
-pc-8
-attacker-1
-
-[docker_nodes]
-docker-11
-docker-12
-
-; Separate group for the new topology-attacker.yml play (Docker + solver
-; clone) -- distinct from [pcs] above since none of pc-1/3/4/5/8 need that
-; provisioning, only this one host does.
-[attacker]
-attacker-1
-
-[hitl_router]
-router-3
-
-[dhcp_clients]
-pc-1
-pc-4
-docker-11
-docker-12
-
-[linux_domain:children]
-domain
-
-[extensions]
-
-[all:vars]
-ansible_user=vagrant
-ansible_connection=ssh
-domain_name=Scenario3

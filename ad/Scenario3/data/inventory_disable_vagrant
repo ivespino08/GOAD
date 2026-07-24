@@ -24,6 +24,10 @@ pc-8          ansible_host={{ip_range}}.28  dict_key=pc-8
 ; ------------------------------------------------
 docker-11     ansible_host={{ip_range}}.31  dict_key=docker-11
 docker-12     ansible_host={{ip_range}}.32  dict_key=docker-12
+; ------------------------------------------------
+; Scenario3 — CTF solver / attacker host
+; ------------------------------------------------
+attacker-1    ansible_host={{ip_range}}.40  dict_key=attacker-1
 
 [all:vars]
 domain_name=Scenario3

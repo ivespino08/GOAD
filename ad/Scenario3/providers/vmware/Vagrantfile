@@ -39,7 +39,7 @@ boxes = [
   # since it'll run Docker-in-VM plus an LLM-driven agent (Excalibur2's own
   # docker-compose.yml reserves 2 CPU/4GB and caps at 4 CPU/8GB) — adjust
   # down if your host can't spare it.
-  { :name => "attacker-1", :ip => "192.168.57.40", :box => "generic/ubuntu2204", :box_version => "4.3.12", :os => "linux", :cpus => 2, :mem => 4096 },
+  { :name => "attacker-1", :ip => "192.168.57.40", :box => "generic/ubuntu2204", :box_version => "4.3.12", :os => "linux", :cpus => 2, :mem => 16384 },
 ]
 
 Vagrant.configure("2") do |config|

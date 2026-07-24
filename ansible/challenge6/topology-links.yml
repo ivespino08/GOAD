@@ -1,0 +1,25 @@
+- import_playbook: ../data.yml
+  vars:
+    data_path: "../ad/Challenge6/data"
+  tags: 'data'
+
+- name: "Configure router-to-router links"
+  hosts: routers
+  become: true
+  gather_facts: true
+  tasks:
+    - name: "Configure each r2r link involving this router"
+      include_role:
+        name: network/r2r_link
+      vars:
+        my_index: "{{item.routers.index(dict_key)}}"
+        peer_index: "{{1 - (my_index | int)}}"
+        peer_router: "{{item.routers[peer_index | int]}}"
+        interface_name: "eth{{ (lab.hosts[dict_key].r2r_interfaces.keys() | list).index(peer_router) + 2 }}"
+        local_router: "{{dict_key}}"
+        local_ip4: "{{lab.hosts[dict_key].r2r_interfaces[peer_router]}}"
+        peer_ip4: "{{lab.hosts[peer_router].r2r_interfaces[dict_key]}}"
+        link_subnet: "{{item.subnet}}"
+      loop: "{{lab.topology.r2r_links}}"
+      when: dict_key in item.routers
+      tags: 'links'

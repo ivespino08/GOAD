@@ -1,0 +1,32 @@
+---
+# topology-docker.yml
+#
+# Deploys vulnerable Docker nodes. Mirrors Scenario12's real topology-docker.yml
+# exactly: container_name and vuln_deploy_dir are read from config.json per host
+# (with a formula fallback for container_name), not computed via an in-playbook
+# vuln list. docker-1 (activemq/CVE-2015-5254) has no vuln_deploy_dir set in
+# config.json -> single-file mode. docker-2 (httpd/CVE-2021-40438) has
+# vuln_deploy_dir: "httpd-cve-2021-40438" set -> directory mode (build context).
+#
+# CHALLENGE6-SPECIFIC: data_path set to ../ad/Challenge6/data (per-scenario,
+# not shared -- see build summary "Multi-Scenario Architecture").
+
+- import_playbook: ../data.yml
+  vars:
+    data_path: "../ad/Challenge6/data"
+  tags: 'data'
+
+- name: "Deploy vulnerable Docker nodes"
+  hosts: docker_nodes
+  become: true
+  tasks:
+    - include_role:
+        name: "docker/vuln_node"
+      vars:
+        hostname: "{{lab.hosts[dict_key].hostname}}"
+        vuln_name: "{{item}}"
+        vuln_compose_src: "files/{{item | replace('/', '-') | lower}}-docker-compose.yml"
+        vuln_deploy_dir: "{{lab.hosts[dict_key].vuln_deploy_dir | default(omit)}}"
+        container_name: "{{lab.hosts[dict_key].container_name | default(item.split('/')[0] + '-vuln-' + item.split('/')[1] | lower)}}"
+      loop: "{{lab.hosts[dict_key].vulns}}"
+      when: lab.hosts[dict_key].vulns is defined

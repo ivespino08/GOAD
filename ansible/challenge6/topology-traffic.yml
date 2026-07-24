@@ -1,0 +1,54 @@
+- import_playbook: ../data.yml
+  vars:
+    data_path: "../ad/Challenge6/data"
+  tags: 'data'
+
+- name: "Deploy traffic sender scripts"
+  hosts: pcs:servers:docker_nodes
+  become: true
+  gather_facts: true
+  tasks:
+    - name: "Deploy sender script for flows originating on this host"
+      include_role:
+        name: network/traffic/sender
+      vars:
+        flow: "{{item}}"
+        src_ip4: "{{lab.hosts[dict_key].ip4 | ansible.utils.ipaddr('address')}}"
+        dst_ip4: "{{item.dst_ip4}}"
+        protocol: "{{item.protocol}}"
+        rate_kbps: "{{item.rate_kbps}}"
+        pattern: "{{item.pattern}}"
+        script_dest: "/opt/traffic/traffic_{{inventory_hostname}}_sender.py"
+      loop: "{{lab.topology.traffic}}"
+      when: item.src == lab.hosts[dict_key].hostname
+      tags: 'traffic'
+
+- name: "Deploy traffic receiver scripts"
+  hosts: pcs:servers:docker_nodes
+  become: true
+  gather_facts: true
+  tasks:
+    - name: "Deploy receiver script for flows terminating on this host"
+      include_role:
+        name: network/traffic/receiver
+      vars:
+        flow: "{{item}}"
+        bind_ip4: "{{lab.hosts[dict_key].ip4 | ansible.utils.ipaddr('address')}}"
+        protocol: "{{item.protocol}}"
+        rate_kbps: "{{item.rate_kbps}}"
+        pattern: "{{item.pattern}}"
+        script_dest: "/opt/traffic/traffic_{{inventory_hostname}}_receiver.py"
+      loop: "{{lab.topology.traffic}}"
+      when: item.dst == lab.hosts[dict_key].hostname
+      tags: 'traffic'
+
+- name: "Start traffic scripts"
+  hosts: pcs:servers:docker_nodes
+  become: true
+  tasks:
+    - name: "Start deployed sender/receiver scripts"
+      include_role:
+        name: network/traffic/start
+      vars:
+        traffic_script_dir: "/opt/traffic"
+      tags: 'traffic'

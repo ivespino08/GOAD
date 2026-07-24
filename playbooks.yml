@@ -112,6 +112,16 @@ Scenario12:
   - scenario12/topology-services.yml
   - reboot.yml
 
+Challenge6:
+  - challenge6/topology-routers.yml
+  - challenge6/topology-links.yml
+  - challenge6/topology-hosts.yml
+  - challenge6/topology-routing.yml
+  - challenge6/topology-services.yml
+  - challenge6/topology-docker.yml
+  - challenge6/topology-flags.yml
+  - challenge6/topology-traffic.yml
+
 default:
   - build.yml
   - ad-servers.yml

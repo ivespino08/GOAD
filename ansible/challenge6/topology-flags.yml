@@ -1,0 +1,37 @@
+- import_playbook: ../data.yml
+  vars:
+    data_path: "../ad/Challenge6/data"
+  tags: 'data'
+
+# NOTE: topology-flags.yml is not data-driven from config.json (see build
+# summary "Multi-Scenario Architecture" -> "topology-flags.yml is not
+# data-driven at all"). Per-host plays are hardcoded here, same as
+# Challenge200/Challenge5. Flag source files live in
+# roles/ctf/flags/files/ prefixed with "challenge6-" to avoid colliding with
+# other scenarios that reuse docker-1/docker-2 as host names.
+
+- name: "Inject flag into docker-1 (activemq/CVE-2015-5254)"
+  hosts: docker-1
+  become: true
+  roles:
+    - { role: 'ctf/flags', tags: 'flags' }
+  vars:
+    hostname: "challenge6-{{lab.hosts[dict_key].hostname}}"
+    container_name: "activemq-vuln-cve-2015-5254"
+    flag_files:
+      - filename: "secrets.txt"
+        container_path: "/root/secrets.txt"
+        mode: "0644"
+
+- name: "Inject flag into docker-2 (httpd/CVE-2021-40438)"
+  hosts: docker-2
+  become: true
+  roles:
+    - { role: 'ctf/flags', tags: 'flags' }
+  vars:
+    hostname: "challenge6-{{lab.hosts[dict_key].hostname}}"
+    container_name: "httpd-vuln-cve-2021-40438"
+    flag_files:
+      - filename: "app_check"
+        container_path: "/root/app_check"
+        mode: "0755"

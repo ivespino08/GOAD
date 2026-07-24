@@ -1,0 +1,20 @@
+- import_playbook: ../data.yml
+  vars:
+    data_path: "../ad/Challenge6/data"
+  tags: 'data'
+
+- name: "Configure RIP routing on routers"
+  hosts: routers
+  become: true
+  gather_facts: true
+  tasks:
+    - name: "Enable FRR/RIP, advertise LAN + r2r subnets, keep eth0/eth1 passive"
+      include_role:
+        name: network/rip
+      vars:
+        routing_protocol: "RIP"
+        rip_networks: "{{[lab.hosts[dict_key].lan_subnet] + lab.hosts[dict_key].r2r_subnets}}"
+        rip_passive_interfaces:
+          - "eth0"
+          - "eth1"
+      tags: 'routing'

@@ -1,0 +1,36 @@
+---
+# topology-services.yml
+#
+# Adds a default route via each pc/server/docker host's router LAN gateway,
+# PERSISTENTLY, via a systemd oneshot unit (roles/network/persist_boot_commands).
+# Mirrors Scenario12's topology-services.yml exactly, extended to include the
+# "servers" group.
+#
+# persist_after ensures this unit only runs once the lab-ip-eth1 unit (from
+# topology-hosts.yml) has already applied the host's lab IP.
+#
+# `services` entries in config.json (SSH, HTTP, etc.) remain scenario metadata
+# only, not read here -- consistent with the rest of the repo.
+#
+# The `when: lab.hosts[dict_key].gateway is defined` guard is a no-op for
+# Challenge6 (every pc/server/docker host has a router and a gateway), but is
+# kept for consistency with Scenario12's copy of this file and so this stays
+# safe if a future edit to config.json ever removes a gateway.
+
+- import_playbook: ../data.yml
+  vars:
+    data_path: "../ad/Challenge6/data"
+  tags: 'data'
+
+- name: "Persist default route via router LAN gateway"
+  hosts: pcs:servers:docker_nodes
+  become: true
+  roles:
+    - role: 'network/persist_boot_commands'
+      vars:
+        persist_unit_name: "lab-default-route"
+        persist_description: "Persist default route via router LAN gateway across reboots"
+        persist_after: ["lab-ip-eth1.service"]
+        persist_commands:
+          - "ip route replace default via {{lab.hosts[dict_key].gateway}} dev eth1 || true"
+      when: lab.hosts[dict_key].gateway is defined

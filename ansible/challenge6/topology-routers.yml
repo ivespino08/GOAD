@@ -1,0 +1,31 @@
+---
+# topology-routers.yml
+#
+# Adds each router's LAN-facing IP as a secondary address on eth1,
+# PERSISTENTLY, via a systemd oneshot unit (roles/network/persist_boot_commands).
+# r2r interface addressing is NOT handled here -- topology-links.yml's
+# r2r_link role fully and solely owns that (see build summary).
+#
+# Uses persist_boot_commands rather than nmcli/network/interface for this
+# secondary IP, matching the fix applied proactively across the repo after
+# pc-4 was found to lose its lab IP (and connected route) on reboot -- see
+# Scenario12's topology-hosts.yml/topology-services.yml for the original bug.
+#
+# eth0 = NAT (do not touch), eth1 = management (192.168.57.x) + LAN IP (secondary, persisted)
+
+- import_playbook: ../data.yml
+  vars:
+    data_path: "../ad/Challenge6/data"
+  tags: 'data'
+
+- name: "Persist router LAN gateway IPs on eth1"
+  hosts: routers
+  become: true
+  roles:
+    - role: 'network/persist_boot_commands'
+      vars:
+        persist_unit_name: "lab-ip-eth1"
+        persist_description: "Persist router LAN gateway IP on eth1 across reboots"
+        persist_commands:
+          - "ip addr add {{lab.hosts[dict_key].ip4}} dev eth1 || true"
+      tags: 'routers'

@@ -33,13 +33,29 @@
 # import_playbook -> ../data.yml, and data_path corrected to the single
 # '../ad/Scenario3/data' (this file previously carried Scenario12's
 # data_path).
+#
+# OMIT-PROPAGATION FIX (this session): previously this used a single
+# include_role with `vuln_deploy_dir: "{{...|default(omit)}}"`. `omit`
+# only disappears when it flows straight into a module parameter — it
+# does NOT survive being stored in a role's vars and later tested with
+# `when: vuln_deploy_dir is defined` inside the role. In that case the
+# role sees the literal `__omit_place_holder__<hash>` string, which IS
+# "defined", so its "copy vuln deploy directory" task fired even for
+# git/CVE-2017-8386 (neither docker-11 nor docker-12 sets
+# vuln_deploy_dir), trying to copy a nonexistent
+# `files/__omit_place_holder__.../` path and failing.
+#
+# Fixed by splitting into two role-include branches, gated with `when`
+# at the include_role level rather than relying on omit inside vars:.
+# vuln_deploy_dir is now either fully present with a real value, or not
+# passed into vars at all — never a stringified omit placeholder.
 
 - import_playbook: ../data.yml
   vars:
     data_path: "../ad/Scenario3/data"
   tags: 'data'
 
-- name: "Deploy vulnerable Docker nodes"
+- name: "Deploy vulnerable Docker nodes (single compose file, no deploy dir)"
   hosts: docker_nodes
   become: true
   tasks:
@@ -49,7 +65,25 @@
         hostname: "{{lab.hosts[dict_key].hostname}}"
         vuln_name: "{{item}}"
         vuln_compose_src: "files/{{item | replace('/', '-') | lower}}-docker-compose.yml"
-        vuln_deploy_dir: "{{lab.hosts[dict_key].vuln_deploy_dir | default(omit)}}"
         container_name: "{{lab.hosts[dict_key].container_name | default(item.split('/')[0] + '-vuln-' + item.split('/')[1] | lower)}}"
       loop: "{{lab.hosts[dict_key].vulns}}"
-      when: lab.hosts[dict_key].vulns is defined
+      when:
+        - lab.hosts[dict_key].vulns is defined
+        - lab.hosts[dict_key].vuln_deploy_dir is not defined
+
+- name: "Deploy vulnerable Docker nodes (with deploy dir / build context)"
+  hosts: docker_nodes
+  become: true
+  tasks:
+    - include_role:
+        name: "docker/vuln_node"
+      vars:
+        hostname: "{{lab.hosts[dict_key].hostname}}"
+        vuln_name: "{{item}}"
+        vuln_compose_src: "files/{{item | replace('/', '-') | lower}}-docker-compose.yml"
+        vuln_deploy_dir: "{{lab.hosts[dict_key].vuln_deploy_dir}}"
+        container_name: "{{lab.hosts[dict_key].container_name | default(item.split('/')[0] + '-vuln-' + item.split('/')[1] | lower)}}"
+      loop: "{{lab.hosts[dict_key].vulns}}"
+      when:
+        - lab.hosts[dict_key].vulns is defined
+        - lab.hosts[dict_key].vuln_deploy_dir is defined

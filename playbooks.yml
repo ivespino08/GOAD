@@ -78,11 +78,11 @@ Scenario3:
   - scenario3/topology-hosts.yml
   - scenario3/topology-routing.yml
   - scenario3/topology-services.yml
-  # - scenario3/topology-hitl.yml   # still commented out — bridge adapter / physical hardware not in place
   - scenario3/topology-docker.yml
   - scenario3/topology-flags.yml
+  - scenario3/topology-attacker.yml
   - scenario3/topology-traffic.yml
-  - reboot.yml                 # final reboot to confirm clean state
+  - reboot.yml                # final reboot to confirm clean state
 
 Challenge200:
   - challenge200/topology-routers.yml

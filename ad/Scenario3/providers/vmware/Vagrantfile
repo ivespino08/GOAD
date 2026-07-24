@@ -33,6 +33,13 @@ boxes = [
   { :name => "pc-8",      :ip => "192.168.57.28", :box => "generic/ubuntu2204", :box_version => "4.3.12", :os => "linux", :cpus => 1, :mem => 2048 },
   { :name => "docker-11", :ip => "192.168.57.31", :box => "generic/ubuntu2204", :box_version => "4.3.12", :os => "linux", :cpus => 1, :mem => 2048 },
   { :name => "docker-12", :ip => "192.168.57.32", :box => "generic/ubuntu2204", :box_version => "4.3.12", :os => "linux", :cpus => 1, :mem => 2048 },
+  # attacker-1 — CTF solver box. Same single-NIC pattern as the pc-* boxes
+  # (no :networks entry — it's not a router, so it only needs eth0 NAT +
+  # eth1 management/lab-IP, same as every pc/docker host). Bumped cpus/mem
+  # since it'll run Docker-in-VM plus an LLM-driven agent (Excalibur2's own
+  # docker-compose.yml reserves 2 CPU/4GB and caps at 4 CPU/8GB) — adjust
+  # down if your host can't spare it.
+  { :name => "attacker-1", :ip => "192.168.57.40", :box => "generic/ubuntu2204", :box_version => "4.3.12", :os => "linux", :cpus => 2, :mem => 4096 },
 ]
 
 Vagrant.configure("2") do |config|

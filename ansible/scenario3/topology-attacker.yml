@@ -1,0 +1,105 @@
+---
+# ansible/scenario3/topology-attacker.yml
+# Provisions attacker-1: the CTF solver's designated starting box, on
+# router-1's LAN alongside pc-1/docker-11.
+#
+# Scope, deliberately kept minimal per request: install Docker, ensure
+# internet access, clone the solver repo. `make install` / `make config` /
+# `make connect` (building the image, LLM auth, running it) are NOT run
+# here — those are being done manually.
+#
+# Internet access: no special networking change needed. Every VM already
+# has eth0 = NAT (see the "do not touch" comments throughout the other
+# topology-*.yml files) — that's Vagrant's default outbound adapter, and
+# it's already how every host in this lab reaches the internet during
+# provisioning (apt installs of FRR, docker, etc.). attacker-1 gets the
+# same eth0 automatically just by being a box in the Vagrantfile; nothing
+# here needs to open up the "air-gapped" lab network (eth1 + the router
+# chain) to reach the outside world.
+#
+# Repo: https://github.com/ivespino08/Excalibur-Projects (public, no auth
+# needed to clone). Only the Excalibur2 subproject is fetched, and its
+# benchmark/ directory (1.3GB) is excluded via a non-cone sparse-checkout
+# pattern — per your note that you'll likely delete it before running the
+# solver anyway, no point pulling it onto every scenario VM.
+
+- import_playbook: ../data.yml
+  vars:
+    data_path: "../ad/Scenario3/data"
+  tags: 'data'
+
+- name: "Provision attacker-1 (Docker + solver clone)"
+  hosts: attacker
+  become: true
+  vars:
+    excalibur_repo: "https://github.com/ivespino08/Excalibur-Projects.git"
+    excalibur_dest: "/opt/excalibur-projects"
+    excalibur_user: "{{ansible_user | default('vagrant')}}"
+  tasks:
+    - name: "Install prerequisites (git, Docker Engine, Docker Compose plugin)"
+      apt:
+        name:
+          - ca-certificates
+          - curl
+          - gnupg
+          - git
+          - docker.io
+          - docker-compose-v2
+        state: present
+        update_cache: true
+
+    - name: "Ensure Docker service is enabled and running"
+      systemd:
+        name: docker
+        enabled: true
+        state: started
+
+    - name: "Add {{excalibur_user}} to the docker group (run docker without sudo)"
+      user:
+        name: "{{excalibur_user}}"
+        groups: docker
+        append: true
+
+    - name: "Check whether the solver repo is already cloned"
+      stat:
+        path: "{{excalibur_dest}}/.git"
+      register: _excalibur_git
+
+    - name: "Clone Excalibur-Projects (no checkout yet, so sparse-checkout can trim it first)"
+      ansible.builtin.command:
+        cmd: >-
+          git clone --filter=blob:none --no-checkout
+          {{excalibur_repo}} {{excalibur_dest}}
+      when: not _excalibur_git.stat.exists
+
+    - name: "Configure sparse-checkout: Excalibur2 only, excluding benchmark/"
+      ansible.builtin.command:
+        cmd: "{{item}}"
+        chdir: "{{excalibur_dest}}"
+      loop:
+        - "git sparse-checkout init --no-cone"
+        - "git sparse-checkout set /Excalibur2/* !/Excalibur2/benchmark/"
+      when: not _excalibur_git.stat.exists
+
+    - name: "Checkout main"
+      ansible.builtin.command:
+        cmd: "git checkout main"
+        chdir: "{{excalibur_dest}}"
+      when: not _excalibur_git.stat.exists
+
+    - name: "Hand ownership of the clone to {{excalibur_user}}"
+      file:
+        path: "{{excalibur_dest}}"
+        owner: "{{excalibur_user}}"
+        group: "{{excalibur_user}}"
+        recurse: true
+
+# NOT done here, on purpose:
+#   - `make install` (docker compose build) inside {{excalibur_dest}}/Excalibur2
+#   - `make config` (interactive LLM auth: Claude subscription / Anthropic
+#     key / OpenRouter key / local LLM)
+#   - `make connect` (starts + attaches to the container)
+# Run those by hand once you're ready:
+#   vagrant ssh attacker-1
+#   cd /opt/excalibur-projects/Excalibur2
+#   make install && make config && make connect

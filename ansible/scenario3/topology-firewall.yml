@@ -1,0 +1,65 @@
+---
+# ansible/scenario3/topology-firewall.yml
+# Enforces the network segmentation attacker-1 is supposed to respect.
+#
+# THE GAP: every host's eth1 carries both its management IP
+# (192.168.57.x) and its lab IP (172.x/10.x) as a secondary address, all
+# on the SAME shared L2 segment (the VMware/VirtualBox host-only
+# network). Lab-IP reachability across LANs is legitimately gated by real
+# routing — routers only learn remote-LAN routes via RIP over eth2/eth3
+# (real adapters), and RIP is deliberately passive on eth0/eth1 (see
+# topology-routing.yml's header) specifically so eth1 can't be used to
+# shortcut the chain. But that passive-RIP protection only stops routers
+# from *learning routes* over eth1 — it does nothing to stop a host that
+# already knows another host's management IP from just addressing it
+# directly, since they're all L2-adjacent on that one shared segment.
+#
+# Concretely: without this file, attacker-1 (192.168.57.40) can reach
+# docker-12 at 192.168.57.32 directly over the management network,
+# completely skipping the router-1 -> router-2 pivot the scenario is
+# meant to require.
+#
+# THE FIX: on every host EXCEPT attacker-1's own starting LAN
+# (router-1, pc-1, docker-11) and attacker-1 itself, drop inbound eth1
+# traffic sourced from attacker-1's management IP. This targets that one
+# specific source IP only — the jumpbox/Ansible controller sits at a
+# different address and is completely unaffected, so provisioning keeps
+# working normally on every future run.
+#
+# Persisted via network/persist_boot_commands, same as every other
+# network change in this scenario — a bare iptables rule is invisible to
+# any reboot-time restore and would silently vanish after reboot.yml,
+# the same class of bug already fixed elsewhere in this build (see
+# topology-hosts.yml's and topology-services.yml's headers).
+#
+# Run this AFTER topology-attacker.yml in playbooks.yml's Scenario3 list,
+# so attacker-1 already exists in the inventory by the time this runs
+# (it doesn't strictly depend on anything topology-attacker.yml itself
+# configures, since attacker-1's management IP is static from inventory —
+# just keeping ordering sensible).
+
+- import_playbook: ../data.yml
+  vars:
+    data_path: "../ad/Scenario3/data"
+  tags: 'data'
+
+- name: "Restrict attacker-1's management-network reach to its own starting LAN"
+  hosts: "domain:!router-1:!pc-1:!docker-11:!attacker-1"
+  become: true
+  vars:
+    attacker_mgmt_ip: "{{hostvars['attacker-1'].ansible_host | default('192.168.57.40')}}"
+  roles:
+    - role: 'network/persist_boot_commands'
+      vars:
+        persist_unit_name: "block-attacker-shortcut"
+        persist_description: "Drop management-network traffic from attacker-1, forcing it through the router chain"
+        persist_commands:
+          - "iptables -C INPUT -i eth1 -s {{attacker_mgmt_ip}} -j DROP 2>/dev/null || iptables -A INPUT -i eth1 -s {{attacker_mgmt_ip}} -j DROP"
+
+# NOT covered by this file: router-1, pc-1, and docker-11 are attacker-1's
+# own starting LAN, so reaching them over eth1 is expected, not a
+# shortcut — no rule needed for them. If you add a second attacker VM
+# later with a different starting LAN, this file needs a matching
+# exclusion list + rule for that host too; it's hardcoded to attacker-1's
+# specific starting point rather than generic across all "attacker"-typed
+# hosts.

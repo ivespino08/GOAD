@@ -81,6 +81,7 @@ Scenario3:
   - scenario3/topology-docker.yml
   - scenario3/topology-flags.yml
   - scenario3/topology-attacker.yml
+  - scenario3/topology-firewall.yml
   - scenario3/topology-traffic.yml
   - reboot.yml                # final reboot to confirm clean state
 

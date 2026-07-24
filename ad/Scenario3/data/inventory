@@ -1,26 +1,15 @@
-; GLOBAL CONFIG
-[all:vars]
-; domain_name : folder inside ad/
-domain_name=Scenario3
-
-; global settings
-add_route=no
-route_gateway=192.168.57.1
-route_network=10.0.0.0/8
-
-; modify this to enable http proxy
-enable_http_proxy=no
-ad_http_proxy=http://x.x.x.x:xxxx
-ad_https_proxy=http://x.x.x.x:xxxx
-
-; SSH connection (Linux hosts)
-ansible_user=vagrant
-ansible_password=vagrant
-ansible_connection=ssh
-ansible_python_interpreter=/usr/bin/python3
-ansible_ssh_common_args='-o StrictHostKeyChecking=no'
-
-; LAB SCENARIO CONFIGURATION -----------------------------
+; ad/Scenario3/data/inventory
+; Provider-agnostic. Defines host groups and SSH defaults. No IPs, no dict_key —
+; those come from the provider inventory (providers/vmware/inventory or
+; providers/virtualbox/inventory), which is passed alongside this file via a
+; second -i flag.
+;
+; RECONSTRUCTED this session: this file was not part of your upload (the file
+; named "inventory" you supplied is actually providers/vmware/inventory —
+; IPs/dict_key, no groups). Every topology play in ansible/scenario3/ targets
+; a group defined here (routers, pcs, docker_nodes) — without this file those
+; plays have nothing to match and silently run against zero hosts. Content
+; below matches config.json's hosts exactly.
 
 [domain]
 router-1
@@ -36,17 +25,12 @@ pc-8
 docker-11
 docker-12
 
-[linux_domain]
-
 [routers]
 router-1
 router-2
 router-3
 router-4
 router-5
-
-[hitl_router]
-router-3
 
 [pcs]
 pc-1
@@ -59,17 +43,21 @@ pc-8
 docker-11
 docker-12
 
+[hitl_router]
+router-3
+
 [dhcp_clients]
 pc-1
 pc-4
 docker-11
 docker-12
 
-[jumpbox]
-PROVISIONING
-
-[all_hosts:children]
-pcs
-docker_nodes
+[linux_domain:children]
+domain
 
 [extensions]
+
+[all:vars]
+ansible_user=vagrant
+ansible_connection=ssh
+domain_name=Scenario3

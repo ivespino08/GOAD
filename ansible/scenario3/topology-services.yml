@@ -1,0 +1,50 @@
+---
+# ansible/scenario3/topology-services.yml
+#
+# Adds a default route via each pc/docker host's router LAN gateway,
+# PERSISTENTLY, via a systemd oneshot unit (see
+# roles/network/persist_boot_commands). This used to be a bare
+# `ip route replace default`, invisible to NetworkManager — any reboot
+# silently wiped it alongside the lab IP itself (see topology-hosts.yml),
+# which is exactly what happened to pc-4 after reboot.yml was run.
+#
+# persist_after ensures this unit only runs once the lab-ip-eth1 unit
+# (from topology-hosts.yml) has already applied the host's lab IP —
+# the default route's gateway needs to already be within a connected
+# subnet on eth1 before the route add will succeed.
+#
+# Historical note: this file used to configure DHCP on eth0 (the wrong,
+# NAT interface) for hosts tagged "DHCPClient" in config.json, with no
+# DHCP server anywhere in the topology to actually hand out a lease.
+# Every pc/docker host already has a static ip4/gateway/lan_subnet, so
+# a plain static default route is used for all of them uniformly;
+# "DHCPClient" in config.json is scenario metadata only, not read here.
+#
+# MULTI-SCENARIO FIX (this session):
+#   1. Moved under ansible/scenario3/: import_playbook -> ../data.yml,
+#      data_path corrected to the single '../ad/Scenario3/data' (this
+#      file previously carried Scenario12's data_path).
+#   2. Kept the `when: lab.hosts[dict_key].gateway is defined` guard
+#      that was introduced for Scenario12 (which has no routers/gateways
+#      at all). It's a no-op here — every pc/docker host in Scenario3's
+#      config.json (pc-1, pc-3, pc-4, pc-5, pc-8, docker-11, docker-12)
+#      has a gateway defined — but keeping it costs nothing and protects
+#      against a future edit to config.json that adds a gateway-less host.
+
+- import_playbook: ../data.yml
+  vars:
+    data_path: "../ad/Scenario3/data"
+  tags: 'data'
+
+- name: "Persist default route via router LAN gateway"
+  hosts: pcs:docker_nodes
+  become: true
+  roles:
+    - role: 'network/persist_boot_commands'
+      vars:
+        persist_unit_name: "lab-default-route"
+        persist_description: "Persist default route via router LAN gateway across reboots"
+        persist_after: ["lab-ip-eth1.service"]
+        persist_commands:
+          - "ip route replace default via {{lab.hosts[dict_key].gateway}} dev eth1 || true"
+      when: lab.hosts[dict_key].gateway is defined

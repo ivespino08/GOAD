@@ -1,0 +1,73 @@
+---
+# ansible/scenario3/topology-flags.yml
+# Injects CTF flag artifacts into running Docker containers.
+# Must run AFTER topology-docker.yml and BEFORE reboot.yml.
+#
+# Flag file naming: the ctf/flags role looks for files/{{hostname}}_{{item.filename}}
+# so filename should be the BASE NAME ONLY (without hostname prefix).
+# e.g. filename: "operator_pin.hash" -> role finds files/docker-11_operator_pin.hash
+#
+# container_name must match the same derivation used in topology-docker.yml
+# and the container_name actually set in that vuln's docker-compose.yml.
+# Both docker-11 and docker-12 run git/CVE-2017-8386, so both resolve to
+# the same container_name: "git-vuln-cve-2017-8386".
+#
+# THIS FILE WAS REBUILT FROM SCRATCH this session. The file you supplied
+# under this name was actually Challenge5's topology-flags.yml (hosts
+# docker-1/docker-2, couchdb/struts2 containers) — none of that matches
+# this scenario's config.json (docker-11/docker-12, git/CVE-2017-8386).
+# topology-flags.yml is NOT data-driven off config.json (see
+# topology-docker.yml's header vs. this one) — every scenario hardcodes
+# its own per-host plays here, so this had to be written for Scenario3's
+# actual hosts/container/paths rather than adapted from Challenge5's.
+#
+# Flag placement, per the design doc's CTF Flags table + the later
+# content-design correction:
+#   docker-11 -> operator_pin.hash, at TWO paths inside the container
+#                (both are valid discovery locations for the PAM-fragment
+#                pretext used in this host's challenge)
+#   docker-12 -> backup_index.html, at /home/git/backups/... — NOT the
+#                original /var/www/html/backups/... path. The
+#                git/CVE-2017-8386 Vulhub environment is SSH/git-shell
+#                only (no web server), so the real solve path is reading
+#                the file after the git-shell RCE, landing as the uid
+#                that owns /home/git in the vulhub/git image — not an
+#                HTTP fetch. Confirmed with the designer; corrected here.
+#
+# MULTI-SCENARIO FIX (this session): moved under ansible/scenario3/, so
+# import_playbook -> ../data.yml, and data_path corrected to the single
+# '../ad/Scenario3/data'.
+
+- import_playbook: ../data.yml
+  vars:
+    data_path: "../ad/Scenario3/data"
+  tags: 'data'
+
+- name: "Inject flags into docker-11"
+  hosts: docker-11
+  become: true
+  roles:
+    - { role: 'ctf/flags', tags: 'flags' }
+  vars:
+    hostname: "{{lab.hosts[dict_key].hostname}}"
+    container_name: "git-vuln-cve-2017-8386"
+    flag_files:
+      - filename: "operator_pin.hash"
+        container_path: "/etc/pam.d/fragments/operator_pin.hash"
+        mode: "0644"
+      - filename: "operator_pin.hash"
+        container_path: "/opt/badges/pins/operator_pin.hash"
+        mode: "0644"
+
+- name: "Inject flags into docker-12"
+  hosts: docker-12
+  become: true
+  roles:
+    - { role: 'ctf/flags', tags: 'flags' }
+  vars:
+    hostname: "{{lab.hosts[dict_key].hostname}}"
+    container_name: "git-vuln-cve-2017-8386"
+    flag_files:
+      - filename: "backup_index.html"
+        container_path: "/home/git/backups/backup_index.html"
+        mode: "0644"

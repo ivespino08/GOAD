@@ -1,0 +1,51 @@
+---
+# ansible/scenario3/topology-hosts.yml
+# Adds each host's lab IP as a secondary address on eth1 — PERSISTENTLY,
+# via a systemd oneshot unit (see roles/network/persist_boot_commands).
+#
+# This used to be a bare `ip addr add`, invisible to NetworkManager.
+# Any reboot (e.g. via reboot.yml, which targets the whole "domain"
+# group) silently wiped it, breaking cross-subnet reachability for
+# every pc/docker host until this file was re-run by hand. Confirmed
+# as the root cause of pc-4 losing its lab IP and connected route.
+#
+# eth0 = NAT (do not touch)
+# eth1 = management (192.168.57.x) + lab IP (secondary, persisted)
+#
+# MULTI-SCENARIO FIX (this session): this file now lives at
+# ansible/scenario3/topology-hosts.yml instead of flat ansible/, so:
+#   - import_playbook target corrected to ../data.yml (resolves relative
+#     to THIS file's own new directory, ansible/scenario3/)
+#   - data_path corrected to ../ad/Scenario3/data (resolves relative to
+#     data.yml's own location, ansible/ — unchanged single '../', NOT
+#     '../../ad/Scenario3/data'; data.yml itself never moved)
+# Previously this file carried data_path "../ad/Scenario12/data", which
+# would have silently loaded Scenario12's config.json instead of this
+# scenario's own.
+
+- import_playbook: ../data.yml
+  vars:
+    data_path: "../ad/Scenario3/data"
+  tags: 'data'
+
+- name: "Persist PC lab IPs on eth1"
+  hosts: pcs
+  become: true
+  roles:
+    - role: 'network/persist_boot_commands'
+      vars:
+        persist_unit_name: "lab-ip-eth1"
+        persist_description: "Persist lab IP on eth1 across reboots"
+        persist_commands:
+          - "ip addr add {{lab.hosts[dict_key].ip4}} dev eth1 || true"
+
+- name: "Persist Docker host lab IPs on eth1"
+  hosts: docker_nodes
+  become: true
+  roles:
+    - role: 'network/persist_boot_commands'
+      vars:
+        persist_unit_name: "lab-ip-eth1"
+        persist_description: "Persist lab IP on eth1 across reboots"
+        persist_commands:
+          - "ip addr add {{lab.hosts[dict_key].ip4}} dev eth1 || true"

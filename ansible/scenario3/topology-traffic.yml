@@ -1,0 +1,70 @@
+---
+# ansible/scenario3/topology-traffic.yml
+#
+# MULTI-SCENARIO FIX (this session): moved under ansible/scenario3/, so
+# import_playbook -> ../data.yml, and data_path corrected to the single
+# '../ad/Scenario3/data' (previously carried Challenge5's data_path —
+# under that path this would have generated traffic flows for
+# Challenge5's pc-3/pc-8/docker-11/docker-12/pc-5/pc-4 topology instead
+# of reading lab.topology.traffic from Scenario3's own config.json).
+
+- import_playbook: ../data.yml
+  vars:
+    data_path: "../ad/Scenario3/data"
+  tags: 'data'
+
+- name: "Deploy traffic sender scripts"
+  hosts: domain
+  become: true
+  tasks:
+    - include_role:
+        name: "network/traffic/sender"
+      vars:
+        flow: "{{item}}"
+        src_ip4: "{{lab.hosts[dict_key].ip4 | ansible.utils.ipaddr('address')}}"
+        dst_ip4: "{{lab.hosts[item.dst].ip4 | ansible.utils.ipaddr('address')}}"
+        protocol: "{{item.protocol}}"
+        rate_kbps: "{{item.rate_kbps}}"
+        pattern: "{{item.pattern}}"
+        script_dest: "/tmp/traffic/traffic_{{dict_key}}_send{{loop_idx + 1}}.py"
+      loop: >-
+        {{
+          lab.topology.traffic
+          | selectattr('src', 'equalto', dict_key)
+          | list
+        }}
+      loop_control:
+        index_var: loop_idx
+        label: "{{dict_key}} → {{item.dst}} ({{item.protocol}})"
+
+- name: "Deploy traffic receiver scripts"
+  hosts: domain
+  become: true
+  tasks:
+    - include_role:
+        name: "network/traffic/receiver"
+      vars:
+        flow: "{{item}}"
+        bind_ip4: "{{lab.hosts[dict_key].ip4 | ansible.utils.ipaddr('address')}}"
+        protocol: "{{item.protocol}}"
+        rate_kbps: "{{item.rate_kbps}}"
+        pattern: "{{item.pattern}}"
+        script_dest: "/tmp/traffic/traffic_{{dict_key}}_recv{{loop_idx + 1}}.py"
+      loop: >-
+        {{
+          lab.topology.traffic
+          | selectattr('dst', 'equalto', dict_key)
+          | list
+        }}
+      loop_control:
+        index_var: loop_idx
+        label: "{{dict_key}} receiving from {{item.src}} ({{item.protocol}})"
+
+- name: "Start traffic scripts"
+  hosts: domain
+  become: true
+  tasks:
+    - include_role:
+        name: "network/traffic/start"
+      vars:
+        traffic_script_dir: "/tmp/traffic"

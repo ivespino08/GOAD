@@ -73,15 +73,15 @@ DRACARYS:
   - glpi.yml
 
 Scenario3:
-  - topology-routers.yml       # configure router LAN + r2r interfaces
-  - topology-links.yml         # configure point-to-point r2r subnets
-  - topology-hosts.yml         # assign IPs, gateways, switch membership to PCs + Docker hosts
-  - topology-routing.yml       # configure RIP on all routers
-  - topology-services.yml      # configure per-host services (DHCPClient etc.)
-  #- topology-hitl.yml          # attach ens19 participant interface on router-3
-  - topology-docker.yml        # install Docker + deploy CVE-2017-8386 container (replaces CORE)
-  - topology-flags.yml         # inject CTF flag artifacts into containers (replaces CORE session load)
-  - topology-traffic.yml       # deploy + start background traffic scripts
+  - scenario3/topology-routers.yml
+  - scenario3/topology-links.yml
+  - scenario3/topology-hosts.yml
+  - scenario3/topology-routing.yml
+  - scenario3/topology-services.yml
+  # - scenario3/topology-hitl.yml   # still commented out — bridge adapter / physical hardware not in place
+  - scenario3/topology-docker.yml
+  - scenario3/topology-flags.yml
+  - scenario3/topology-traffic.yml
   - reboot.yml                 # final reboot to confirm clean state
 
 Challenge200:

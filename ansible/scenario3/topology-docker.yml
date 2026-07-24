@@ -1,0 +1,55 @@
+---
+# ansible/scenario3/topology-docker.yml
+# Deploys vulnerable Docker nodes. Replaces CORE's Docker node management.
+# The docker/vuln_node role is generic — vuln_name and vuln_compose_src
+# are passed per host from lab.hosts[dict_key].vulns.
+#
+# vuln_compose_src is forced to lowercase: vulns entries like
+# "git/CVE-2017-8386" would otherwise produce "git-CVE-2017-8386-...",
+# which fails to match the actual lowercase filename on disk
+# (files/git-cve-2017-8386-docker-compose.yml) on case-sensitive
+# Linux filesystems.
+#
+# container_name is derived as "{app}-vuln-{cve_id|lower}" from the
+# vulns entry (e.g. "git/CVE-2017-8386" -> "git-vuln-cve-2017-8386").
+# This MUST match the container_name set in that vuln's docker-compose.yml
+# — the role's "confirm container running" check and the ctf/flags role
+# both look the container up by this exact name, not by vuln_name itself.
+# Both docker-11 and docker-12 resolve to the same container_name here
+# since both run git/CVE-2017-8386.
+#
+# vuln_deploy_dir — optional, set per host in config.json. Not used by
+# either docker-11 or docker-12 in this scenario (both are single compose
+# file only, no extra build context/support files needed).
+#
+# Make sure the real git-cve-2017-8386-docker-compose.yml matches the
+# actual upstream Vulhub source: image vulhub/git:2.12.2-with-openssh,
+# host port 3322 -> container port 22 (NOT 22->22 — that would collide
+# with the docker host VM's own sshd used by Vagrant/Ansible), and
+# restart: unless-stopped set explicitly so the container survives
+# reboot.yml, which runs as the last step of every Scenario3 deployment.
+#
+# MULTI-SCENARIO FIX (this session): moved under ansible/scenario3/, so
+# import_playbook -> ../data.yml, and data_path corrected to the single
+# '../ad/Scenario3/data' (this file previously carried Scenario12's
+# data_path).
+
+- import_playbook: ../data.yml
+  vars:
+    data_path: "../ad/Scenario3/data"
+  tags: 'data'
+
+- name: "Deploy vulnerable Docker nodes"
+  hosts: docker_nodes
+  become: true
+  tasks:
+    - include_role:
+        name: "docker/vuln_node"
+      vars:
+        hostname: "{{lab.hosts[dict_key].hostname}}"
+        vuln_name: "{{item}}"
+        vuln_compose_src: "files/{{item | replace('/', '-') | lower}}-docker-compose.yml"
+        vuln_deploy_dir: "{{lab.hosts[dict_key].vuln_deploy_dir | default(omit)}}"
+        container_name: "{{lab.hosts[dict_key].container_name | default(item.split('/')[0] + '-vuln-' + item.split('/')[1] | lower)}}"
+      loop: "{{lab.hosts[dict_key].vulns}}"
+      when: lab.hosts[dict_key].vulns is defined

@@ -123,6 +123,17 @@ Challenge6:
   - challenge6/topology-flags.yml
   - challenge6/topology-traffic.yml
 
+Challenge101:
+  - challenge101/topology-routers.yml
+  - challenge101/topology-links.yml
+  - challenge101/topology-hosts.yml
+  - challenge101/topology-routing.yml
+  - challenge101/topology-services.yml
+  - challenge101/topology-docker.yml
+  - challenge101/topology-flags.yml
+  - challenge101/topology-traffic.yml
+  - reboot.yml
+
 default:
   - build.yml
   - ad-servers.yml

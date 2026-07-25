@@ -1,15 +1,25 @@
 # roles/network/r2r_link/tasks/main.yml
 #
-# Fully owns r2r interface addressing (IP + peer route) for eth2/eth3.
-# conn_name matches interface_name (e.g. "eth2") rather than a separate
-# "r2r-{{peer_router}}" name — this reuses/updates the same nmcli
-# connection profile instead of creating a second one on the same
-# device, which previously caused two competing profiles per interface.
+# PATCHED: generic/ubuntu2204 ships with netplan's renderer set to
+# networkd. On boxes where a netplan config already statically assigns
+# these interfaces (confirmed on router-1: eth1-eth5 all pre-addressed
+# correctly, presumably by Vagrant's own vmware_desktop private_network
+# guest configuration, independent of anything this role or
+# persist_boot_commands does), NetworkManager reports the device as
+# "strictly unmanaged" and refuses `nmcli connection up` outright — not
+# a router-1-specific fault, a renderer mismatch that likely affects
+# every router on this box image.
 #
-# Installs network-manager itself (not just python3-netaddr) — this role
-# must not assume another role has already installed it. That assumption
-# broke when topology-routers.yml's redundant interface play was removed.
----
+# Fix: check each interface's NM-managed state first. If it's unmanaged
+# (networkd/netplan already owns it), skip the nmcli add/up steps
+# entirely and just verify the expected IP is already present — fail
+# loudly if it isn't, rather than silently doing nothing. If it IS
+# NM-managed (a box where this role's original assumption holds), fall
+# back to the original nmcli-based flow unchanged.
+#
+# The static peer-route task is untouched — `ip route add` doesn't care
+# who manages the interface, so it always runs.
+
 - name: "Update apt cache before installing network-manager"
   ansible.builtin.apt:
     update_cache: yes
@@ -22,7 +32,17 @@
       - python3-netaddr
     state: present
 
-- name: "Configure r2r interface {{interface_name}} toward {{peer_router}} ({{link_subnet}})"
+- name: "Check NetworkManager's management state for {{interface_name}}"
+  ansible.builtin.command:
+    cmd: nmcli -t -f DEVICE,STATE device status
+  register: nm_device_status
+  changed_when: false
+
+- name: "Set fact: is {{interface_name}} unmanaged (networkd/netplan owns it)?"
+  ansible.builtin.set_fact:
+    r2r_iface_unmanaged: "{{ (interface_name + ':unmanaged') in nm_device_status.stdout }}"
+
+- name: "Configure r2r interface {{interface_name}} toward {{peer_router}} ({{link_subnet}}) via nmcli"
   ansible.builtin.nmcli:
     conn_name: "{{interface_name}}"
     ifname: "{{interface_name}}"
@@ -32,11 +52,32 @@
     autoconnect: yes
     state: present
   register: r2r_result
+  when: not r2r_iface_unmanaged
 
-- name: "Bring up r2r interface {{interface_name}}"
+- name: "Bring up r2r interface {{interface_name}} via nmcli"
   ansible.builtin.command:
     cmd: nmcli connection up "{{interface_name}}"
-  when: r2r_result.changed
+  when:
+    - not r2r_iface_unmanaged
+    - r2r_result.changed | default(false)
+
+- name: "{{interface_name}} is networkd-managed — verify netplan already applied {{local_ip4}}"
+  ansible.builtin.command:
+    cmd: ip -4 -o addr show dev {{interface_name}}
+  register: r2r_existing_ip
+  changed_when: false
+  when: r2r_iface_unmanaged
+
+- name: "Fail loudly if a networkd-managed interface is missing its expected IP"
+  ansible.builtin.fail:
+    msg: >-
+      {{interface_name}} is unmanaged by NetworkManager (networkd/netplan owns it)
+      but does not already have {{local_ip4}} applied. This role can't configure
+      an unmanaged device via nmcli — check this box's netplan config under
+      /etc/netplan/ for {{interface_name}}.
+  when:
+    - r2r_iface_unmanaged
+    - local_ip4.split('/')[0] not in r2r_existing_ip.stdout
 
 - name: "Add static route to peer LAN via {{peer_ip4 | ansible.utils.ipaddr('address')}}"
   ansible.builtin.command:

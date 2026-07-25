@@ -1,10 +1,21 @@
 # roles/ctf/flags/tasks/main.yml
 #
-# container_name is now passed in from the calling playbook (e.g.
-# topology-flags.yml) instead of being hardcoded here — it must match
-# whatever container_name topology-docker.yml derived/used for that host.
+# container_name is passed in from the calling playbook (e.g.
+# topology-flags.yml), must match topology-docker.yml's container_name.
 # Flag file source convention: files/{{hostname}}_{{item.filename}}
-# So topology-flags.yml should pass filename WITHOUT the hostname prefix.
+#
+# PATCHED: both docker_container_exec tasks now explicitly run as
+# user: root. Without this, they default to whatever USER the image
+# defines (confirmed on docker-2/Airflow: the official image runs as a
+# non-root "airflow" user). `docker cp` always writes files in as root
+# regardless of the container's own default user, so the earlier
+# `mkdir -p` could silently succeed (no perm needed if the dir already
+# exists) while the later `chmod` on a root-owned file failed with
+# "Operation not permitted" once run as the non-root default user.
+# Forcing root for both exec steps removes the dependency on whatever
+# an image's default user happens to be — not something to assume is
+# root just because Scenario3's git/CVE-2017-8386 container (root by
+# default in that Vulhub image) never surfaced this gap before.
 ---
 - name: "Create flag staging directory"
   ansible.builtin.file:
@@ -25,6 +36,7 @@
   community.docker.docker_container_exec:
     container: "{{container_name}}"
     command: "mkdir -p {{item.container_path | dirname}}"
+    user: root
   loop: "{{flag_files | default([])}}"
   loop_control:
     label: "mkdir {{item.container_path | dirname}}"
@@ -44,6 +56,7 @@
   community.docker.docker_container_exec:
     container: "{{container_name}}"
     command: "chmod {{item.mode | default('0644')}} {{item.container_path}}"
+    user: root
   loop: "{{flag_files | default([])}}"
   loop_control:
     label: "chmod {{item.container_path}}"

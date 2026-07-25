@@ -1,0 +1,34 @@
+---
+# ansible/challenge101/topology-routers.yml
+# Adapted from Scenario3's topology-routers.yml (same interface layout,
+# same persist_boot_commands pattern). Interface layout per router VM:
+#   eth0 = NAT (do not touch — Vagrant management)
+#   eth1 = management 192.168.57.x (added by template :ip)
+#   eth2.. = r2r links (added by template :networks, one per r2r_interfaces entry)
+#
+# Router LAN gateway IPs are added as secondary addresses on eth1,
+# PERSISTENTLY, via a systemd oneshot unit (see roles/network/persist_boot_commands)
+# — a bare `ip addr add` is invisible to NetworkManager and gets silently
+# wiped on any reboot, per the bug already found and fixed in Scenario3.
+#
+# router-5 has no attached host/switch in this scenario's topology (see
+# config.json's _note on router-5) — it still gets a persisted lab.hosts
+# ip4 like every other router (10.0.0.5/16, taken as-is from the source
+# XML's PlanPreview), it just isn't anyone's gateway. No special-casing
+# needed here; this play is generic over the routers group either way.
+
+- import_playbook: ../data.yml
+  vars:
+    data_path: "../ad/Challenge101/data"
+  tags: 'data'
+
+- name: "Persist router LAN IP on eth1"
+  hosts: routers
+  become: true
+  roles:
+    - role: 'network/persist_boot_commands'
+      vars:
+        persist_unit_name: "lab-ip-eth1"
+        persist_description: "Persist router LAN gateway IP on eth1 across reboots"
+        persist_commands:
+          - "ip addr add {{lab.hosts[dict_key].ip4}} dev eth1 || true"

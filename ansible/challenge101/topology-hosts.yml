@@ -1,0 +1,42 @@
+---
+# ansible/challenge101/topology-hosts.yml
+# Adds each host's lab IP as a secondary address on eth1 — PERSISTENTLY,
+# via the same persist_boot_commands unit pattern as Scenario3.
+#
+# eth0 = NAT (do not touch)
+# eth1 = management (192.168.57.x) + lab IP (secondary, persisted)
+#
+# NEW GROUP: "servers" (server-4, role Server). Not present in
+# Scenario3/Challenge5/Scenario12 — this scenario's XML is the first to
+# include a Server-role node. It's functionally identical to a pc
+# (static ip4 + gateway, no vulns), so it's handled by simply adding the
+# group to this play's `hosts:` line rather than writing a parallel task
+# block. If servers ever need something pcs don't (extra services,
+# different persist ordering), split it back out at that point.
+
+- import_playbook: ../data.yml
+  vars:
+    data_path: "../ad/Challenge101/data"
+  tags: 'data'
+
+- name: "Persist PC/Server lab IPs on eth1"
+  hosts: pcs:servers
+  become: true
+  roles:
+    - role: 'network/persist_boot_commands'
+      vars:
+        persist_unit_name: "lab-ip-eth1"
+        persist_description: "Persist lab IP on eth1 across reboots"
+        persist_commands:
+          - "ip addr add {{lab.hosts[dict_key].ip4}} dev eth1 || true"
+
+- name: "Persist Docker host lab IPs on eth1"
+  hosts: docker_nodes
+  become: true
+  roles:
+    - role: 'network/persist_boot_commands'
+      vars:
+        persist_unit_name: "lab-ip-eth1"
+        persist_description: "Persist lab IP on eth1 across reboots"
+        persist_commands:
+          - "ip addr add {{lab.hosts[dict_key].ip4}} dev eth1 || true"

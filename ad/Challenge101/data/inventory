@@ -1,0 +1,50 @@
+; ad/Challenge101/data/inventory
+; Provider-agnostic. Defines host groups and SSH defaults. No IPs, no dict_key —
+; those come from the provider inventory (providers/vmware/inventory) or, for
+; bare-metal runs, inventory_disable_vagrant — passed alongside this file via
+; a second -i flag. Content below matches config.json's lab.hosts exactly.
+;
+; No [attacker]/[hitl_router]/[dhcp_clients] groups here — this scenario has
+; no attacker-role node, no HITL router, and "services":[DHCPClient] isn't
+; used by this scenario's hosts (unlike Scenario3's).
+
+[domain]
+router-1
+router-2
+router-3
+router-4
+router-5
+pc-3
+server-4
+docker-1
+docker-2
+
+[routers]
+router-1
+router-2
+router-3
+router-4
+router-5
+
+[pcs]
+pc-3
+
+; New group, not present in Scenario3/Challenge5/Scenario12 — see
+; ansible/challenge101/topology-hosts.yml's header for why this exists
+; instead of folding server-4 into [pcs].
+[servers]
+server-4
+
+[docker_nodes]
+docker-1
+docker-2
+
+[linux_domain:children]
+domain
+
+[extensions]
+
+[all:vars]
+ansible_user=vagrant
+ansible_connection=ssh
+domain_name=Challenge101

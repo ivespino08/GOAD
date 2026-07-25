@@ -1,0 +1,71 @@
+---
+# ansible/challenge101/topology-flags.yml
+# Injects CTF flag artifacts into running Docker containers.
+# Must run AFTER topology-docker.yml and BEFORE reboot.yml.
+#
+# Same as every prior scenario: topology-flags.yml is NOT data-driven off
+# config.json — every scenario hardcodes its own per-host plays here.
+# Written fresh for this scenario's actual chain, not adapted from
+# Scenario3's git/CVE-2017-8386 flag plays.
+#
+# Flag placement, derived from Challenge101_solution.json + Challenge101_vulns.json:
+#
+#   docker-1 (Solr, CVE-2019-0193) -> secrets.txt
+#     Real solve path: Velocity-template RCE via DataImportHandler's
+#     dataConfig param (no auth required) gives arbitrary command exec as
+#     the solr container's runtime user. secrets.txt is placed at
+#     /opt/solr/secrets.txt — readable/discoverable by that user via the
+#     RCE, no additional privilege needed. Contains BOTH this host's flag
+#     AND the Airflow service-account credentials the chain needs for
+#     docker-2 (matches solution.json: the edge from node 6->7 carries
+#     this exact File(path)/Flag(flag_id) artifact pair).
+#
+#   docker-2 (Airflow, CVE-2020-11978) -> flag.bin
+#     Real solve path: authenticate to the webserver with the creds found
+#     in docker-1's secrets.txt, enable + trigger the example_trigger_target_dag
+#     with the crafted Configuration JSON payload (see the compose file's
+#     header comment for the exact payload), landing command execution in
+#     the celery worker container. flag.bin is placed in the worker
+#     container (NOT the webserver) since that's where the injected
+#     command actually lands — placing it on the webserver would let a
+#     solver find it without ever triggering the DAG, defeating the vuln.
+#     "Binary Embed Text" per the generator name: the flag string is
+#     embedded inside a small binary blob, recovered with `strings` (or
+#     equivalent) rather than being plain text — matches vulns.json's
+#     generator_id: binary_embed_text for this node.
+
+- import_playbook: ../data.yml
+  vars:
+    data_path: "../ad/Challenge101/data"
+  tags: 'data'
+
+- name: "Inject flag + pivot credentials into docker-1 (Solr)"
+  hosts: docker-1
+  become: true
+  roles:
+    - { role: 'ctf/flags', tags: 'flags' }
+  vars:
+    hostname: "{{lab.hosts[dict_key].hostname}}"
+    container_name: "solr-vuln-cve-2019-0193"
+    flag_files:
+      - filename: "secrets.txt"
+        container_path: "/opt/solr/secrets.txt"
+        mode: "0644"
+
+- name: "Inject flag into docker-2 (Airflow) worker container"
+  hosts: docker-2
+  become: true
+  roles:
+    - { role: 'ctf/flags', tags: 'flags' }
+  vars:
+    hostname: "{{lab.hosts[dict_key].hostname}}"
+    container_name: "airflow-vuln-cve-2020-11978-worker"
+    flag_files:
+      - filename: "flag.bin"
+        container_path: "/opt/airflow/flag.bin"
+        mode: "0644"
+
+# NOT covered here: topology-flagnodes.yml is dead code per your build
+# summary (flag_node_deploy_dir is never set by any host in any scenario
+# so far, including this one) — not referenced in this scenario's
+# playbooks.yml entry either.

@@ -1,0 +1,150 @@
+{
+  "lab": {
+    "hosts": {
+      "router-1": {
+        "hostname": "router-1",
+        "type": "router",
+        "ip4": "172.18.63.1/24",
+        "lan_subnet": "172.18.63.0/24",
+        "r2r_interfaces": {
+          "router-4": "172.18.244.1/24",
+          "router-3": "10.0.245.1/24",
+          "router-5": "172.17.254.1/24",
+          "router-2": "192.168.103.1/24"
+        },
+        "r2r_subnets": [
+          "172.18.244.0/24",
+          "10.0.245.0/24",
+          "172.17.254.0/24",
+          "192.168.103.0/24"
+        ],
+        "protocol": "RIP"
+      },
+      "router-2": {
+        "hostname": "router-2",
+        "type": "router",
+        "ip4": "172.18.118.1/24",
+        "lan_subnet": "172.18.118.0/24",
+        "r2r_interfaces": {
+          "router-4": "192.168.78.1/24",
+          "router-1": "192.168.103.2/24"
+        },
+        "r2r_subnets": [
+          "192.168.78.0/24",
+          "192.168.103.0/24"
+        ],
+        "protocol": "RIP"
+      },
+      "router-3": {
+        "hostname": "router-3",
+        "type": "router",
+        "ip4": "10.0.204.1/24",
+        "lan_subnet": "10.0.204.0/24",
+        "r2r_interfaces": {
+          "router-1": "10.0.245.2/24",
+          "router-5": "10.0.132.1/24"
+        },
+        "r2r_subnets": [
+          "10.0.245.0/24",
+          "10.0.132.0/24"
+        ],
+        "protocol": "RIP"
+      },
+      "router-4": {
+        "hostname": "router-4",
+        "type": "router",
+        "ip4": "192.168.131.1/24",
+        "lan_subnet": "192.168.131.0/24",
+        "r2r_interfaces": {
+          "router-2": "192.168.78.2/24",
+          "router-1": "172.18.244.2/24"
+        },
+        "r2r_subnets": [
+          "192.168.78.0/24",
+          "172.18.244.0/24"
+        ],
+        "protocol": "RIP"
+      },
+      "router-5": {
+        "hostname": "router-5",
+        "type": "router",
+        "ip4": "10.0.0.5/16",
+        "_note": "No host/switch attached to this router in this scenario (empty host list for router 5 in the source XML's r2s_grouping_preview) — lan_subnet is legitimately null, not a planner anomaly. topology-routing.yml is guarded against this.",
+        "lan_subnet": null,
+        "r2r_interfaces": {
+          "router-1": "172.17.254.2/24",
+          "router-3": "10.0.132.2/24"
+        },
+        "r2r_subnets": [
+          "172.17.254.0/24",
+          "10.0.132.0/24"
+        ],
+        "protocol": "RIP"
+      },
+
+      "docker-1": {
+        "hostname": "docker-1",
+        "type": "docker",
+        "ip4": "172.18.63.3/24",
+        "gateway": "172.18.63.1",
+        "lan_subnet": "172.18.63.0/24",
+        "router": "router-1",
+        "switch": "rsw-1-1",
+        "services": [],
+        "vulns": ["solr/CVE-2019-0193"],
+        "container_name": "solr-vuln-cve-2019-0193",
+        "chain_position": 1
+      },
+      "docker-2": {
+        "hostname": "docker-2",
+        "type": "docker",
+        "ip4": "172.18.118.3/24",
+        "gateway": "172.18.118.1",
+        "lan_subnet": "172.18.118.0/24",
+        "router": "router-2",
+        "switch": "rsw-2-1",
+        "services": [],
+        "vulns": ["airflow/CVE-2020-11978"],
+        "container_name": "airflow-vuln-cve-2020-11978",
+        "chain_position": 2
+      },
+      "pc-3": {
+        "hostname": "pc-3",
+        "type": "pc",
+        "ip4": "10.0.204.3/24",
+        "gateway": "10.0.204.1",
+        "lan_subnet": "10.0.204.0/24",
+        "router": "router-3",
+        "switch": "rsw-3-1",
+        "services": [],
+        "vulns": []
+      },
+      "server-4": {
+        "hostname": "server-4",
+        "type": "server",
+        "ip4": "192.168.131.3/24",
+        "gateway": "192.168.131.1",
+        "lan_subnet": "192.168.131.0/24",
+        "router": "router-4",
+        "switch": "rsw-4-1",
+        "services": [],
+        "vulns": []
+      }
+    },
+
+    "topology": {
+      "seed": 899128307,
+      "r2r_links": [
+        { "edge_id": 1, "subnet": "192.168.78.0/24",  "routers": [{"id": "router-2", "ip": "192.168.78.1/24"},  {"id": "router-4", "ip": "192.168.78.2/24"}] },
+        { "edge_id": 2, "subnet": "172.18.244.0/24",  "routers": [{"id": "router-1", "ip": "172.18.244.1/24"}, {"id": "router-4", "ip": "172.18.244.2/24"}] },
+        { "edge_id": 3, "subnet": "10.0.245.0/24",    "routers": [{"id": "router-1", "ip": "10.0.245.1/24"},   {"id": "router-3", "ip": "10.0.245.2/24"}] },
+        { "edge_id": 4, "subnet": "172.17.254.0/24",  "routers": [{"id": "router-1", "ip": "172.17.254.1/24"}, {"id": "router-5", "ip": "172.17.254.2/24"}] },
+        { "edge_id": 5, "subnet": "192.168.103.0/24", "routers": [{"id": "router-1", "ip": "192.168.103.1/24"},{"id": "router-2", "ip": "192.168.103.2/24"}] },
+        { "edge_id": 6, "subnet": "10.0.132.0/24",    "routers": [{"id": "router-3", "ip": "10.0.132.1/24"},  {"id": "router-5", "ip": "10.0.132.2/24"}] }
+      ],
+      "traffic": [
+        { "src": "docker-2", "dst": "docker-1", "protocol": "TCP", "rate_kbps": 128, "pattern": "burst" }
+      ]
+    }
+  }
+}

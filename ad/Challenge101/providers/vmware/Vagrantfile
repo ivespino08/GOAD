@@ -1,0 +1,53 @@
+# ad/Challenge101/providers/vmware/Vagrantfile
+#
+# Same substitution mechanism as Scenario3's: GOAD drops this file's
+# content into template/provider/vmware/Vagrantfile's {{lab}} placeholder.
+#
+# :networks order matches this scenario's config.json r2r_interfaces key
+# order EXACTLY, per router, since topology-routers.yml/topology-links.yml
+# use peer_idx+2 (i.e. r2r_interfaces.keys() index) for interface naming:
+#   router-1 config.json r2r_interfaces order: router-4, router-3, router-5, router-2
+#     -> :networks: [172.18.244.1, 10.0.245.1, 172.17.254.1, 192.168.103.1]
+#   router-2 order: router-4, router-1
+#     -> :networks: [192.168.78.1, 192.168.103.2]
+#   router-3 order: router-1, router-5
+#     -> :networks: [10.0.245.2, 10.0.132.1]
+#   router-4 order: router-2, router-1
+#     -> :networks: [192.168.78.2, 172.18.244.2]
+#   router-5 order: router-1, router-3
+#     -> :networks: [172.17.254.2, 10.0.132.2]
+# If you ever reorder keys in config.json's r2r_interfaces for any router,
+# update the matching :networks list here in the same order — they are
+# NOT derived from each other automatically, same as Scenario3.
+#
+# router-5 has no LAN/switch in this scenario (see config.json's _note on
+# router-5) but still gets the same box shape as every other router —
+# it just isn't anyone's gateway.
+
+boxes = [
+  { :name => "router-1", :ip => "192.168.57.11", :box => "generic/ubuntu2204", :box_version => "4.3.12", :os => "linux", :cpus => 1, :mem => 2048,
+    :networks => ["172.18.244.1", "10.0.245.1", "172.17.254.1", "192.168.103.1"] },
+  { :name => "router-2", :ip => "192.168.57.12", :box => "generic/ubuntu2204", :box_version => "4.3.12", :os => "linux", :cpus => 1, :mem => 2048,
+    :networks => ["192.168.78.1", "192.168.103.2"] },
+  { :name => "router-3", :ip => "192.168.57.13", :box => "generic/ubuntu2204", :box_version => "4.3.12", :os => "linux", :cpus => 1, :mem => 2048,
+    :networks => ["10.0.245.2", "10.0.132.1"] },
+  { :name => "router-4", :ip => "192.168.57.14", :box => "generic/ubuntu2204", :box_version => "4.3.12", :os => "linux", :cpus => 1, :mem => 2048,
+    :networks => ["192.168.78.2", "172.18.244.2"] },
+  { :name => "router-5", :ip => "192.168.57.15", :box => "generic/ubuntu2204", :box_version => "4.3.12", :os => "linux", :cpus => 1, :mem => 2048,
+    :networks => ["172.17.254.2", "10.0.132.2"] },
+
+  { :name => "pc-3",     :ip => "192.168.57.23", :box => "generic/ubuntu2204", :box_version => "4.3.12", :os => "linux", :cpus => 1, :mem => 2048 },
+  { :name => "server-4", :ip => "192.168.57.24", :box => "generic/ubuntu2204", :box_version => "4.3.12", :os => "linux", :cpus => 1, :mem => 2048 },
+
+  { :name => "docker-1", :ip => "192.168.57.31", :box => "generic/ubuntu2204", :box_version => "4.3.12", :os => "linux", :cpus => 1, :mem => 2048 },
+  # docker-2 runs the Airflow CeleryExecutor stack (postgres + redis +
+  # webserver + scheduler + worker) — vulhub's own README for this CVE
+  # says to "prepare more than 2G of memory for the use of the virtual
+  # machine." Bumped accordingly; same reasoning Scenario3 used to bump
+  # attacker-1's resources for its own workload.
+  { :name => "docker-2", :ip => "192.168.57.32", :box => "generic/ubuntu2204", :box_version => "4.3.12", :os => "linux", :cpus => 2, :mem => 4096 },
+]
+
+Vagrant.configure("2") do |config|
+  config.ssh.insert_key = false
+end

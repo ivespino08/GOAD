@@ -1,0 +1,59 @@
+---
+# ansible/challenge101/topology-docker.yml
+# Deploys vulnerable Docker nodes. Logic is UNCHANGED from Scenario3's —
+# this file is genuinely generic over config.json (vuln_name/vuln_compose_src
+# come from lab.hosts[dict_key].vulns), only data_path differs.
+#
+# docker-1 -> solr/CVE-2019-0193      -> container_name solr-vuln-cve-2019-0193
+# docker-2 -> airflow/CVE-2020-11978  -> container_name airflow-vuln-cve-2020-11978
+# (both single-compose-file, no vuln_deploy_dir — same shape as Scenario3's
+# docker-11/docker-12, so only the first role-include branch below fires
+# for this scenario; the vuln_deploy_dir branch is kept for parity/future
+# scenarios that need a build context, per topology-docker.yml's original
+# design.)
+#
+# Drop the two new compose files into the SHARED role directory
+# (ansible/roles/docker/vuln_node/files/), not under ansible/challenge101/ —
+# that role directory is shared across scenarios same as
+# network/persist_boot_commands etc.:
+#   files/solr-cve-2019-0193-docker-compose.yml
+#   files/airflow-cve-2020-11978-docker-compose.yml
+# (both included in this delivery)
+
+- import_playbook: ../data.yml
+  vars:
+    data_path: "../ad/Challenge101/data"
+  tags: 'data'
+
+- name: "Deploy vulnerable Docker nodes (single compose file, no deploy dir)"
+  hosts: docker_nodes
+  become: true
+  tasks:
+    - include_role:
+        name: "docker/vuln_node"
+      vars:
+        hostname: "{{lab.hosts[dict_key].hostname}}"
+        vuln_name: "{{item}}"
+        vuln_compose_src: "files/{{item | replace('/', '-') | lower}}-docker-compose.yml"
+        container_name: "{{lab.hosts[dict_key].container_name | default(item.split('/')[0] + '-vuln-' + item.split('/')[1] | lower)}}"
+      loop: "{{lab.hosts[dict_key].vulns}}"
+      when:
+        - lab.hosts[dict_key].vulns is defined
+        - lab.hosts[dict_key].vuln_deploy_dir is not defined
+
+- name: "Deploy vulnerable Docker nodes (with deploy dir / build context)"
+  hosts: docker_nodes
+  become: true
+  tasks:
+    - include_role:
+        name: "docker/vuln_node"
+      vars:
+        hostname: "{{lab.hosts[dict_key].hostname}}"
+        vuln_name: "{{item}}"
+        vuln_compose_src: "files/{{item | replace('/', '-') | lower}}-docker-compose.yml"
+        vuln_deploy_dir: "{{lab.hosts[dict_key].vuln_deploy_dir}}"
+        container_name: "{{lab.hosts[dict_key].container_name | default(item.split('/')[0] + '-vuln-' + item.split('/')[1] | lower)}}"
+      loop: "{{lab.hosts[dict_key].vulns}}"
+      when:
+        - lab.hosts[dict_key].vulns is defined
+        - lab.hosts[dict_key].vuln_deploy_dir is defined

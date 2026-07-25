@@ -1,0 +1,36 @@
+---
+# ansible/challenge101/topology-services.yml
+# Adds a default route via each pc/server/docker host's router LAN
+# gateway, PERSISTENTLY, same persist_boot_commands pattern as Scenario3.
+# persist_after ensures this only runs once lab-ip-eth1 (topology-hosts.yml)
+# has already applied the host's lab IP.
+#
+# "services" in this scenario's config.json/services_preview (SSH/HTTP
+# counts per host) is scenario-planner bookkeeping, same as
+# "DHCPClient" was in Scenario3 — not read here. The actual attacker-
+# facing services are the vulnerable Solr/Airflow apps themselves,
+# deployed by topology-docker.yml. If you want SSH/HTTP stood up as
+# real services on pc-3/server-4 (i.e. actual decoy/pivot services, not
+# just planner metadata) let me know and I'll add a role for that —
+# nothing in the uploaded Scenario3 files does this, since Scenario3
+# had no such requirement either.
+#
+# NEW GROUP: pcs:servers (see topology-hosts.yml's note on server-4).
+
+- import_playbook: ../data.yml
+  vars:
+    data_path: "../ad/Challenge101/data"
+  tags: 'data'
+
+- name: "Persist default route via router LAN gateway"
+  hosts: pcs:servers:docker_nodes
+  become: true
+  roles:
+    - role: 'network/persist_boot_commands'
+      vars:
+        persist_unit_name: "lab-default-route"
+        persist_description: "Persist default route via router LAN gateway across reboots"
+        persist_after: ["lab-ip-eth1.service"]
+        persist_commands:
+          - "ip route replace default via {{lab.hosts[dict_key].gateway}} dev eth1 || true"
+      when: lab.hosts[dict_key].gateway is defined

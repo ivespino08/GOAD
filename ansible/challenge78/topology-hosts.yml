@@ -8,10 +8,16 @@
   become: true
   tags: 'hosts'
   tasks:
+    # NOTE: gateway_ip4 is deliberately NOT passed here. network/interface
+    # bakes gateway_ip4 straight into the nmcli connection's gw4, and
+    # topology-services.yml's network/gateway role does the same thing
+    # again later in the run — the two competing nmcli writes on the same
+    # connection profile is what caused "Nexthop has invalid gateway" on
+    # every non-router host. topology-services.yml is now the sole place
+    # the default route gets set; this play only brings the LAN address up.
     - name: "Configure eth1 secondary LAN address {{ lab.hosts[dict_key].ip4 }}"
       include_role:
         name: network/interface
       vars:
         interface_name: "eth1"
         interface_ip4: "{{ lab.hosts[dict_key].ip4 }}"
-        gateway_ip4: "{{ lab.hosts[dict_key].gateway }}"

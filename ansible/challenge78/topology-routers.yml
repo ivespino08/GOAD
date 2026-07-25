@@ -1,0 +1,39 @@
+- import_playbook: ../data.yml
+  vars:
+    data_path: "../ad/Challenge78/data"
+  tags: 'data'
+
+# Configure each router's r2r-facing adapters (eth2, eth3, ...) in the same
+# order as lab.hosts[dict_key].r2r_interfaces, matching the :networks order
+# in the Vagrantfile so eth{{2+idx}} always lands on the intended peer link.
+- name: "Configure router r2r interfaces"
+  hosts: routers
+  become: true
+  tags: 'routers'
+  tasks:
+    - name: "Configure r2r adapter eth{{2 + idx}} ({{item.key}} <-> peer router-{{item.key}})"
+      include_role:
+        name: network/interface
+      vars:
+        interface_name: "eth{{ 2 + idx }}"
+        interface_ip4: "{{ item.value }}"
+      loop: "{{ lab.hosts[dict_key].r2r_interfaces | dict2items }}"
+      loop_control:
+        index_var: idx
+        label: "eth{{ 2 + idx }} -> {{ item.value }}"
+
+- name: "Add router LAN (switch) subnets as secondary addresses on eth1"
+  hosts: routers
+  become: true
+  tags: 'routers'
+  tasks:
+    - name: "ip addr add {{ item.router_ip4 }} dev eth1"
+      ansible.builtin.command: "ip addr add {{ item.router_ip4 }} dev eth1"
+      register: addr_add_result
+      failed_when:
+        - addr_add_result.rc != 0
+        - "'File exists' not in addr_add_result.stderr"
+      changed_when: addr_add_result.rc == 0
+      loop: "{{ lab.hosts[dict_key].switches }}"
+      loop_control:
+        label: "{{ item.name }}: {{ item.router_ip4 }}"

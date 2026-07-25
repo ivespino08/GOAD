@@ -1,0 +1,29 @@
+- import_playbook: ../data.yml
+  vars:
+    data_path: "../ad/Challenge78/data"
+  tags: 'data'
+
+# Challenge78 is OSPFv2 (config.json / XML routing_protocol), not RIP —
+# uses the new network/ospf role. r2r subnets and this router's own LAN
+# (switch) subnets are all advertised via "network ... area 0"; eth0
+# (NAT) and eth1 (management, which also carries the LAN secondary IPs)
+# stay passive so OSPF adjacencies only form over the dedicated r2r
+# adapters (eth2+), never over management.
+- name: "Configure OSPFv2 routing"
+  hosts: routers
+  become: true
+  tags: 'routing'
+  tasks:
+    - name: "Configure network/ospf"
+      include_role:
+        name: network/ospf
+      vars:
+        routing_protocol: "OSPFv2"
+        ospf_networks: >-
+          {{
+            lab.hosts[dict_key].r2r_subnets
+            + (lab.hosts[dict_key].switches | map(attribute='lan_subnet') | list)
+          }}
+        ospf_passive_interfaces:
+          - eth0
+          - eth1

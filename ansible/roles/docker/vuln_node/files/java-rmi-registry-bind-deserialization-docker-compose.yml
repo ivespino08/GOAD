@@ -1,0 +1,13 @@
+services:
+  rmi:
+    image: vulhub/j2ee:8u131
+    container_name: java-vuln-rmi-registry-bind-deserialization
+    ports:
+      - 1099:1099
+    environment:
+      # Overridden from vulhub's default (192.168.31.88, their own lab
+      # example) to docker-5's actual LAN address in this scenario, since
+      # the RMI registry hands this IP back to clients for the second
+      # callback connection — a wrong value here breaks exploitation even
+      # though the initial `rmiregistry` connection succeeds.
+      - RMIIP=10.0.33.3

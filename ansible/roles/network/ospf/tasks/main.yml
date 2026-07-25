@@ -1,0 +1,44 @@
+---
+# NEW ROLE this build: every prior scenario (Scenario3, Challenge200,
+# Challenge5, Scenario12, Challenge101, Challenge130) used RIP via
+# network/rip. Challenge78 is the first to specify OSPFv2. This role
+# mirrors network/rip's structure exactly (FRR, passive interfaces on
+# the management adapters eth0/eth1, active only on r2r adapters) but
+# enables ospfd instead of ripd.
+
+- name: "Update apt cache before installing frr"
+  ansible.builtin.apt:
+    update_cache: yes
+    cache_valid_time: 3600
+
+- name: "Install FRR"
+  ansible.builtin.package:
+    name: frr
+    state: present
+
+- name: "Template daemons file (enable zebra + ospfd only)"
+  ansible.builtin.template:
+    src: "{{ role_path }}/files/daemons.j2"
+    dest: /etc/frr/daemons
+    owner: frr
+    group: frr
+    mode: "0640"
+  notify: restart frr
+
+- name: "Template frr.conf (OSPFv2 network statements + passive interfaces)"
+  ansible.builtin.template:
+    src: "{{ role_path }}/files/frr.conf.j2"
+    dest: /etc/frr/frr.conf
+    owner: frr
+    group: frr
+    mode: "0640"
+  notify: restart frr
+
+- name: "Ensure FRR is enabled and running"
+  ansible.builtin.service:
+    name: frr
+    state: started
+    enabled: true
+
+- name: "Flush handlers so frr.conf takes effect immediately"
+  ansible.builtin.meta: flush_handlers

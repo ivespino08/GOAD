@@ -1,0 +1,38 @@
+- import_playbook: ../data.yml
+  vars:
+    data_path: "../ad/Challenge78/data"
+  tags: 'data'
+
+- name: "Configure r2r point-to-point links"
+  hosts: routers
+  become: true
+  tags: 'links'
+  tasks:
+    - name: "Determine this router's peer router name for each r2r interface"
+      ansible.builtin.set_fact:
+        my_r2r_peers: "{{ lab.hosts[dict_key].r2r_interfaces.keys() | list }}"
+
+    - name: "Configure r2r_link role for each peer"
+      include_role:
+        name: network/r2r_link
+      vars:
+        interface_name: "eth{{ 2 + idx }}"
+        local_router: "{{ dict_key }}"
+        local_ip4: "{{ item.value }}"
+        peer_router: "router-{{ item.key }}"
+        peer_ip4: "{{ lab.hosts['router-' ~ item.key].r2r_interfaces[dict_key.split('-')[1]] }}"
+        link_subnet: >-
+          {{
+            (lab.topology.r2r_links
+              | selectattr('routers', 'equalto', [dict_key, 'router-' ~ item.key])
+              | list
+              +
+              lab.topology.r2r_links
+              | selectattr('routers', 'equalto', ['router-' ~ item.key, dict_key])
+              | list
+            )[0].subnet
+          }}
+      loop: "{{ lab.hosts[dict_key].r2r_interfaces | dict2items }}"
+      loop_control:
+        index_var: idx
+        label: "eth{{ 2 + idx }} -> router-{{ item.key }}"

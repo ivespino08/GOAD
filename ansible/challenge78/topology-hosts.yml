@@ -1,0 +1,17 @@
+- import_playbook: ../data.yml
+  vars:
+    data_path: "../ad/Challenge78/data"
+  tags: 'data'
+
+- name: "Configure non-router host LAN interfaces"
+  hosts: docker_nodes:pcs:servers
+  become: true
+  tags: 'hosts'
+  tasks:
+    - name: "Configure eth1 secondary LAN address {{ lab.hosts[dict_key].ip4 }}"
+      include_role:
+        name: network/interface
+      vars:
+        interface_name: "eth1"
+        interface_ip4: "{{ lab.hosts[dict_key].ip4 }}"
+        gateway_ip4: "{{ lab.hosts[dict_key].gateway }}"

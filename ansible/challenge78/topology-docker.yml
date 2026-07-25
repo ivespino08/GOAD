@@ -1,0 +1,42 @@
+- import_playbook: ../data.yml
+  vars:
+    data_path: "../ad/Challenge78/data"
+  tags: 'data'
+
+- name: "Deploy vulnerable containers"
+  hosts: docker_nodes
+  become: true
+  tags: 'docker'
+  tasks:
+    - name: "Deploy vuln container(s) for this host"
+      include_role:
+        name: docker/vuln_node
+      vars:
+        hostname: "{{ lab.hosts[dict_key].hostname }}"
+        vuln_name: "{{ item.vuln_name }}"
+        container_name: "{{ item.container_name }}"
+        vuln_compose_src: "{{ item.vuln_compose_src | default(omit) }}"
+        vuln_deploy_dir: "{{ item.vuln_deploy_dir | default(omit) }}"
+      loop: "{{ lab.hosts[dict_key].vulns }}"
+      loop_control:
+        label: "{{ item.vuln_name }}"
+      when: lab.hosts[dict_key].vulns | length > 0
+
+    # docker-4 is a decoy per designer instruction: it's typed "docker" and
+    # sits in the topology like a real vuln node, but ships no vulhub
+    # container at all. It still needs the Docker engine present so it
+    # behaves like a real docker host under recon (e.g. `docker ps` returns
+    # empty rather than "command not found").
+    - name: "Install bare Docker engine (decoy host, no vulnerability deployed)"
+      ansible.builtin.apt:
+        name: docker.io
+        state: present
+        update_cache: yes
+      when: lab.hosts[dict_key].vulns | length == 0
+
+    - name: "Ensure docker service is enabled and running (decoy host)"
+      ansible.builtin.service:
+        name: docker
+        state: started
+        enabled: true
+      when: lab.hosts[dict_key].vulns | length == 0

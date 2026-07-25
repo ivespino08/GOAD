@@ -1,0 +1,51 @@
+- import_playbook: ../data.yml
+  vars:
+    data_path: "../ad/Challenge78/data"
+  tags: 'data'
+
+- name: "Set default gateway on non-router hosts"
+  hosts: docker_nodes:pcs:servers
+  become: true
+  tags: 'services'
+  tasks:
+    - name: "Configure network/gateway"
+      include_role:
+        name: network/gateway
+      vars:
+        interface_name: "eth1"
+        interface_ip4: "{{ lab.hosts[dict_key].ip4 }}"
+        gateway_ip4: "{{ lab.hosts[dict_key].gateway }}"
+      when: lab.hosts[dict_key].gateway is defined
+
+- name: "Install HTTP service on hosts advertising it"
+  hosts: docker_nodes:pcs:servers
+  become: true
+  tags: 'services'
+  tasks:
+    - name: "Install apache2"
+      ansible.builtin.apt:
+        name: apache2
+        state: present
+        update_cache: yes
+      when: "'HTTP' in lab.hosts[dict_key].services"
+
+    - name: "Ensure apache2 is enabled and running"
+      ansible.builtin.service:
+        name: apache2
+        state: started
+        enabled: true
+      when: "'HTTP' in lab.hosts[dict_key].services"
+
+- name: "Configure DHCPClient service on hosts advertising it"
+  hosts: docker_nodes:pcs:servers
+  become: true
+  tags: 'services'
+  tasks:
+    - name: "Configure network/services/dhcp_client"
+      include_role:
+        name: network/services/dhcp_client
+      vars:
+        interface_name: "eth1"
+        lan_subnet: "{{ lab.hosts[dict_key].lan_subnet }}"
+        gateway_ip4: "{{ lab.hosts[dict_key].gateway }}"
+      when: "'DHCPClient' in lab.hosts[dict_key].services"

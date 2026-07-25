@@ -1,0 +1,13 @@
+frr defaults traditional
+hostname {{ inventory_hostname }}
+!
+router ospf
+{% for net in ospf_networks %}
+ network {{ net }} area 0.0.0.0
+{% endfor %}
+{% for iface in ospf_passive_interfaces %}
+ passive-interface {{ iface }}
+{% endfor %}
+!
+line vty
+!

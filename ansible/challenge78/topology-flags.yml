@@ -1,0 +1,75 @@
+- import_playbook: ../data.yml
+  vars:
+    data_path: "../ad/Challenge78/data"
+  tags: 'data'
+
+# topology-flags.yml is not data-driven (see build notes) — each play is
+# hardcoded per host, same pattern as Scenario3/Challenge200/Challenge5/
+# Challenge130. Flag files are named challenge78-{{hostname}}_secrets.txt
+# to avoid colliding with other scenarios that also use docker-1..N and
+# secrets.txt as their flag filename.
+#
+# NOTE ON THE FLAG CHAIN: Challenge78_solution.json's edges form a loop —
+# docker-1 -> docker-2 -> docker-3 -> docker-5 -> docker-1 — rather than a
+# terminating chain. This looks like a padding artifact of the generator
+# (chain_length=5 requested but only 4 vulnerable docker hosts exist, so
+# docker-1 was reused as the 5th hop). Flags below are deployed exactly as
+# specified in the solution file regardless: docker-5's flag is still
+# injected even though its "target" (docker-1) was already the entry
+# point. Flag it to participants as a loop, or adjust chain_length/solution
+# generation for future revisions of this scenario if a hard "final" flag
+# is wanted instead.
+
+- name: "Inject flag into docker-1"
+  hosts: docker-1
+  become: true
+  roles:
+    - { role: 'ctf/flags', tags: 'flags' }
+  vars:
+    hostname: "challenge78-{{ lab.hosts[dict_key].hostname }}"
+    container_name: "jenkins-vuln-cve-2024-23897"
+    flag_files:
+      - filename: "secrets.txt"
+        container_path: "/tmp/secrets.txt"
+        mode: "0644"
+
+- name: "Inject flag into docker-2"
+  hosts: docker-2
+  become: true
+  roles:
+    - { role: 'ctf/flags', tags: 'flags' }
+  vars:
+    hostname: "challenge78-{{ lab.hosts[dict_key].hostname }}"
+    container_name: "bash-vuln-cve-2014-6271"
+    flag_files:
+      - filename: "secrets.txt"
+        container_path: "/tmp/secrets.txt"
+        mode: "0644"
+
+- name: "Inject flag into docker-3"
+  hosts: docker-3
+  become: true
+  roles:
+    - { role: 'ctf/flags', tags: 'flags' }
+  vars:
+    hostname: "challenge78-{{ lab.hosts[dict_key].hostname }}"
+    container_name: "jboss-vuln-jmxinvokerservlet-deserialization"
+    flag_files:
+      - filename: "secrets.txt"
+        container_path: "/tmp/secrets.txt"
+        mode: "0644"
+
+- name: "Inject flag into docker-5"
+  hosts: docker-5
+  become: true
+  roles:
+    - { role: 'ctf/flags', tags: 'flags' }
+  vars:
+    hostname: "challenge78-{{ lab.hosts[dict_key].hostname }}"
+    container_name: "java-vuln-rmi-registry-bind-deserialization"
+    flag_files:
+      - filename: "secrets.txt"
+        container_path: "/tmp/secrets.txt"
+        mode: "0644"
+
+# docker-4 is the decoy — no flag file, per designer instruction.

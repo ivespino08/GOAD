@@ -1,0 +1,199 @@
+- import_playbook: ../data.yml
+  vars:
+    data_path: "../ad/Challenge78/data"
+  tags: 'data'
+
+# Per the Challenge130 lesson: neither network/traffic/sender nor
+# network/traffic/receiver create script_dest's parent directory
+# themselves, so /opt/traffic is created explicitly before every
+# sender/receiver pair below.
+
+# Flow 1: docker-5 -> pc-6 (TCP, port 5011)
+- name: "Traffic sender: docker-5 -> pc-6"
+  hosts: docker-5
+  become: true
+  tags: 'traffic'
+  tasks:
+    - name: "Ensure /opt/traffic exists"
+      ansible.builtin.file: { path: /opt/traffic, state: directory, mode: "0755" }
+    - include_role:
+        name: network/traffic/sender
+      vars:
+        flow: "docker5_to_pc6"
+        src_ip4: "{{ lab.hosts['docker-5'].ip4 }}"
+        dst_ip4: "{{ lab.hosts['pc-6'].ip4 }}"
+        protocol: "TCP"
+        rate_kbps: 128
+        pattern: "continuous"
+        script_dest: "/opt/traffic/traffic_docker5_to_pc6_sender.py"
+
+- name: "Traffic receiver: docker-5 -> pc-6"
+  hosts: pc-6
+  become: true
+  tags: 'traffic'
+  tasks:
+    - name: "Ensure /opt/traffic exists"
+      ansible.builtin.file: { path: /opt/traffic, state: directory, mode: "0755" }
+    - include_role:
+        name: network/traffic/receiver
+      vars:
+        flow: "docker5_to_pc6"
+        bind_ip4: "{{ lab.hosts['pc-6'].ip4 }}"
+        protocol: "TCP"
+        rate_kbps: 128
+        pattern: "continuous"
+        script_dest: "/opt/traffic/traffic_docker5_to_pc6_receiver.py"
+
+# Flow 2: docker-3 -> server-8 (TCP, port 5013)
+- name: "Traffic sender: docker-3 -> server-8"
+  hosts: docker-3
+  become: true
+  tags: 'traffic'
+  tasks:
+    - name: "Ensure /opt/traffic exists"
+      ansible.builtin.file: { path: /opt/traffic, state: directory, mode: "0755" }
+    - include_role:
+        name: network/traffic/sender
+      vars:
+        flow: "docker3_to_server8"
+        src_ip4: "{{ lab.hosts['docker-3'].ip4 }}"
+        dst_ip4: "{{ lab.hosts['server-8'].ip4 }}"
+        protocol: "TCP"
+        rate_kbps: 128
+        pattern: "continuous"
+        script_dest: "/opt/traffic/traffic_docker3_to_server8_sender.py"
+
+- name: "Traffic receiver: docker-3 -> server-8"
+  hosts: server-8
+  become: true
+  tags: 'traffic'
+  tasks:
+    - name: "Ensure /opt/traffic exists"
+      ansible.builtin.file: { path: /opt/traffic, state: directory, mode: "0755" }
+    - include_role:
+        name: network/traffic/receiver
+      vars:
+        flow: "docker3_to_server8"
+        bind_ip4: "{{ lab.hosts['server-8'].ip4 }}"
+        protocol: "TCP"
+        rate_kbps: 128
+        pattern: "continuous"
+        script_dest: "/opt/traffic/traffic_docker3_to_server8_receiver.py"
+
+# Flow 3: docker-4 (decoy) -> docker-1 (TCP, port 5006)
+- name: "Traffic sender: docker-4 -> docker-1"
+  hosts: docker-4
+  become: true
+  tags: 'traffic'
+  tasks:
+    - name: "Ensure /opt/traffic exists"
+      ansible.builtin.file: { path: /opt/traffic, state: directory, mode: "0755" }
+    - include_role:
+        name: network/traffic/sender
+      vars:
+        flow: "docker4_to_docker1"
+        src_ip4: "{{ lab.hosts['docker-4'].ip4 }}"
+        dst_ip4: "{{ lab.hosts['docker-1'].ip4 }}"
+        protocol: "TCP"
+        rate_kbps: 128
+        pattern: "continuous"
+        script_dest: "/opt/traffic/traffic_docker4_to_docker1_sender.py"
+
+- name: "Traffic receiver: docker-4 -> docker-1"
+  hosts: docker-1
+  become: true
+  tags: 'traffic'
+  tasks:
+    - name: "Ensure /opt/traffic exists"
+      ansible.builtin.file: { path: /opt/traffic, state: directory, mode: "0755" }
+    - include_role:
+        name: network/traffic/receiver
+      vars:
+        flow: "docker4_to_docker1"
+        bind_ip4: "{{ lab.hosts['docker-1'].ip4 }}"
+        protocol: "TCP"
+        rate_kbps: 128
+        pattern: "continuous"
+        script_dest: "/opt/traffic/traffic_docker4_to_docker1_receiver.py"
+
+# Flow 4: pc-6 -> docker-5 (TCP, port 5010)
+- name: "Traffic sender: pc-6 -> docker-5"
+  hosts: pc-6
+  become: true
+  tags: 'traffic'
+  tasks:
+    - name: "Ensure /opt/traffic exists"
+      ansible.builtin.file: { path: /opt/traffic, state: directory, mode: "0755" }
+    - include_role:
+        name: network/traffic/sender
+      vars:
+        flow: "pc6_to_docker5"
+        src_ip4: "{{ lab.hosts['pc-6'].ip4 }}"
+        dst_ip4: "{{ lab.hosts['docker-5'].ip4 }}"
+        protocol: "TCP"
+        rate_kbps: 128
+        pattern: "continuous"
+        script_dest: "/opt/traffic/traffic_pc6_to_docker5_sender.py"
+
+- name: "Traffic receiver: pc-6 -> docker-5"
+  hosts: docker-5
+  become: true
+  tags: 'traffic'
+  tasks:
+    - name: "Ensure /opt/traffic exists"
+      ansible.builtin.file: { path: /opt/traffic, state: directory, mode: "0755" }
+    - include_role:
+        name: network/traffic/receiver
+      vars:
+        flow: "pc6_to_docker5"
+        bind_ip4: "{{ lab.hosts['docker-5'].ip4 }}"
+        protocol: "TCP"
+        rate_kbps: 128
+        pattern: "continuous"
+        script_dest: "/opt/traffic/traffic_pc6_to_docker5_receiver.py"
+
+# Flow 5: docker-2 -> docker-3 (TCP, port 5008)
+- name: "Traffic sender: docker-2 -> docker-3"
+  hosts: docker-2
+  become: true
+  tags: 'traffic'
+  tasks:
+    - name: "Ensure /opt/traffic exists"
+      ansible.builtin.file: { path: /opt/traffic, state: directory, mode: "0755" }
+    - include_role:
+        name: network/traffic/sender
+      vars:
+        flow: "docker2_to_docker3"
+        src_ip4: "{{ lab.hosts['docker-2'].ip4 }}"
+        dst_ip4: "{{ lab.hosts['docker-3'].ip4 }}"
+        protocol: "TCP"
+        rate_kbps: 128
+        pattern: "continuous"
+        script_dest: "/opt/traffic/traffic_docker2_to_docker3_sender.py"
+
+- name: "Traffic receiver: docker-2 -> docker-3"
+  hosts: docker-3
+  become: true
+  tags: 'traffic'
+  tasks:
+    - name: "Ensure /opt/traffic exists"
+      ansible.builtin.file: { path: /opt/traffic, state: directory, mode: "0755" }
+    - include_role:
+        name: network/traffic/receiver
+      vars:
+        flow: "docker2_to_docker3"
+        bind_ip4: "{{ lab.hosts['docker-3'].ip4 }}"
+        protocol: "TCP"
+        rate_kbps: 128
+        pattern: "continuous"
+        script_dest: "/opt/traffic/traffic_docker2_to_docker3_receiver.py"
+
+- name: "Start all deployed traffic scripts"
+  hosts: docker-1:docker-2:docker-3:docker-4:docker-5:pc-6:server-8
+  become: true
+  tags: 'traffic'
+  tasks:
+    - include_role:
+        name: network/traffic/start
+      vars:
+        traffic_script_dir: "/opt/traffic"

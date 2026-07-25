@@ -3,21 +3,24 @@
     data_path: "../ad/Challenge78/data"
   tags: 'data'
 
-- name: "Configure non-router host LAN interfaces"
+# Corrected: non-router hosts get their LAN address the same way routers get
+# their switch subnets — a secondary `ip addr add` on eth1, alongside the
+# management IP Vagrant already assigned at boot. The earlier version called
+# network/interface (nmcli) here, which manages eth1 as a *replacing* static
+# connection profile; since NetworkManager doesn't guarantee that profile
+# becomes the active one over whatever connection Vagrant already bound to
+# eth1, the LAN subnet never actually landed on the interface — which is why
+# topology-services.yml's gateway route failed with "Nexthop has invalid
+# gateway" on every single host: eth1 only ever had the management address.
+- name: "Add host LAN address as secondary on eth1"
   hosts: docker_nodes:pcs:servers
   become: true
   tags: 'hosts'
   tasks:
-    # NOTE: gateway_ip4 is deliberately NOT passed here. network/interface
-    # bakes gateway_ip4 straight into the nmcli connection's gw4, and
-    # topology-services.yml's network/gateway role does the same thing
-    # again later in the run — the two competing nmcli writes on the same
-    # connection profile is what caused "Nexthop has invalid gateway" on
-    # every non-router host. topology-services.yml is now the sole place
-    # the default route gets set; this play only brings the LAN address up.
-    - name: "Configure eth1 secondary LAN address {{ lab.hosts[dict_key].ip4 }}"
-      include_role:
-        name: network/interface
-      vars:
-        interface_name: "eth1"
-        interface_ip4: "{{ lab.hosts[dict_key].ip4 }}"
+    - name: "ip addr add {{ lab.hosts[dict_key].ip4 }} dev eth1"
+      ansible.builtin.command: "ip addr add {{ lab.hosts[dict_key].ip4 }} dev eth1"
+      register: addr_add_result
+      failed_when:
+        - addr_add_result.rc != 0
+        - "'File exists' not in addr_add_result.stderr"
+      changed_when: addr_add_result.rc == 0

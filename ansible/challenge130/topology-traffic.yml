@@ -12,6 +12,12 @@
   hosts: pc-3
   become: true
   tasks:
+    - name: "Ensure /opt/traffic exists"
+      ansible.builtin.file:
+        path: /opt/traffic
+        state: directory
+        mode: "0755"
+
     - include_role:
         name: network/traffic/sender
       vars:
@@ -27,6 +33,12 @@
   hosts: server-4
   become: true
   tasks:
+    - name: "Ensure /opt/traffic exists"
+      ansible.builtin.file:
+        path: /opt/traffic
+        state: directory
+        mode: "0755"
+
     - include_role:
         name: network/traffic/receiver
       vars:

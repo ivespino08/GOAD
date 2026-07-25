@@ -1,0 +1,33 @@
+---
+# Challenge130 / NewScenario22 — vuln container deployment.
+# container_name follows the {app}-vuln-{cve_id|lower} convention established
+# for docker/vuln_node and ctf/flags (see build summary, "Docker Container
+# Lookup Mismatch" session) so both roles agree on the same container name
+# without either hardcoding or re-deriving it differently.
+
+- import_playbook: ../data.yml
+  vars:
+    data_path: "../ad/Challenge130/data"
+  tags: 'data'
+
+- name: "Deploy pgadmin/CVE-2023-5002 on docker-1"
+  hosts: docker-1
+  become: true
+  roles:
+    - { role: 'docker/vuln_node', tags: 'docker' }
+  vars:
+    hostname: "{{ lab.hosts[dict_key].hostname }}"
+    vuln_name: "pgadmin/CVE-2023-5002"
+    container_name: "pgadmin-vuln-cve-2023-5002"
+    vuln_compose_src: "pgadmin-cve-2023-5002-docker-compose.yml"
+
+- name: "Deploy adminer/CVE-2021-43008 on docker-2"
+  hosts: docker-2
+  become: true
+  roles:
+    - { role: 'docker/vuln_node', tags: 'docker' }
+  vars:
+    hostname: "{{ lab.hosts[dict_key].hostname }}"
+    vuln_name: "adminer/CVE-2021-43008"
+    container_name: "adminer-vuln-cve-2021-43008"
+    vuln_compose_src: "adminer-cve-2021-43008-docker-compose.yml"

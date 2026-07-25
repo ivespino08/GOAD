@@ -1,0 +1,47 @@
+---
+# Challenge130 / NewScenario22 — background traffic.
+# Single flow from the source XML's traffic_summary: pc-3 -> server-4, TCP,
+# continuous, 128 kbps, port 5009.
+
+- import_playbook: ../data.yml
+  vars:
+    data_path: "../ad/Challenge130/data"
+  tags: 'data'
+
+- name: "Deploy traffic sender on pc-3"
+  hosts: pc-3
+  become: true
+  tasks:
+    - include_role:
+        name: network/traffic/sender
+      vars:
+        flow: "{{ lab.topology.traffic[0] }}"
+        src_ip4: "{{ lab.hosts['pc-3'].ip4 | ansible.utils.ipaddr('address') }}"
+        dst_ip4: "{{ lab.hosts['server-4'].ip4 | ansible.utils.ipaddr('address') }}"
+        protocol: "TCP"
+        rate_kbps: 128
+        pattern: "continuous"
+        script_dest: "/opt/traffic/traffic_sender.py"
+
+- name: "Deploy traffic receiver on server-4"
+  hosts: server-4
+  become: true
+  tasks:
+    - include_role:
+        name: network/traffic/receiver
+      vars:
+        flow: "{{ lab.topology.traffic[0] }}"
+        bind_ip4: "{{ lab.hosts['server-4'].ip4 | ansible.utils.ipaddr('address') }}"
+        protocol: "TCP"
+        rate_kbps: 128
+        pattern: "continuous"
+        script_dest: "/opt/traffic/traffic_receiver.py"
+
+- name: "Start traffic scripts"
+  hosts: pc-3:server-4
+  become: true
+  tasks:
+    - include_role:
+        name: network/traffic/start
+      vars:
+        traffic_script_dir: "/opt/traffic"

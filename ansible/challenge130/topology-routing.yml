@@ -1,0 +1,26 @@
+---
+# Challenge130 / NewScenario22 — RIP routing on all 5 routers.
+# rip_networks = this router's own LAN subnet (if any) + all r2r_subnets it
+# participates in, read directly from config.json to avoid Jinja2 filtering
+# against the shared r2r_links list. Both eth0 (NAT) and eth1 (management)
+# stay passive so RIP only advertises/listens on the r2r interfaces.
+
+- import_playbook: ../data.yml
+  vars:
+    data_path: "../ad/Challenge130/data"
+  tags: 'data'
+
+- name: "Configure RIP routing"
+  hosts: routers
+  become: true
+  tasks:
+    - include_role:
+        name: network/rip
+      vars:
+        routing_protocol: "RIP"
+        rip_networks: >-
+          {{ ([lab.hosts[dict_key].lan_subnet] if lab.hosts[dict_key].lan_subnet is not none else [])
+             + lab.hosts[dict_key].r2r_subnets }}
+        rip_passive_interfaces:
+          - eth0
+          - eth1

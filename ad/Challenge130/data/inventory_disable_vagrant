@@ -1,0 +1,27 @@
+[default]
+router-1   ansible_host=192.168.57.41  dict_key=router-1   ansible_ssh_private_key_file=~/.ssh/id_rsa
+router-2   ansible_host=192.168.57.42  dict_key=router-2   ansible_ssh_private_key_file=~/.ssh/id_rsa
+router-3   ansible_host=192.168.57.43  dict_key=router-3   ansible_ssh_private_key_file=~/.ssh/id_rsa
+router-4   ansible_host=192.168.57.44  dict_key=router-4   ansible_ssh_private_key_file=~/.ssh/id_rsa
+router-5   ansible_host=192.168.57.45  dict_key=router-5   ansible_ssh_private_key_file=~/.ssh/id_rsa
+pc-3       ansible_host=192.168.57.53  dict_key=pc-3       ansible_ssh_private_key_file=~/.ssh/id_rsa
+server-4   ansible_host=192.168.57.54  dict_key=server-4   ansible_ssh_private_key_file=~/.ssh/id_rsa
+docker-1   ansible_host=192.168.57.61  dict_key=docker-1   ansible_ssh_private_key_file=~/.ssh/id_rsa
+docker-2   ansible_host=192.168.57.62  dict_key=docker-2   ansible_ssh_private_key_file=~/.ssh/id_rsa
+
+[domain]
+router-1
+router-2
+router-3
+router-4
+router-5
+pc-3
+server-4
+docker-1
+docker-2
+
+[all:vars]
+ansible_user=ubuntu
+ansible_connection=ssh
+domain_name=Challenge130
+ip_range=192.168.57

@@ -1,0 +1,41 @@
+---
+# Challenge130 / NewScenario22 — flag injection.
+# NOT data-driven from config.json (topology-flags.yml never has been, per
+# the build summary) — hardcoded per host here, same style as every other
+# scenario. `hostname` is scenario-prefixed purely to build the correct
+# files/{{hostname}}_{{filename}} lookup path — docker-1/docker-2 are reused
+# host names across scenarios, so files/ needs
+# challenge130-docker-1_secrets.txt etc. to avoid colliding with any other
+# scenario's docker-1/docker-2 flag files. The play's `hosts:` targets the
+# real inventory host regardless of what this var resolves to.
+
+- import_playbook: ../data.yml
+  vars:
+    data_path: "../ad/Challenge130/data"
+  tags: 'data'
+
+- name: "Inject flag into docker-1 (pgadmin)"
+  hosts: docker-1
+  become: true
+  roles:
+    - { role: 'ctf/flags', tags: 'flags' }
+  vars:
+    hostname: "challenge130-{{ lab.hosts[dict_key].hostname }}"
+    container_name: "pgadmin-vuln-cve-2023-5002"
+    flag_files:
+      - filename: "secrets.txt"
+        container_path: "/tmp/secrets.txt"
+        mode: "0644"
+
+- name: "Inject flag into docker-2 (adminer)"
+  hosts: docker-2
+  become: true
+  roles:
+    - { role: 'ctf/flags', tags: 'flags' }
+  vars:
+    hostname: "challenge130-{{ lab.hosts[dict_key].hostname }}"
+    container_name: "adminer-vuln-cve-2021-43008"
+    flag_files:
+      - filename: "flag.bin"
+        container_path: "/var/www/html/flag.bin"
+        mode: "0644"

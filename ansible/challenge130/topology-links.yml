@@ -1,0 +1,105 @@
+---
+# Challenge130 / NewScenario22 — router-to-router link configuration.
+#
+# interface_name for each side is derived the same way topology-routers.yml
+# assigned it: eth{{2 + position of peer in r2r_interfaces.keys()}}. Both
+# playbooks must agree on ordering — they both read the same
+# lab.hosts[<router>].r2r_interfaces dict from config.json, so this holds as
+# long as config.json's key order and the Vagrantfile's :networks order for
+# that router stay in sync (hand-maintained; nothing derives one from the
+# other automatically).
+
+- import_playbook: ../data.yml
+  vars:
+    data_path: "../ad/Challenge130/data"
+  tags: 'data'
+
+- name: "Configure r2r link: router-2 <-> router-4 (10.78.182.0/24)"
+  hosts: router-2:router-4
+  become: true
+  tasks:
+    - include_role:
+        name: network/r2r_link
+      vars:
+        interface_name: >-
+          eth{{ (lab.hosts[dict_key].r2r_interfaces.keys() | list).index(peer_router) + 2 }}
+        local_router: "{{ dict_key }}"
+        local_ip4: "{{ lab.hosts[dict_key].r2r_interfaces[peer_router] }}"
+        peer_router: "{{ 'router-4' if dict_key == 'router-2' else 'router-2' }}"
+        peer_ip4: "{{ lab.hosts[peer_router].r2r_interfaces[dict_key] }}"
+        link_subnet: "10.78.182.0/24"
+
+- name: "Configure r2r link: router-1 <-> router-4 (10.0.47.0/24)"
+  hosts: router-1:router-4
+  become: true
+  tasks:
+    - include_role:
+        name: network/r2r_link
+      vars:
+        interface_name: >-
+          eth{{ (lab.hosts[dict_key].r2r_interfaces.keys() | list).index(peer_router) + 2 }}
+        local_router: "{{ dict_key }}"
+        local_ip4: "{{ lab.hosts[dict_key].r2r_interfaces[peer_router] }}"
+        peer_router: "{{ 'router-4' if dict_key == 'router-1' else 'router-1' }}"
+        peer_ip4: "{{ lab.hosts[peer_router].r2r_interfaces[dict_key] }}"
+        link_subnet: "10.0.47.0/24"
+
+- name: "Configure r2r link: router-1 <-> router-3 (192.168.245.0/24)"
+  hosts: router-1:router-3
+  become: true
+  tasks:
+    - include_role:
+        name: network/r2r_link
+      vars:
+        interface_name: >-
+          eth{{ (lab.hosts[dict_key].r2r_interfaces.keys() | list).index(peer_router) + 2 }}
+        local_router: "{{ dict_key }}"
+        local_ip4: "{{ lab.hosts[dict_key].r2r_interfaces[peer_router] }}"
+        peer_router: "{{ 'router-3' if dict_key == 'router-1' else 'router-1' }}"
+        peer_ip4: "{{ lab.hosts[peer_router].r2r_interfaces[dict_key] }}"
+        link_subnet: "192.168.245.0/24"
+
+- name: "Configure r2r link: router-1 <-> router-5 (10.0.31.0/24)"
+  hosts: router-1:router-5
+  become: true
+  tasks:
+    - include_role:
+        name: network/r2r_link
+      vars:
+        interface_name: >-
+          eth{{ (lab.hosts[dict_key].r2r_interfaces.keys() | list).index(peer_router) + 2 }}
+        local_router: "{{ dict_key }}"
+        local_ip4: "{{ lab.hosts[dict_key].r2r_interfaces[peer_router] }}"
+        peer_router: "{{ 'router-5' if dict_key == 'router-1' else 'router-1' }}"
+        peer_ip4: "{{ lab.hosts[peer_router].r2r_interfaces[dict_key] }}"
+        link_subnet: "10.0.31.0/24"
+
+- name: "Configure r2r link: router-1 <-> router-2 (10.103.31.0/24)"
+  hosts: router-1:router-2
+  become: true
+  tasks:
+    - include_role:
+        name: network/r2r_link
+      vars:
+        interface_name: >-
+          eth{{ (lab.hosts[dict_key].r2r_interfaces.keys() | list).index(peer_router) + 2 }}
+        local_router: "{{ dict_key }}"
+        local_ip4: "{{ lab.hosts[dict_key].r2r_interfaces[peer_router] }}"
+        peer_router: "{{ 'router-2' if dict_key == 'router-1' else 'router-1' }}"
+        peer_ip4: "{{ lab.hosts[peer_router].r2r_interfaces[dict_key] }}"
+        link_subnet: "10.103.31.0/24"
+
+- name: "Configure r2r link: router-3 <-> router-5 (192.168.132.0/24)"
+  hosts: router-3:router-5
+  become: true
+  tasks:
+    - include_role:
+        name: network/r2r_link
+      vars:
+        interface_name: >-
+          eth{{ (lab.hosts[dict_key].r2r_interfaces.keys() | list).index(peer_router) + 2 }}
+        local_router: "{{ dict_key }}"
+        local_ip4: "{{ lab.hosts[dict_key].r2r_interfaces[peer_router] }}"
+        peer_router: "{{ 'router-5' if dict_key == 'router-3' else 'router-3' }}"
+        peer_ip4: "{{ lab.hosts[peer_router].r2r_interfaces[dict_key] }}"
+        link_subnet: "192.168.132.0/24"

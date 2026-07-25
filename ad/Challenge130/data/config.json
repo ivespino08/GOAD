@@ -1,0 +1,178 @@
+{
+  "lab": {
+    "hosts": {
+      "router-1": {
+        "hostname": "router-1",
+        "type": "router",
+        "ip4": "10.0.35.1/24",
+        "lan_subnet": "10.0.35.0/24",
+        "gateway": null,
+        "router": null,
+        "switch": "rsw-1-1",
+        "services": [],
+        "vulns": [],
+        "r2r_interfaces": {
+          "router-4": "10.0.47.1/24",
+          "router-3": "192.168.245.1/24",
+          "router-5": "10.0.31.1/24",
+          "router-2": "10.103.31.1/24"
+        },
+        "r2r_subnets": [
+          "10.0.47.0/24",
+          "192.168.245.0/24",
+          "10.0.31.0/24",
+          "10.103.31.0/24"
+        ],
+        "vxlan_interfaces": []
+      },
+      "router-2": {
+        "hostname": "router-2",
+        "type": "router",
+        "ip4": "10.0.39.1/24",
+        "lan_subnet": "10.0.39.0/24",
+        "gateway": null,
+        "router": null,
+        "switch": "rsw-2-1",
+        "services": [],
+        "vulns": [],
+        "r2r_interfaces": {
+          "router-4": "10.78.182.1/24",
+          "router-1": "10.103.31.2/24"
+        },
+        "r2r_subnets": [
+          "10.78.182.0/24",
+          "10.103.31.0/24"
+        ],
+        "vxlan_interfaces": []
+      },
+      "router-3": {
+        "hostname": "router-3",
+        "type": "router",
+        "ip4": "192.168.204.1/24",
+        "lan_subnet": "192.168.204.0/24",
+        "gateway": null,
+        "router": null,
+        "switch": "rsw-3-1",
+        "services": [],
+        "vulns": [],
+        "r2r_interfaces": {
+          "router-1": "192.168.245.2/24",
+          "router-5": "192.168.132.1/24"
+        },
+        "r2r_subnets": [
+          "192.168.245.0/24",
+          "192.168.132.0/24"
+        ],
+        "vxlan_interfaces": []
+      },
+      "router-4": {
+        "hostname": "router-4",
+        "type": "router",
+        "ip4": "10.131.50.1/24",
+        "lan_subnet": "10.131.50.0/24",
+        "gateway": null,
+        "router": null,
+        "switch": "rsw-4-1",
+        "services": [],
+        "vulns": [],
+        "r2r_interfaces": {
+          "router-2": "10.78.182.2/24",
+          "router-1": "10.0.47.2/24"
+        },
+        "r2r_subnets": [
+          "10.78.182.0/24",
+          "10.0.47.0/24"
+        ],
+        "vxlan_interfaces": []
+      },
+      "router-5": {
+        "hostname": "router-5",
+        "type": "router",
+        "ip4": null,
+        "lan_subnet": null,
+        "gateway": null,
+        "router": null,
+        "switch": null,
+        "services": [],
+        "vulns": [],
+        "r2r_interfaces": {
+          "router-1": "10.0.31.2/24",
+          "router-3": "192.168.132.2/24"
+        },
+        "r2r_subnets": [
+          "10.0.31.0/24",
+          "192.168.132.0/24"
+        ],
+        "vxlan_interfaces": [],
+        "notes": "Transit-only router — no LAN/host attached (matches r2s_grouping_preview, host_ids: [] for router 5 in the source XML)."
+      },
+      "docker-1": {
+        "hostname": "docker-1",
+        "type": "docker",
+        "ip4": "10.0.35.3/24",
+        "lan_subnet": "10.0.35.0/24",
+        "gateway": "10.0.35.1",
+        "router": "router-1",
+        "switch": "rsw-1-1",
+        "services": ["SSH", "HTTP"],
+        "vulns": ["pgadmin/CVE-2023-5002"]
+      },
+      "docker-2": {
+        "hostname": "docker-2",
+        "type": "docker",
+        "ip4": "10.0.39.3/24",
+        "lan_subnet": "10.0.39.0/24",
+        "gateway": "10.0.39.1",
+        "router": "router-2",
+        "switch": "rsw-2-1",
+        "services": ["SSH", "HTTP"],
+        "vulns": ["adminer/CVE-2021-43008"]
+      },
+      "pc-3": {
+        "hostname": "pc-3",
+        "type": "pc",
+        "ip4": "192.168.204.3/24",
+        "lan_subnet": "192.168.204.0/24",
+        "gateway": "192.168.204.1",
+        "router": "router-3",
+        "switch": "rsw-3-1",
+        "services": ["SSH", "HTTP"],
+        "vulns": []
+      },
+      "server-4": {
+        "hostname": "server-4",
+        "type": "server",
+        "ip4": "10.131.50.3/24",
+        "lan_subnet": "10.131.50.0/24",
+        "gateway": "10.131.50.1",
+        "router": "router-4",
+        "switch": "rsw-4-1",
+        "services": ["SSH", "HTTP"],
+        "vulns": []
+      }
+    },
+    "topology": {
+      "seed": 899128307,
+      "r2r_links": [
+        { "router_a": "router-2", "router_b": "router-4", "subnet": "10.78.182.0/24" },
+        { "router_a": "router-1", "router_b": "router-4", "subnet": "10.0.47.0/24" },
+        { "router_a": "router-1", "router_b": "router-3", "subnet": "192.168.245.0/24" },
+        { "router_a": "router-1", "router_b": "router-5", "subnet": "10.0.31.0/24" },
+        { "router_a": "router-1", "router_b": "router-2", "subnet": "10.103.31.0/24" },
+        { "router_a": "router-3", "router_b": "router-5", "subnet": "192.168.132.0/24" }
+      ],
+      "traffic": [
+        {
+          "src": "pc-3",
+          "dst": "server-4",
+          "protocol": "TCP",
+          "dst_port": 5009,
+          "pattern": "continuous",
+          "rate_kbps": 128,
+          "period_s": 10.0,
+          "jitter_pct": 0.0
+        }
+      ]
+    }
+  }
+}

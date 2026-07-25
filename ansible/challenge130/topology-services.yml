@@ -1,0 +1,52 @@
+---
+# Challenge130 / NewScenario22 — plain SSH/HTTP services.
+#
+# docker-1 and docker-2's "HTTP" service is the pgAdmin/Adminer web UI served
+# by their vuln containers (see topology-docker.yml) — nothing to install here
+# for them beyond the SSH daemon the base box already ships with. pc-3 and
+# server-4 have no assigned vulnerabilities and just run vanilla SSH + a
+# default Apache page (non-vuln lateral-movement waypoints / red herrings,
+# per the chain design in Challenge130_vulns.json which only flags docker-1
+# and docker-2).
+
+- import_playbook: ../data.yml
+  vars:
+    data_path: "../ad/Challenge130/data"
+  tags: 'data'
+
+- name: "Ensure SSH is present and running on all lab hosts"
+  hosts: domain
+  become: true
+  tasks:
+    - name: "Update apt cache"
+      ansible.builtin.apt:
+        update_cache: yes
+        cache_valid_time: 3600
+
+    - name: "Install openssh-server"
+      ansible.builtin.package:
+        name: openssh-server
+        state: present
+
+    - name: "Ensure sshd is enabled and running"
+      ansible.builtin.systemd:
+        name: ssh
+        enabled: true
+        state: started
+
+- name: "Install a plain HTTP service on non-vuln hosts"
+  hosts: pc-3:server-4
+  become: true
+  tasks:
+    - name: "Install apache2"
+      ansible.builtin.apt:
+        name: apache2
+        state: present
+        update_cache: yes
+        cache_valid_time: 3600
+
+    - name: "Ensure apache2 is enabled and running"
+      ansible.builtin.systemd:
+        name: apache2
+        enabled: true
+        state: started

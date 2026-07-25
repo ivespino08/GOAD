@@ -1,0 +1,67 @@
+---
+# Challenge130 / NewScenario22 — router interface + LAN switch configuration.
+#
+# eth0 = Vagrant NAT (never touch). eth1 = management (192.168.57.x, set by
+# the base box / Vagrant provisioning already). eth2..eth(n+1) = one interface
+# per r2r peer, in the SAME order as lab.hosts[dict_key].r2r_interfaces keys
+# — this order must match the :networks array in providers/vmware/Vagrantfile
+# for this router exactly, since Vagrant assigns adapters in array order.
+#
+# NOTE: router-1 has 4 r2r peers -> 6 total adapters (NAT+mgmt+4). This is the
+# exact adapter count flagged in the Challenge101 session log as triggering a
+# VMware PCI-bridge slot overflow / vmnet misbinding on the hub router. If
+# router-1 is unreachable via plain ssh after `vagrant up`, see that session's
+# MAC-address-based GUI-bypass fix before assuming the Ansible run is at fault.
+
+- import_playbook: ../data.yml
+  vars:
+    data_path: "../ad/Challenge130/data"
+  tags: 'data'
+
+- name: "Configure router LAN gateway address"
+  hosts: routers
+  become: true
+  tasks:
+    # NOTE / ASSUMPTION: added as a plain secondary IP via `ip addr add` rather
+    # than re-invoking network/interface's nmcli-based task on eth1 a second
+    # time, since nmcli modifying an existing connection profile's ip4 tends
+    # to replace rather than add. This matches the doc's own description of
+    # how Scenario3 does it, but wasn't verified against that role's actual
+    # source in this session — flag for review before first real run.
+    - name: "Add this router's LAN gateway IP as a secondary address on eth1"
+      ansible.builtin.command: "ip addr add {{ lab.hosts[dict_key].ip4 }} dev eth1"
+      register: lan_ip_add
+      failed_when: lan_ip_add.rc != 0 and 'File exists' not in lan_ip_add.stderr
+      changed_when: lan_ip_add.rc == 0
+      when: lab.hosts[dict_key].ip4 is not none
+
+- name: "Configure router r2r interfaces"
+  hosts: routers
+  become: true
+  tasks:
+    - name: "Configure r2r interface for each peer"
+      include_role:
+        name: network/interface
+      vars:
+        interface_name: "eth{{ idx + 2 }}"
+        interface_ip4: "{{ item.value }}"
+        # never_default4 handled inside the role when gateway_ip4 is omitted
+      loop: "{{ lab.hosts[dict_key].r2r_interfaces | dict2items }}"
+      loop_control:
+        index_var: idx
+        label: "{{ item.key }} -> eth{{ idx + 2 }}"
+
+- name: "Configure router LAN-side switch membership"
+  hosts: routers
+  become: true
+  tasks:
+    - name: "Set up LAN switch/bridge for this router's segment"
+      include_role:
+        name: network/switch_membership
+      vars:
+        switch_name: "{{ lab.hosts[dict_key].switch }}"
+        hosts_in_segment: >-
+          {{ lab.hosts | dict2items
+             | selectattr('value.router', 'equalto', dict_key)
+             | map(attribute='key') | list }}
+      when: lab.hosts[dict_key].switch is not none

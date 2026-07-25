@@ -12,17 +12,33 @@
       - python3-netaddr
     state: present
 
-- name: "Configure interface {{interface_name}} with {{interface_ip4}}"
+- name: "Configure interface {{interface_name}} with {{interface_ip4}} (no gateway)"
   ansible.builtin.nmcli:
     conn_name: "{{interface_name}}"
     ifname: "{{interface_name}}"
     type: ethernet
     ip4: "{{interface_ip4}}"
-    gw4: "{{gateway_ip4 | default(omit)}}"
-    never_default4: "{{true if gateway_ip4 is not defined else false}}"
+    never_default4: true
     autoconnect: yes
     state: present
-  register: interface_result
+  register: interface_result_no_gw
+  when: gateway_ip4 is not defined
+
+- name: "Configure interface {{interface_name}} with {{interface_ip4}} (with gateway {{gateway_ip4 | default('')}})"
+  ansible.builtin.nmcli:
+    conn_name: "{{interface_name}}"
+    ifname: "{{interface_name}}"
+    type: ethernet
+    ip4: "{{interface_ip4}}"
+    gw4: "{{gateway_ip4}}"
+    autoconnect: yes
+    state: present
+  register: interface_result_with_gw
+  when: gateway_ip4 is defined
+
+- name: "Combine interface configuration result"
+  ansible.builtin.set_fact:
+    interface_result: "{{ interface_result_with_gw if gateway_ip4 is defined else interface_result_no_gw }}"
 
 - name: "Bring up {{interface_name}}"
   ansible.builtin.command:

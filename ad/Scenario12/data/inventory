@@ -25,6 +25,6 @@ domain
 [extensions]
 
 [all:vars]
-ansible_user=ubuntu
+ansible_user=vagrant
 ansible_connection=ssh
 domain_name=Scenario12

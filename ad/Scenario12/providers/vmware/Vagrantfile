@@ -1,31 +1,21 @@
-# Scenario12 -- flat 10-host Docker LAN, no routers.
-# Unlike Challenge200/Challenge5, no host here needs a :networks entry: there's no
-# r2r mesh, and per the existing topology-hosts.yml convention, each host's LAN IP
-# (172.23.255.x here) is added as a *secondary* address on the same eth1 that
-# carries the management IP below -- not a dedicated adapter. That means this
-# scenario needs zero extra vmnets beyond the one shared management network every
-# GOAD scenario already uses, unlike Challenge200/5's 6 extra r2r vmnets each.
+# Scenario12 -- single-host Docker "LAN" (trimmed from 10 hosts to the one
+# that actually carries a vuln), no routers.
+# Per the existing topology-hosts.yml convention, the host's LAN IP
+# (172.23.255.x) is added as a *secondary* address on the same eth1 that
+# carries the management IP below -- not a dedicated adapter. That means
+# this scenario needs zero extra vmnets beyond the one shared management
+# network every GOAD scenario already uses.
+#
+# TRIMMED (this session): docker-1 through docker-5 and docker-7 through
+# docker-10 removed -- they carried no vulns and weren't referenced by any
+# r2r_link/traffic entry (config.json's lists were already empty), so
+# removal here is just deleting their box entries. docker-6 kept its
+# original IP (192.168.57.16) rather than being renumbered to .11, since
+# renumbering buys nothing here and only risks a stray typo somewhere else
+# still referencing .16.
 
 boxes = [
-  { :name => "docker-1", :ip => "192.168.57.11", :box => "generic/ubuntu2204",
-    :box_version => "4.3.12", :os => "linux", :cpus => 1, :mem => 2048 },
-  { :name => "docker-2", :ip => "192.168.57.12", :box => "generic/ubuntu2204",
-    :box_version => "4.3.12", :os => "linux", :cpus => 1, :mem => 2048 },
-  { :name => "docker-3", :ip => "192.168.57.13", :box => "generic/ubuntu2204",
-    :box_version => "4.3.12", :os => "linux", :cpus => 1, :mem => 2048 },
-  { :name => "docker-4", :ip => "192.168.57.14", :box => "generic/ubuntu2204",
-    :box_version => "4.3.12", :os => "linux", :cpus => 1, :mem => 2048 },
-  { :name => "docker-5", :ip => "192.168.57.15", :box => "generic/ubuntu2204",
-    :box_version => "4.3.12", :os => "linux", :cpus => 1, :mem => 2048 },
   { :name => "docker-6", :ip => "192.168.57.16", :box => "generic/ubuntu2204",
-    :box_version => "4.3.12", :os => "linux", :cpus => 1, :mem => 2048 },
-  { :name => "docker-7", :ip => "192.168.57.17", :box => "generic/ubuntu2204",
-    :box_version => "4.3.12", :os => "linux", :cpus => 1, :mem => 2048 },
-  { :name => "docker-8", :ip => "192.168.57.18", :box => "generic/ubuntu2204",
-    :box_version => "4.3.12", :os => "linux", :cpus => 1, :mem => 2048 },
-  { :name => "docker-9", :ip => "192.168.57.19", :box => "generic/ubuntu2204",
-    :box_version => "4.3.12", :os => "linux", :cpus => 1, :mem => 2048 },
-  { :name => "docker-10", :ip => "192.168.57.20", :box => "generic/ubuntu2204",
     :box_version => "4.3.12", :os => "linux", :cpus => 1, :mem => 2048 },
 ]
 

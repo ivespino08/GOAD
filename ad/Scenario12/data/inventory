@@ -1,34 +1,23 @@
+; ad/Scenario12/data/inventory
+; Provider-agnostic. Defines host groups and SSH defaults. No IPs, no dict_key —
+; those come from the provider inventory (providers/vmware/inventory), which is
+; passed alongside this file via a second -i flag.
+;
+; RECONSTRUCTED this session, mirroring Scenario3's data/inventory pattern:
+; that file is provider-agnostic (groups + SSH defaults only), while
+; providers/vmware/inventory and inventory_disable_vagrant carry IPs/dict_key.
+; This scenario is flat -- no routers, no PCs -- so [routers]/[pcs]/[hitl_router]/
+; [dhcp_clients] from Scenario3's version don't apply here and are omitted
+; rather than left as empty groups.
+;
+; Content below matches config.json's single remaining host (docker-6) after
+; the trim from 10 hosts down to 1.
+
 [domain]
-docker-1
-docker-2
-docker-3
-docker-4
-docker-5
 docker-6
-docker-7
-docker-8
-docker-9
-docker-10
-
-[routers]
-
-[pcs]
 
 [docker_nodes]
-docker-1
-docker-2
-docker-3
-docker-4
-docker-5
 docker-6
-docker-7
-docker-8
-docker-9
-docker-10
-
-[hitl_router]
-
-[dhcp_clients]
 
 [linux_domain:children]
 domain
@@ -36,6 +25,6 @@ domain
 [extensions]
 
 [all:vars]
-ansible_user=vagrant
+ansible_user=ubuntu
 ansible_connection=ssh
 domain_name=Scenario12

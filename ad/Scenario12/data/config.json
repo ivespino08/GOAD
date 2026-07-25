@@ -1,11 +1,6 @@
 {
   "lab": {
     "hosts": {
-      "docker-1": {"hostname": "docker-1", "type": "docker", "ip4": "172.23.255.3/24", "lan_subnet": "172.23.255.0/24", "switch": "sw-11", "services": ["SSH"], "vulns": []},
-      "docker-2": {"hostname": "docker-2", "type": "docker", "ip4": "172.23.255.4/24", "lan_subnet": "172.23.255.0/24", "switch": "sw-11", "services": ["SSH"], "vulns": []},
-      "docker-3": {"hostname": "docker-3", "type": "docker", "ip4": "172.23.255.5/24", "lan_subnet": "172.23.255.0/24", "switch": "sw-11", "services": ["SSH"], "vulns": []},
-      "docker-4": {"hostname": "docker-4", "type": "docker", "ip4": "172.23.255.6/24", "lan_subnet": "172.23.255.0/24", "switch": "sw-11", "services": ["SSH"], "vulns": []},
-      "docker-5": {"hostname": "docker-5", "type": "docker", "ip4": "172.23.255.7/24", "lan_subnet": "172.23.255.0/24", "switch": "sw-11", "services": ["SSH"], "vulns": []},
       "docker-6": {
         "hostname": "docker-6",
         "type": "docker",
@@ -18,30 +13,18 @@
         "vuln_deploy_dir": "httpd-cve-2021-40438",
         "_vuln_deploy_note": "Real files provided (Dockerfile + docker-compose.yml). Three containers now: 'apache' (build: ., the vulnerable mod_proxy/AJP front door, port 8080->80), 'tomcat' (vulhub/tomcat:8.5.19, its originally-intended proxy backend, no exposed port), and 'flag-vault' (new -- a minimal internal-only static file server, no exposed port at all, not referenced anywhere in apache's vhost config).",
         "_flag_note": "The flag was originally on docker-10, delivered by an unrelated standalone service with no connection to this vuln. Moved here per design decision: the flag (same value, FLAG{eab5e71d80bdc38bdddd}, same deploy.env/API-key content as before) now lives on 'flag-vault', which has no host port mapping and isn't in apache's ProxyPass config -- it's only reachable from inside docker-6's own compose network. Retrieving it requires using the CVE-2021-40438 SSRF to make apache proxy to flag-vault:8000/deploy.env instead of its configured tomcat:8009 target. I built the vulnerable environment and the internal target; I did not write or include the actual SSRF payload/request needed to trigger the redirect -- that's the intended challenge for whoever plays this."
-      },
-      "docker-7": {"hostname": "docker-7", "type": "docker", "ip4": "172.23.255.9/24", "lan_subnet": "172.23.255.0/24", "switch": "sw-11", "services": ["SSH"], "vulns": []},
-      "docker-8": {"hostname": "docker-8", "type": "docker", "ip4": "172.23.255.10/24", "lan_subnet": "172.23.255.0/24", "switch": "sw-11", "services": ["SSH"], "vulns": []},
-      "docker-9": {"hostname": "docker-9", "type": "docker", "ip4": "172.23.255.11/24", "lan_subnet": "172.23.255.0/24", "switch": "sw-11", "services": ["SSH"], "vulns": []},
-      "docker-10": {
-        "hostname": "docker-10",
-        "type": "docker",
-        "ip4": "172.23.255.12/24",
-        "lan_subnet": "172.23.255.0/24",
-        "switch": "sw-11",
-        "services": ["SSH"],
-        "vulns": [],
-        "_note": "No longer a flag node as of this redesign -- the flag moved to docker-6's internal flag-vault service, gated behind CVE-2021-40438 instead of being an unrelated standalone service. docker-10 is back to being a plain, unremarkable filler host, matching what the raw topology data (vulnerabilities_by_node) always said about it anyway -- it only carried a flag before because of the XML's separate FlagSequencing metadata, which this redesign intentionally overrides. The now-unused git-deploy-key-repo service files are left in place under docker/vuln_node/files/ rather than deleted, in case you want to reuse that pattern elsewhere."
       }
     },
     "topology": {
       "seed": null,
       "r2r_links": [],
       "traffic": [],
-      "_topology_note": "No routers, no r2r links, no routing plan, no traffic flows in this scenario's XML (routers: [], routing_plan: {}, r2r_subnets: [], Traffic section explicit_count=0/weight_sum=0). All 10 docker hosts sit on one flat switch (sw-11, 172.23.255.0/24) with no router in between -- topology-routers.yml/topology-links.yml/topology-routing.yml/topology-traffic.yml are all omitted from playbooks.yml for this scenario rather than included as no-ops."
+      "_topology_note": "No routers, no r2r links, no routing plan, no traffic flows in this scenario's XML. The one remaining host sits on flat switch sw-11 (172.23.255.0/24) with no router -- topology-routers.yml/topology-links.yml/topology-routing.yml/topology-traffic.yml are all omitted from playbooks.yml for this scenario rather than included as no-ops.",
+      "_trim_note": "docker-1 through docker-5 and docker-7 through docker-10 removed per delivery request. None of them carried a vuln, and r2r_links/traffic were already empty lists with no references to any host by name, so this was a clean removal -- nothing else in config.json needed reconciling."
     },
     "hitl": {
       "enabled": false,
-      "_note": "XML has HardwareInLoop enabled=true, attachment='existing_router' on ens19 (10.0.0.21/24) -- but this topology has zero routers, so there's nothing for it to attach to. Per your decision, HITL is skipped entirely for this scenario (treated as disabled) rather than adding a router just to host it. topology-hitl.yml omitted from playbooks.yml."
+      "_note": "XML has HardwareInLoop enabled=true, attachment='existing_router' on ens19 (10.0.0.21/24) -- but this topology has zero routers, so there's nothing for it to attach to. HITL is skipped entirely for this scenario (treated as disabled) rather than adding a router just to host it. topology-hitl.yml omitted from playbooks.yml."
     }
   }
 }

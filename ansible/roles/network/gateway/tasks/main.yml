@@ -12,7 +12,19 @@
       - python3-netaddr
     state: present
 
-- name: "Set default gateway to {{gateway_ip4}} on {{interface_name}}"
+# NEW: check whether NetworkManager actually manages this device before
+# touching it with nmcli. generic/ubuntu2204 ships netplan with
+# renderer: networkd, and Vagrant's own VMware provider statically
+# assigns eth1+ via netplan at boot — so NetworkManager correctly marks
+# those devices unmanaged, and any `nmcli connection up`/modify on them
+# fails with "device ... strictly unmanaged" regardless of interface or
+# host. Same root cause already fixed on network/r2r_link; ported here.
+- name: "Check if {{ interface_name }} is NetworkManager-managed"
+  ansible.builtin.shell: "nmcli -t -f DEVICE,STATE device status | grep '^{{ interface_name }}:' | cut -d: -f2"
+  register: nm_state
+  changed_when: false
+
+- name: "Set default gateway to {{gateway_ip4}} on {{interface_name}} (NetworkManager-managed only)"
   ansible.builtin.nmcli:
     conn_name: "{{interface_name}}"
     ifname: "{{interface_name}}"
@@ -22,12 +34,18 @@
     autoconnect: yes
     state: present
   register: gateway_result
+  when: nm_state.stdout != 'unmanaged'
 
-- name: "Bring up {{interface_name}} after gateway change"
+- name: "Bring up {{interface_name}} after gateway change (NetworkManager-managed only)"
   ansible.builtin.command:
     cmd: nmcli connection up "{{interface_name}}"
-  when: gateway_result.changed
+  when:
+    - nm_state.stdout != 'unmanaged'
+    - gateway_result.changed
 
+# Unchanged below — these are raw ip/kernel operations and don't depend on
+# which tool manages the interface, so they're the real source of truth
+# (and the only path taken at all when the device is netplan-managed).
 - name: "Confirm default route via {{gateway_ip4}}"
   ansible.builtin.command:
     cmd: ip route show default

@@ -1,0 +1,25 @@
+- import_playbook: ../data.yml
+  vars:
+    data_path: "../ad/Challenge78/data"
+  tags: 'data'
+
+# Runs LAST in playbooks.yml, after every apt-based install in the whole
+# scenario (topology-services.yml's HTTP install, topology-docker.yml's
+# Docker engine + vuln containers). Repointing a host's default route at
+# its LAN gateway takes priority over the NAT default route on eth0 (no
+# explicit metric on a manually-added route beats the DHCP-assigned NAT
+# default), which kills internet reachability for anything that still
+# needs apt afterward — so nothing that needs apt can run after this file.
+- name: "Set default gateway on non-router hosts (last network change of the run)"
+  hosts: docker_nodes:pcs:servers
+  become: true
+  tags: 'gateway'
+  tasks:
+    - name: "Configure network/gateway"
+      include_role:
+        name: network/gateway
+      vars:
+        interface_name: "eth1"
+        interface_ip4: "{{ lab.hosts[dict_key].ip4 }}"
+        gateway_ip4: "{{ lab.hosts[dict_key].gateway }}"
+      when: lab.hosts[dict_key].gateway is defined

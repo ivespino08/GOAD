@@ -3,19 +3,16 @@
     data_path: "../ad/Challenge78/data"
   tags: 'data'
 
-- name: "Set default gateway on non-router hosts"
-  hosts: docker_nodes:pcs:servers
-  become: true
-  tags: 'services'
-  tasks:
-    - name: "Configure network/gateway"
-      include_role:
-        name: network/gateway
-      vars:
-        interface_name: "eth1"
-        interface_ip4: "{{ lab.hosts[dict_key].ip4 }}"
-        gateway_ip4: "{{ lab.hosts[dict_key].gateway }}"
-      when: lab.hosts[dict_key].gateway is defined
+# NOTE: the default-gateway play that used to live here has moved to
+# topology-gateway.yml, run LAST in playbooks.yml (after topology-docker.yml
+# and topology-traffic.yml). Setting each host's default route to its LAN
+# gateway takes priority over the NAT default route on eth0 (a manually
+# added route with no explicit metric wins over the DHCP-assigned NAT
+# default), which silently killed internet reachability for every apt-based
+# install that ran after it — including this file's own HTTP-service
+# install and topology-docker.yml's Docker engine install. Every apt-based
+# task in the whole scenario must run before any host's default route is
+# repointed at its LAN gateway.
 
 - name: "Install HTTP service on hosts advertising it"
   hosts: docker_nodes:pcs:servers

@@ -132,6 +132,7 @@ Challenge78:
   - challenge78/topology-docker.yml
   - challenge78/topology-flags.yml
   - challenge78/topology-traffic.yml
+  - challenge78/topology-gateway.yml
   - reboot.yml
 
 Challenge101:

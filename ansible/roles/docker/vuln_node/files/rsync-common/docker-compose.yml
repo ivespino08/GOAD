@@ -5,6 +5,7 @@ services:
     image: vulhub/rsync:3.1.2
     container_name: rsync-vuln-common
     restart: always
+    command: ["rsync", "--daemon", "--no-detach", "--config=/etc/rsyncd.conf"]
     volumes:
       - ./rsyncd.conf:/etc/rsyncd.conf
     ports:

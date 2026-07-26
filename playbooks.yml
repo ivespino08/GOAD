@@ -123,6 +123,18 @@ Challenge6:
   - challenge6/topology-flags.yml
   - challenge6/topology-traffic.yml
 
+Challenge70:
+  - challenge70/topology-routers.yml
+  - challenge70/topology-links.yml
+  - challenge70/topology-hosts.yml
+  - challenge70/topology-routing.yml
+  - challenge70/topology-services.yml
+  - challenge70/topology-docker.yml
+  - challenge70/topology-flags.yml
+  - challenge70/topology-traffic.yml
+  - challenge70/topology-gateway.yml
+  - reboot.yml
+
 Challenge78:
   - challenge78/topology-routers.yml
   - challenge78/topology-links.yml

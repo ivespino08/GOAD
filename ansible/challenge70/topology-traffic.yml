@@ -1,0 +1,59 @@
+---
+- import_playbook: ../data.yml
+  vars:
+    data_path: "../ad/Challenge70/data"
+  tags: 'data'
+
+- name: "Deploy traffic sender on server-4"
+  hosts: server-4
+  become: true
+  vars:
+    flow: "{{lab.topology.traffic[0]}}"
+  tasks:
+    - name: "Ensure /opt/traffic exists"
+      ansible.builtin.file:
+        path: /opt/traffic
+        state: directory
+        mode: "0755"
+    - name: "Deploy sender script"
+      include_role:
+        name: 'network/traffic/sender'
+      vars:
+        src_ip4: "{{lab.hosts['server-4'].ip4 | ansible.utils.ipaddr('address')}}"
+        dst_ip4: "{{lab.hosts['pc-3'].ip4 | ansible.utils.ipaddr('address')}}"
+        protocol: "{{flow.protocol}}"
+        rate_kbps: "{{flow.rate_kbps}}"
+        pattern: "{{flow.pattern}}"
+        script_dest: "/opt/traffic/traffic_sender.py"
+  tags: 'traffic'
+
+- name: "Deploy traffic receiver on pc-3"
+  hosts: pc-3
+  become: true
+  vars:
+    flow: "{{lab.topology.traffic[0]}}"
+  tasks:
+    - name: "Ensure /opt/traffic exists"
+      ansible.builtin.file:
+        path: /opt/traffic
+        state: directory
+        mode: "0755"
+    - name: "Deploy receiver script"
+      include_role:
+        name: 'network/traffic/receiver'
+      vars:
+        bind_ip4: "{{lab.hosts['pc-3'].ip4 | ansible.utils.ipaddr('address')}}"
+        protocol: "{{flow.protocol}}"
+        rate_kbps: "{{flow.rate_kbps}}"
+        pattern: "{{flow.pattern}}"
+        script_dest: "/opt/traffic/traffic_receiver.py"
+  tags: 'traffic'
+
+- name: "Start deployed traffic scripts"
+  hosts: server-4:pc-3
+  become: true
+  roles:
+    - role: 'network/traffic/start'
+      vars:
+        traffic_script_dir: "/opt/traffic"
+  tags: 'traffic'

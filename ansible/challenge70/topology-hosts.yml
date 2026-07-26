@@ -1,0 +1,26 @@
+---
+- import_playbook: ../data.yml
+  vars:
+    data_path: "../ad/Challenge70/data"
+  tags: 'data'
+
+# Per the Challenge78 finding: non-router host LAN addresses must be added as
+# a SECONDARY address on eth1 via `ip addr add`, matching the router
+# convention exactly. Using `network/interface` (nmcli) here instead silently
+# fails to make the LAN subnet the *active* one over Vagrant's own eth1
+# management binding, breaking every later default-route task with
+# "Nexthop has invalid gateway". persist_boot_commands makes this survive
+# reboot.yml.
+- name: "Configure docker/pc/server LAN address (secondary on eth1)"
+  hosts: docker_nodes:pcs:servers
+  become: true
+  vars:
+    dict_key: "{{inventory_hostname}}"
+  roles:
+    - role: 'network/persist_boot_commands'
+      vars:
+        persist_unit_name: "lab-ip-eth1"
+        persist_description: "Persist lab IP on eth1 across reboots"
+        persist_commands:
+          - "ip addr add {{lab.hosts[dict_key].ip4}} dev eth1 || true"
+  tags: 'hosts'

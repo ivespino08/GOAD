@@ -1,0 +1,32 @@
+---
+- import_playbook: ../data.yml
+  vars:
+    data_path: "../ad/Challenge70/data"
+  tags: 'data'
+
+# interface_name for each r2r link is derived from this router's own position
+# in lab.hosts[dict_key].r2r_interfaces (an ordered dict) — eth2 is the first
+# key, eth3 the second, etc. This MUST stay in the same order as the
+# Vagrantfile's :networks array for the same router, since both are
+# hand-maintained independently and nothing derives one from the other.
+- name: "Configure r2r links on every router"
+  hosts: routers
+  become: true
+  vars:
+    dict_key: "{{inventory_hostname}}"
+  tasks:
+    - name: "Configure r2r link to {{item.key}}"
+      include_role:
+        name: 'network/r2r_link'
+      vars:
+        interface_name: "eth{{ idx + 2 }}"
+        local_router: "{{inventory_hostname}}"
+        local_ip4: "{{item.value}}"
+        peer_router: "{{item.key}}"
+        peer_ip4: "{{lab.hosts[item.key].r2r_interfaces[inventory_hostname]}}"
+        link_subnet: "{{item.value | ansible.utils.ipaddr('network/prefix')}}"
+      loop: "{{ lab.hosts[dict_key].r2r_interfaces | dict2items }}"
+      loop_control:
+        index_var: idx
+        label: "{{item.key}}"
+  tags: 'links'

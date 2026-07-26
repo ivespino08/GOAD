@@ -1,0 +1,33 @@
+---
+- import_playbook: ../data.yml
+  vars:
+    data_path: "../ad/Challenge70/data"
+  tags: 'data'
+
+# docker-1: php/CVE-2019-11043 (PHP-FPM env_path_info underflow -> RCE via
+# nginx). Vulhub's compose bind-mounts ./www and ./default.conf, so this
+# needs the directory-mode deploy (vuln_deploy_dir), not a single compose
+# file, per the docker/vuln_node directory-mode support added for Challenge5.
+- name: "Deploy vuln container on docker-1"
+  hosts: docker-1
+  become: true
+  roles:
+    - role: 'docker/vuln_node'
+      vars:
+        hostname: "docker-1"
+        vuln_name: "php/CVE-2019-11043"
+        vuln_deploy_dir: "php-cve-2019-11043"
+  tags: 'docker'
+
+# docker-2: struts2/s2-053 (Freemarker double-parse -> OGNL injection via
+# Content-Type header). Single-file compose, no support files needed.
+- name: "Deploy vuln container on docker-2"
+  hosts: docker-2
+  become: true
+  roles:
+    - role: 'docker/vuln_node'
+      vars:
+        hostname: "docker-2"
+        vuln_name: "struts2/s2-053"
+        vuln_compose_src: "struts2-s2-053-docker-compose.yml"
+  tags: 'docker'

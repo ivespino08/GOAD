@@ -1,0 +1,38 @@
+---
+- import_playbook: ../data.yml
+  vars:
+    data_path: "../ad/Challenge70/data"
+  tags: 'data'
+
+# docker-1: textfile flag + the SSH creds needed to pivot to docker-2,
+# dropped into the shared nginx/php webroot so it's reachable via the
+# PHP-FPM RCE (e.g. `curl http://<docker-1>:8080/secrets.txt` once the
+# attacker has a shell, or directly if left world-readable — designer's
+# call which path the solver is meant to use).
+- name: "Inject flag into docker-1"
+  hosts: docker-1
+  become: true
+  roles:
+    - { role: 'ctf/flags', tags: 'flags' }
+  vars:
+    hostname: "challenge70-docker-1"
+    container_name: "challenge70-docker-1-php"
+    flag_files:
+      - filename: "secrets.txt"
+        container_path: "/var/www/html/secrets.txt"
+        mode: "0644"
+
+# docker-2: binary-embedded-text flag, recoverable via `strings` once the
+# solver has command execution through the s2-053 OGNL injection.
+- name: "Inject flag into docker-2"
+  hosts: docker-2
+  become: true
+  roles:
+    - { role: 'ctf/flags', tags: 'flags' }
+  vars:
+    hostname: "challenge70-docker-2"
+    container_name: "challenge70-docker-2-struts2"
+    flag_files:
+      - filename: "secrets.bin"
+        container_path: "/tmp/secrets.bin"
+        mode: "0644"

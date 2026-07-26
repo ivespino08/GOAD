@@ -1,0 +1,26 @@
+---
+- import_playbook: ../data.yml
+  vars:
+    data_path: "../ad/Challenge70/data"
+  tags: 'data'
+
+# routing_protocol is RIP per Challenge70_meta.json / the XML's Routing
+# section. rip_networks covers this router's own LAN subnet plus every r2r
+# subnet it participates in (read directly from r2r_subnets, per the
+# existing convention, to avoid complex Jinja2 filtering over r2r_links).
+# eth0 (NAT) and eth1 (management + LAN secondary) are passive so RIP only
+# runs on the dedicated r2r adapters (eth2+).
+- name: "Configure RIP on every router"
+  hosts: routers
+  become: true
+  vars:
+    dict_key: "{{inventory_hostname}}"
+  roles:
+    - role: 'network/rip'
+      vars:
+        routing_protocol: "RIP"
+        rip_networks: >-
+          {{ ([lab.hosts[dict_key].lan_subnet] if lab.hosts[dict_key].lan_subnet is not none else [])
+             + lab.hosts[dict_key].r2r_subnets }}
+        rip_passive_interfaces: ["eth0", "eth1"]
+  tags: 'routing'

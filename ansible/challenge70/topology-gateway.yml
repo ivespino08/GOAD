@@ -1,0 +1,26 @@
+---
+- import_playbook: ../data.yml
+  vars:
+    data_path: "../ad/Challenge70/data"
+  tags: 'data'
+
+# Deliberately placed last in playbooks.yml (after topology-docker.yml and
+# topology-traffic.yml, immediately before reboot.yml). Nothing in this
+# scenario's playbook sequence needs `apt` after this file runs.
+#
+# `network/gateway` uses the NetworkManager managed-state guard (added for
+# Challenge78) before touching `nmcli`, since generic/ubuntu2204's netplan
+# already owns eth1 and `nmcli connection up` fails on an unmanaged device.
+- name: "Set default gateway on every docker/pc/server host"
+  hosts: docker_nodes:pcs:servers
+  become: true
+  vars:
+    dict_key: "{{inventory_hostname}}"
+  roles:
+    - role: 'network/gateway'
+      vars:
+        interface_name: "eth1"
+        interface_ip4: "{{lab.hosts[dict_key].ip4}}"
+        gateway_ip4: "{{lab.hosts[dict_key].gateway}}"
+  when: lab.hosts[dict_key].gateway is defined and lab.hosts[dict_key].gateway is not none
+  tags: 'gateway'

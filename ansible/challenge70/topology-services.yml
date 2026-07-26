@@ -1,0 +1,49 @@
+---
+- import_playbook: ../data.yml
+  vars:
+    data_path: "../ad/Challenge70/data"
+  tags: 'data'
+
+# NOTE: default-gateway configuration is deliberately NOT in this file.
+# Per the Challenge78 finding, setting a host's default route to its LAN
+# gateway (which has no path to the internet) must be the LAST network
+# change made to that host in the whole scenario run, or every later
+# apt-based install (including the ones below) loses its route out and
+# fails with "Failed to update apt cache: unknown reason". See
+# topology-gateway.yml, which runs after topology-docker.yml and
+# topology-traffic.yml, immediately before reboot.yml.
+
+- name: "Install SSH service on every host"
+  hosts: domain
+  become: true
+  tasks:
+    - name: "Update apt cache before installing openssh-server"
+      ansible.builtin.apt:
+        update_cache: yes
+        cache_valid_time: 3600
+    - name: "Install openssh-server"
+      ansible.builtin.package:
+        name: openssh-server
+        state: present
+      when: "'SSH' in (lab.hosts[inventory_hostname].services | default([]))"
+  tags: 'services'
+
+# HTTP is skipped on docker_nodes here — docker-1/docker-2 already serve
+# HTTP through their own vulnerable containers (nginx+php-fpm on 8080,
+# struts2 on 8080) deployed by topology-docker.yml. Installing apache2
+# alongside them would just be a second, irrelevant HTTP service on port 80
+# with no bearing on the challenge, so it's skipped for that host type.
+- name: "Install HTTP service on non-docker hosts"
+  hosts: pcs:servers
+  become: true
+  tasks:
+    - name: "Update apt cache before installing apache2"
+      ansible.builtin.apt:
+        update_cache: yes
+        cache_valid_time: 3600
+    - name: "Install apache2"
+      ansible.builtin.package:
+        name: apache2
+        state: present
+      when: "'HTTP' in (lab.hosts[inventory_hostname].services | default([]))"
+  tags: 'services'

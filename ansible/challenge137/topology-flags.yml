@@ -11,15 +11,19 @@
 #   docker-1 (elFinder, CVE-2021-32682) -> secrets.txt
 #     Real solve path: ZIP-argument command injection via the minimal
 #     PHP connector (no auth required) gives arbitrary command exec as
-#     the container's web user (www-data). secrets.txt is placed in the
-#     elFinder connector's default storage root, discoverable/readable
-#     via the RCE with no additional privilege needed.
-#     ASSUMPTION FLAGGED: container_path below assumes the vulhub
-#     elfinder:2.1.58 image's default docroot/connector storage path is
-#     /var/www/html/files — verify this against the actual running
-#     container (docker exec elfinder-vuln-cve-2021-32682 find / -iname
-#     "connector*.php") before relying on it, since this wasn't
-#     independently confirmed against the image's actual filesystem.
+#     the container's web user (www-data). secrets.txt is placed at
+#     /tmp/secrets.txt — reachable via the RCE, no additional privilege
+#     needed.
+#     CORRECTED THIS SESSION: originally placed at
+#     /var/www/html/files/secrets.txt (elFinder's own storage root),
+#     which turned out to be a live bug, not just an unverified
+#     assumption — that path is directly web-servable (confirmed: the
+#     connector serves files straight out of that directory), so an
+#     automated CTF solver retrieved the flag with a plain
+#     `curl http://<docker-1-ip>:8080/files/secrets.txt`, without ever
+#     touching the RCE. Moved outside the docroot entirely so reaching
+#     it actually requires command execution via the vuln, not just an
+#     HTTP GET.
 #
 #   docker-2 (rsync, common) -> flag.bin
 #     Real solve path: rsync/common's rsyncd.conf has no auth and
@@ -52,7 +56,7 @@
     container_name: "elfinder-vuln-cve-2021-32682"
     flag_files:
       - filename: "secrets.txt"
-        container_path: "/var/www/html/files/secrets.txt"
+        container_path: "/tmp/secrets.txt"
         mode: "0644"
 
 - name: "Inject flag into docker-2 (rsync)"

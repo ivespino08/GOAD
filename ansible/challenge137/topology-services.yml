@@ -1,0 +1,26 @@
+---
+# ansible/challenge137/topology-services.yml
+#
+# "services" in this scenario's config.json/services_preview (SSH/HTTP
+# counts per host) is scenario-planner bookkeeping only, same as in
+# Challenge101/Scenario3 — not implemented here. The actual
+# attacker-facing services are the vulnerable elFinder/rsync containers
+# themselves, deployed by topology-docker.yml. If you want SSH/HTTP
+# stood up as real decoy/pivot services on pc-3/server-4, let me know
+# and I'll add a role for that.
+#
+# NOTE — gateway route is NOT set in this file, unlike Challenge101's
+# topology-services.yml. Per the lesson from your Challenge78 session:
+# "ip route replace default via <lan_gateway> dev eth1" (no explicit
+# metric) beats the NAT route's DHCP-assigned metric and kills apt for
+# every later install on that host — and this scenario's docker_nodes
+# both still have pending apt-based Docker engine installs at the point
+# this file would otherwise run. See topology-gateway.yml, which now
+# owns this and is scheduled to run LAST in playbooks.yml, after
+# topology-docker.yml and topology-traffic.yml, immediately before
+# reboot.yml.
+
+- import_playbook: ../data.yml
+  vars:
+    data_path: "../ad/Challenge137/data"
+  tags: 'data'

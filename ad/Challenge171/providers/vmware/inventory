@@ -1,0 +1,13 @@
+[domain]
+router-1 ansible_host={{ip_range}}.11
+router-2 ansible_host={{ip_range}}.12
+router-3 ansible_host={{ip_range}}.13
+router-4 ansible_host={{ip_range}}.14
+router-5 ansible_host={{ip_range}}.15
+pc-3 ansible_host={{ip_range}}.18
+server-4 ansible_host={{ip_range}}.19
+docker-1 ansible_host={{ip_range}}.16
+docker-2 ansible_host={{ip_range}}.17
+
+[all:vars]
+ansible_ssh_private_key_file=~/.vagrant.d/insecure_private_key

@@ -1,0 +1,42 @@
+---
+# topology-flags.yml is not data-driven (same as every other scenario in
+# this repo -- see Challenge6/Challenge78's own topology-flags.yml). Each
+# play is hardcoded per host. Flag files are named
+# challenge171-{{hostname}}_secrets.txt in roles/ctf/flags/files/ to avoid
+# colliding with other scenarios that also use docker-1/docker-2 as host
+# names with a secrets.txt flag file.
+#
+# Flag values match Challenge171_solution.json's resolved outputs exactly:
+#   docker-1 (textfile_username_password) -> FLAG{f41b0a3d11bfa998bcb8f5d8}
+#   docker-2 (binary_embed_text)           -> FLAG{f658c64573a571c1357a04b9}
+
+- import_playbook: ../data.yml
+  vars:
+    data_path: "../ad/Challenge171/data"
+  tags: 'data'
+
+- name: "Inject flag into docker-1 (postgres/CVE-2019-9193)"
+  hosts: docker-1
+  become: true
+  roles:
+    - { role: 'ctf/flags', tags: 'flags' }
+  vars:
+    hostname: "challenge171-{{ lab.hosts[dict_key].hostname }}"
+    container_name: "postgres-vuln-cve-2019-9193"
+    flag_files:
+      - filename: "secrets.txt"
+        container_path: "/tmp/secrets.txt"
+        mode: "0644"
+
+- name: "Inject flag into docker-2 (httpd/CVE-2021-40438)"
+  hosts: docker-2
+  become: true
+  roles:
+    - { role: 'ctf/flags', tags: 'flags' }
+  vars:
+    hostname: "challenge171-{{ lab.hosts[dict_key].hostname }}"
+    container_name: "httpd-vuln-cve-2021-40438"
+    flag_files:
+      - filename: "secrets.txt"
+        container_path: "/root/secrets.txt"
+        mode: "0644"

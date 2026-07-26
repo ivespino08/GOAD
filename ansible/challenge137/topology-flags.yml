@@ -1,0 +1,75 @@
+---
+# ansible/challenge137/topology-flags.yml
+# Injects CTF flag artifacts into running Docker containers.
+# Must run AFTER topology-docker.yml and BEFORE reboot.yml.
+#
+# NOT data-driven off config.json — hardcoded per-host, same as every
+# prior scenario.
+#
+# Flag placement, derived from Challenge137_solution.json + Challenge137_vulns.json:
+#
+#   docker-1 (elFinder, CVE-2021-32682) -> secrets.txt
+#     Real solve path: ZIP-argument command injection via the minimal
+#     PHP connector (no auth required) gives arbitrary command exec as
+#     the container's web user (www-data). secrets.txt is placed in the
+#     elFinder connector's default storage root, discoverable/readable
+#     via the RCE with no additional privilege needed.
+#     ASSUMPTION FLAGGED: container_path below assumes the vulhub
+#     elfinder:2.1.58 image's default docroot/connector storage path is
+#     /var/www/html/files — verify this against the actual running
+#     container (docker exec elfinder-vuln-cve-2021-32682 find / -iname
+#     "connector*.php") before relying on it, since this wasn't
+#     independently confirmed against the image's actual filesystem.
+#
+#   docker-2 (rsync, common) -> flag.bin
+#     Real solve path: rsync/common's rsyncd.conf has no auth and
+#     exposes the [src] module at path=/ with read only=no, so the
+#     entire container filesystem is reachable unauthenticated:
+#       rsync -av rsync://<docker-2-ip>:873/src/flag.bin ./
+#     No SSH, no credentials, no pivot artifact from docker-1 is needed
+#     or present in solution.json — see the discrepancy note in chat:
+#     Challenge137_meta.json's "pivot through SSH" reasoning text doesn't
+#     match the actual vuln (unauthenticated rsync access) or the
+#     solution edge's artifacts (File(path) + Flag(flag_id) only, no
+#     credential artifact). "Binary Embed Text" per the generator name:
+#     the flag string is embedded inside a small binary blob, recovered
+#     with `strings` (or equivalent) rather than being plain text —
+#     matches vulns.json's generator_id: binary_embed_text for this node.
+
+- import_playbook: ../data.yml
+  vars:
+    data_path: "../ad/Challenge137/data"
+  tags: 'data'
+
+- name: "Inject flag into docker-1 (elFinder)"
+  hosts: docker-1
+  become: true
+  roles:
+    - { role: 'ctf/flags', tags: 'flags' }
+  vars:
+    dict_key: "{{inventory_hostname}}"
+    hostname: "challenge137-docker-1"
+    container_name: "elfinder-vuln-cve-2021-32682"
+    flag_files:
+      - filename: "secrets.txt"
+        container_path: "/var/www/html/files/secrets.txt"
+        mode: "0644"
+
+- name: "Inject flag into docker-2 (rsync)"
+  hosts: docker-2
+  become: true
+  roles:
+    - { role: 'ctf/flags', tags: 'flags' }
+  vars:
+    dict_key: "{{inventory_hostname}}"
+    hostname: "challenge137-docker-2"
+    container_name: "rsync-vuln-common"
+    flag_files:
+      - filename: "flag.bin"
+        container_path: "/flag.bin"
+        mode: "0644"
+
+# NOT covered here: topology-flagnodes.yml is dead code per your build
+# summary (flag_node_deploy_dir is never set by any host in any scenario
+# so far, including this one) — not referenced in this scenario's
+# playbooks.yml entry either.

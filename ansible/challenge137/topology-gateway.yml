@@ -1,0 +1,38 @@
+---
+# ansible/challenge137/topology-gateway.yml
+#
+# Sets each pc/server/docker host's default route via its router LAN
+# gateway, PERSISTENTLY, via the same persist_boot_commands pattern used
+# elsewhere. persist_after ensures this only runs once lab-ip-eth1
+# (topology-hosts.yml) has already applied the host's lab IP.
+#
+# MUST run LAST in this scenario's playbooks.yml entry — after
+# topology-docker.yml and topology-traffic.yml, immediately before
+# reboot.yml. This scenario's docker_nodes (docker-1, docker-2) both
+# have pending apt-based Docker engine installs (via the docker/vuln_node
+# role) at the time topology-docker.yml runs; if the gateway route were
+# set before that, every apt call on those hosts would lose its route
+# to the internet (the LAN gateway has no path out — it's an internal
+# CTF subnet), per the bug already found and fixed in the Challenge78
+# session. Nothing that needs apt should run after this file in this
+# scenario's playbook sequence.
+
+- import_playbook: ../data.yml
+  vars:
+    data_path: "../ad/Challenge137/data"
+  tags: 'data'
+
+- name: "Persist default route via router LAN gateway"
+  hosts: pcs:servers:docker_nodes
+  become: true
+  vars:
+    dict_key: "{{inventory_hostname}}"
+  roles:
+    - role: 'network/persist_boot_commands'
+      vars:
+        persist_unit_name: "lab-default-route"
+        persist_description: "Persist default route via router LAN gateway across reboots"
+        persist_after: ["lab-ip-eth1.service"]
+        persist_commands:
+          - "ip route replace default via {{lab.hosts[dict_key].gateway}} dev eth1 || true"
+      when: lab.hosts[dict_key].gateway is defined

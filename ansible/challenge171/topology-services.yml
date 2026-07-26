@@ -1,0 +1,69 @@
+---
+# topology-services.yml
+#
+# Adds a default route via each pc/server/docker host's router LAN gateway,
+# PERSISTENTLY, via a systemd oneshot unit (roles/network/persist_boot_commands).
+#
+# persist_after ensures this unit only runs once the lab-ip-eth1 unit (from
+# topology-hosts.yml) has already applied the host's lab IP.
+#
+# `services` entries in config.json (SSH, HTTP) also drive an actual SSH/
+# HTTP install below -- docker-1/docker-2's "HTTP" entry is really the
+# vulhub app's own web UI (see topology-docker.yml), so apache2 is only
+# installed on the non-vuln pc/server hosts to avoid a port clash with the
+# vulhub container's own HTTP listener.
+
+- import_playbook: ../data.yml
+  vars:
+    data_path: "../ad/Challenge171/data"
+  tags: 'data'
+
+- name: "Persist default route via router LAN gateway"
+  hosts: pcs:servers:docker_nodes
+  become: true
+  roles:
+    - role: 'network/persist_boot_commands'
+      vars:
+        persist_unit_name: "lab-default-route"
+        persist_description: "Persist default route via router LAN gateway across reboots"
+        persist_after: ["lab-ip-eth1.service"]
+        persist_commands:
+          - "ip route replace default via {{lab.hosts[dict_key].gateway}} dev eth1 || true"
+      when: lab.hosts[dict_key].gateway is defined
+
+- name: "Ensure SSH service is installed on every host"
+  hosts: domain
+  become: true
+  tasks:
+    - name: "Update apt cache before installing openssh-server"
+      ansible.builtin.apt:
+        update_cache: yes
+        cache_valid_time: 3600
+
+    - name: "Install openssh-server"
+      ansible.builtin.package:
+        name: openssh-server
+        state: present
+
+    - name: "Ensure sshd is enabled and running"
+      ansible.builtin.systemd:
+        name: ssh
+        enabled: true
+        state: started
+
+- name: "Install a plain HTTP service on non-vuln hosts (pc-3, server-4 only)"
+  hosts: pc-3:server-4
+  become: true
+  tasks:
+    - name: "Install apache2"
+      ansible.builtin.apt:
+        name: apache2
+        state: present
+        update_cache: yes
+        cache_valid_time: 3600
+
+    - name: "Ensure apache2 is enabled and running"
+      ansible.builtin.systemd:
+        name: apache2
+        enabled: true
+        state: started

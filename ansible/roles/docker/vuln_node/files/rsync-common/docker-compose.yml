@@ -1,0 +1,11 @@
+version: '3'
+
+services:
+  rsync:
+    image: vulhub/rsync:3.1.2
+    container_name: rsync-vuln-common
+    restart: always
+    volumes:
+      - ./rsyncd.conf:/etc/rsyncd.conf
+    ports:
+      - "873:873"

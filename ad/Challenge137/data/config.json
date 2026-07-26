@@ -1,0 +1,268 @@
+{
+  "lab": {
+    "hosts": {
+      "router-1": {
+        "hostname": "router-1",
+        "ip4": "172.18.63.1/24",
+        "protocol": "RIP",
+        "r2r_interfaces": {
+          "router-4": "172.18.244.1/24",
+          "router-3": "10.0.245.1/24",
+          "router-5": "172.17.254.1/24",
+          "router-2": "10.103.31.1/24"
+        },
+        "lan_subnet": "172.18.63.0/24",
+        "r2r_subnets": [
+          "172.18.244.0/24",
+          "10.0.245.0/24",
+          "172.17.254.0/24",
+          "10.103.31.0/24"
+        ],
+        "type": "router",
+        "switch": "rsw-1-1",
+        "gateway": null,
+        "router": null,
+        "services": [],
+        "vulns": []
+      },
+      "router-2": {
+        "hostname": "router-2",
+        "ip4": "172.18.118.1/24",
+        "protocol": "RIP",
+        "r2r_interfaces": {
+          "router-4": "10.78.182.1/24",
+          "router-1": "10.103.31.2/24"
+        },
+        "lan_subnet": "172.18.118.0/24",
+        "r2r_subnets": [
+          "10.78.182.0/24",
+          "10.103.31.0/24"
+        ],
+        "type": "router",
+        "switch": "rsw-2-1",
+        "gateway": null,
+        "router": null,
+        "services": [],
+        "vulns": []
+      },
+      "router-3": {
+        "hostname": "router-3",
+        "ip4": "10.0.204.1/24",
+        "protocol": "RIP",
+        "r2r_interfaces": {
+          "router-1": "10.0.245.2/24",
+          "router-5": "10.0.132.1/24"
+        },
+        "lan_subnet": "10.0.204.0/24",
+        "r2r_subnets": [
+          "10.0.245.0/24",
+          "10.0.132.0/24"
+        ],
+        "type": "router",
+        "switch": "rsw-3-1",
+        "gateway": null,
+        "router": null,
+        "services": [],
+        "vulns": []
+      },
+      "router-4": {
+        "hostname": "router-4",
+        "ip4": "10.131.50.1/24",
+        "protocol": "RIP",
+        "r2r_interfaces": {
+          "router-2": "10.78.182.2/24",
+          "router-1": "172.18.244.2/24"
+        },
+        "lan_subnet": "10.131.50.0/24",
+        "r2r_subnets": [
+          "10.78.182.0/24",
+          "172.18.244.0/24"
+        ],
+        "type": "router",
+        "switch": "rsw-4-1",
+        "gateway": null,
+        "router": null,
+        "services": [],
+        "vulns": []
+      },
+      "router-5": {
+        "hostname": "router-5",
+        "ip4": "10.0.0.5/16",
+        "protocol": "RIP",
+        "r2r_interfaces": {
+          "router-1": "172.17.254.2/24",
+          "router-3": "10.0.132.2/24"
+        },
+        "lan_subnet": null,
+        "r2r_subnets": [
+          "172.17.254.0/24",
+          "10.0.132.0/24"
+        ],
+        "type": "router",
+        "switch": null,
+        "gateway": null,
+        "router": null,
+        "services": [],
+        "vulns": []
+      },
+      "docker-1": {
+        "hostname": "docker-1",
+        "ip4": "172.18.63.3/24",
+        "gateway": "172.18.63.1",
+        "vulns": [
+          "elfinder/CVE-2021-32682"
+        ],
+        "type": "docker",
+        "router": "router-1",
+        "switch": "rsw-1-1",
+        "services": [
+          "SSH",
+          "HTTP"
+        ],
+        "container_name": "elfinder-vuln-cve-2021-32682",
+        "chain_position": 1
+      },
+      "docker-2": {
+        "hostname": "docker-2",
+        "ip4": "172.18.118.3/24",
+        "gateway": "172.18.118.1",
+        "vulns": [
+          "rsync/common"
+        ],
+        "vuln_deploy_dir": "rsync-common",
+        "type": "docker",
+        "router": "router-2",
+        "switch": "rsw-2-1",
+        "services": [
+          "SSH",
+          "HTTP"
+        ],
+        "container_name": "rsync-vuln-common",
+        "chain_position": 2
+      },
+      "pc-3": {
+        "hostname": "pc-3",
+        "ip4": "10.0.204.3/24",
+        "gateway": "10.0.204.1",
+        "type": "pc",
+        "router": "router-3",
+        "switch": "rsw-3-1",
+        "services": [
+          "SSH",
+          "HTTP"
+        ],
+        "vulns": []
+      },
+      "server-4": {
+        "hostname": "server-4",
+        "ip4": "10.131.50.3/24",
+        "gateway": "10.131.50.1",
+        "type": "server",
+        "router": "router-4",
+        "switch": "rsw-4-1",
+        "services": [
+          "SSH",
+          "HTTP"
+        ],
+        "vulns": []
+      }
+    },
+    "topology": {
+      "r2r_links": [
+        {
+          "edge_id": 1,
+          "routers": [
+            {
+              "id": "router-2",
+              "ip": "10.78.182.1/24"
+            },
+            {
+              "id": "router-4",
+              "ip": "10.78.182.2/24"
+            }
+          ],
+          "subnet": "10.78.182.0/24"
+        },
+        {
+          "edge_id": 2,
+          "routers": [
+            {
+              "id": "router-1",
+              "ip": "172.18.244.1/24"
+            },
+            {
+              "id": "router-4",
+              "ip": "172.18.244.2/24"
+            }
+          ],
+          "subnet": "172.18.244.0/24"
+        },
+        {
+          "edge_id": 3,
+          "routers": [
+            {
+              "id": "router-1",
+              "ip": "10.0.245.1/24"
+            },
+            {
+              "id": "router-3",
+              "ip": "10.0.245.2/24"
+            }
+          ],
+          "subnet": "10.0.245.0/24"
+        },
+        {
+          "edge_id": 4,
+          "routers": [
+            {
+              "id": "router-1",
+              "ip": "172.17.254.1/24"
+            },
+            {
+              "id": "router-5",
+              "ip": "172.17.254.2/24"
+            }
+          ],
+          "subnet": "172.17.254.0/24"
+        },
+        {
+          "edge_id": 5,
+          "routers": [
+            {
+              "id": "router-1",
+              "ip": "10.103.31.1/24"
+            },
+            {
+              "id": "router-2",
+              "ip": "10.103.31.2/24"
+            }
+          ],
+          "subnet": "10.103.31.0/24"
+        },
+        {
+          "edge_id": 6,
+          "routers": [
+            {
+              "id": "router-3",
+              "ip": "10.0.132.1/24"
+            },
+            {
+              "id": "router-5",
+              "ip": "10.0.132.2/24"
+            }
+          ],
+          "subnet": "10.0.132.0/24"
+        }
+      ],
+      "traffic": [
+        {
+          "src": "docker-2",
+          "dst": "docker-1",
+          "protocol": "TCP",
+          "rate_kbps": 128,
+          "pattern": "burst"
+        }
+      ]
+    }
+  }
+}

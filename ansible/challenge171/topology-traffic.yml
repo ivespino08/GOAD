@@ -1,0 +1,73 @@
+- import_playbook: ../data.yml
+  vars:
+    data_path: "../ad/Challenge171/data"
+  tags: 'data'
+
+# Per the Challenge130 lesson (applied in Challenge78, but missing from
+# Challenge6's copy of this file - verified against the role source:
+# network/traffic/sender and network/traffic/receiver only ever create
+# /tmp/traffic themselves, never /opt/traffic): neither role creates
+# script_dest's parent directory, so /opt/traffic must be created
+# explicitly before every sender/receiver task below, or the `template`
+# task deploying the script fails outright on a fresh host.
+
+- name: "Ensure /opt/traffic exists on traffic-bearing hosts"
+  hosts: pcs:servers:docker_nodes
+  become: true
+  tasks:
+    - name: "Create /opt/traffic"
+      ansible.builtin.file:
+        path: /opt/traffic
+        state: directory
+        mode: "0755"
+      tags: 'traffic'
+
+- name: "Deploy traffic sender scripts"
+  hosts: pcs:servers:docker_nodes
+  become: true
+  gather_facts: true
+  tasks:
+    - name: "Deploy sender script for flows originating on this host"
+      include_role:
+        name: network/traffic/sender
+      vars:
+        flow: "{{item}}"
+        src_ip4: "{{lab.hosts[dict_key].ip4 | ansible.utils.ipaddr('address')}}"
+        dst_ip4: "{{item.dst_ip4}}"
+        protocol: "{{item.protocol}}"
+        rate_kbps: "{{item.rate_kbps}}"
+        pattern: "{{item.pattern}}"
+        script_dest: "/opt/traffic/traffic_{{inventory_hostname}}_sender.py"
+      loop: "{{lab.topology.traffic}}"
+      when: item.src == lab.hosts[dict_key].hostname
+      tags: 'traffic'
+
+- name: "Deploy traffic receiver scripts"
+  hosts: pcs:servers:docker_nodes
+  become: true
+  gather_facts: true
+  tasks:
+    - name: "Deploy receiver script for flows terminating on this host"
+      include_role:
+        name: network/traffic/receiver
+      vars:
+        flow: "{{item}}"
+        bind_ip4: "{{lab.hosts[dict_key].ip4 | ansible.utils.ipaddr('address')}}"
+        protocol: "{{item.protocol}}"
+        rate_kbps: "{{item.rate_kbps}}"
+        pattern: "{{item.pattern}}"
+        script_dest: "/opt/traffic/traffic_{{inventory_hostname}}_receiver.py"
+      loop: "{{lab.topology.traffic}}"
+      when: item.dst == lab.hosts[dict_key].hostname
+      tags: 'traffic'
+
+- name: "Start traffic scripts"
+  hosts: pcs:servers:docker_nodes
+  become: true
+  tasks:
+    - name: "Start deployed sender/receiver scripts"
+      include_role:
+        name: network/traffic/start
+      vars:
+        traffic_script_dir: "/opt/traffic"
+      tags: 'traffic'

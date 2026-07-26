@@ -169,6 +169,29 @@ Challenge130:
   - challenge130/topology-traffic.yml
   - reboot.yml
 
+Challenge137:
+  - challenge137/topology-routers.yml
+  - challenge137/topology-links.yml
+  - challenge137/topology-hosts.yml
+  - challenge137/topology-routing.yml
+  - challenge137/topology-services.yml
+  - challenge137/topology-docker.yml
+  - challenge137/topology-flags.yml
+  - challenge137/topology-traffic.yml
+  - challenge137/topology-gateway.yml
+  - reboot.yml
+
+Challenge171:
+  - challenge171/topology-routers.yml
+  - challenge171/topology-links.yml
+  - challenge171/topology-hosts.yml
+  - challenge171/topology-routing.yml
+  - challenge171/topology-services.yml
+  - challenge171/topology-docker.yml
+  - challenge171/topology-flags.yml
+  - challenge171/topology-traffic.yml
+
+
 default:
   - build.yml
   - ad-servers.yml

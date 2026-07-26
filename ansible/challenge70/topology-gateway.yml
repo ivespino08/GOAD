@@ -18,9 +18,9 @@
     dict_key: "{{inventory_hostname}}"
   roles:
     - role: 'network/gateway'
+      when: lab.hosts[dict_key].gateway is defined and lab.hosts[dict_key].gateway is not none
       vars:
         interface_name: "eth1"
         interface_ip4: "{{lab.hosts[dict_key].ip4}}"
         gateway_ip4: "{{lab.hosts[dict_key].gateway}}"
-  when: lab.hosts[dict_key].gateway is defined and lab.hosts[dict_key].gateway is not none
   tags: 'gateway'

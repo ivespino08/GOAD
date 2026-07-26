@@ -17,10 +17,10 @@
     dict_key: "{{inventory_hostname}}"
   roles:
     - role: 'network/persist_boot_commands'
+      when: lab.hosts[dict_key].lan_subnet is not none
       vars:
         persist_unit_name: "lab-router-lan-eth1"
         persist_description: "Persist router LAN IP on eth1 across reboots"
         persist_commands:
           - "ip addr add {{lab.hosts[dict_key].ip4}} dev eth1 || true"
-  when: lab.hosts[dict_key].lan_subnet is not none
   tags: 'routers'

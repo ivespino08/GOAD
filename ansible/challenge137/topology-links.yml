@@ -1,0 +1,52 @@
+---
+# ansible/challenge137/topology-links.yml
+# Configures r2r links on eth2+ (physical adapters from :networks in Vagrantfile).
+#
+# SCHEMA NOTE: the source XML's PlanPreview.r2r_links_preview uses raw
+# numeric node_id integers in its {"id":..., "ip":...} sub-objects. This
+# scenario's config.json rewrites those ids as hostname strings
+# ("router-1", "router-2", etc.) instead — confirmed as the correct
+# convention from the Challenge70 reference bundle (inventory files
+# there set dict_key=<hostname> explicitly, and topology-links.yml
+# there matches dict_key against hostnames). dict_key is set to
+# inventory_hostname below, so the {id,ip} sub-object form's "id" values
+# MUST be hostnames, not the XML's raw integers, or `dict_key in
+# (item.routers | map(attribute='id') | list)` would never match.
+#
+# router-1 is the hub (degree 4 — appears in 4 of 6 r2r_links entries,
+# per the source XML's r2r_degree_preview: {"1":4,"2":2,"3":2,"4":2,"5":2}),
+# same shape as Challenge101's router-1 hub.
+
+- import_playbook: ../data.yml
+  vars:
+    data_path: "../ad/Challenge137/data"
+  tags: 'data'
+
+- name: "Configure router-to-router links"
+  hosts: routers
+  become: true
+  vars:
+    dict_key: "{{inventory_hostname}}"
+  tasks:
+    - include_role:
+        name: "network/r2r_link"
+      vars:
+        _ids: "{{item.routers | map(attribute='id') | list}}"
+        _ips: "{{item.routers | map(attribute='ip') | list}}"
+        _peer_idx: "{{1 - _ids.index(dict_key)}}"
+        local_router: "{{dict_key}}"
+        local_ip4:   "{{_ips[_ids.index(dict_key)]}}"
+        peer_router: "{{_ids[_peer_idx | int]}}"
+        peer_ip4:    "{{_ips[_peer_idx | int]}}"
+        link_subnet: "{{item.subnet}}"
+        # eth0=NAT, eth1=management, eth2+=r2r (offset +2).
+        interface_name: >-
+          {{"eth" + (
+            (lab.hosts[dict_key].r2r_interfaces.keys() | list).index(
+              _ids[_peer_idx | int]
+            ) + 2
+          ) | string}}
+      loop: "{{lab.topology.r2r_links}}"
+      when: dict_key in (item.routers | map(attribute='id') | list)
+      loop_control:
+        label: "edge {{item.edge_id}} — {{item.subnet}}"

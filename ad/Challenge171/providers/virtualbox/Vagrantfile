@@ -1,0 +1,45 @@
+# Challenge171 (NewScenario22 topology) -- vmware provider
+#
+# KNOWN RISK: router-1 is the r2r hub (degree 4) and therefore needs 6 total
+# adapters (NAT + management + 4 r2r links). On VMware Workstation this is
+# the exact adapter count that has previously triggered a PCI-bridge slot
+# overflow on other NewScenario22-shaped builds (Challenge101, Challenge130),
+# causing router-1's guest interface naming to desync from VMX slot order
+# and several of its adapters to bind to the wrong vmnets. If router-1 comes
+# up but its RIP adjacencies / r2r links look wrong even though
+# `vagrant ssh router-1` works fine, check the .vmx ethernetN.vnet mapping
+# against `ip -brief link` inside the guest before assuming it's a config
+# bug in topology-links.yml. Don't assume it's needed either -- Challenge78
+# hit the same adapter count without this failure appearing.
+
+boxes = [
+  { :name => "router-1", :ip => "192.168.57.11", :box => "generic/ubuntu2204",
+    :box_version => "4.3.12", :os => "linux", :cpus => 1, :mem => 2048,
+    :networks => ["10.0.47.1", "172.31.90.1", "10.0.31.1", "192.168.103.1"] },
+  { :name => "router-2", :ip => "192.168.57.12", :box => "generic/ubuntu2204",
+    :box_version => "4.3.12", :os => "linux", :cpus => 1, :mem => 2048,
+    :networks => ["192.168.78.1", "192.168.103.2"] },
+  { :name => "router-3", :ip => "192.168.57.13", :box => "generic/ubuntu2204",
+    :box_version => "4.3.12", :os => "linux", :cpus => 1, :mem => 2048,
+    :networks => ["172.31.90.2", "172.24.71.1"] },
+  { :name => "router-4", :ip => "192.168.57.14", :box => "generic/ubuntu2204",
+    :box_version => "4.3.12", :os => "linux", :cpus => 1, :mem => 2048,
+    :networks => ["192.168.78.2", "10.0.47.2"] },
+  { :name => "router-5", :ip => "192.168.57.15", :box => "generic/ubuntu2204",
+    :box_version => "4.3.12", :os => "linux", :cpus => 1, :mem => 2048,
+    :networks => ["10.0.31.2", "172.24.71.2"] },
+
+  { :name => "docker-1", :ip => "192.168.57.16", :box => "generic/ubuntu2204",
+    :box_version => "4.3.12", :os => "linux", :cpus => 2, :mem => 2048 },
+  { :name => "docker-2", :ip => "192.168.57.17", :box => "generic/ubuntu2204",
+    :box_version => "4.3.12", :os => "linux", :cpus => 2, :mem => 2048 },
+
+  { :name => "pc-3", :ip => "192.168.57.18", :box => "generic/ubuntu2204",
+    :box_version => "4.3.12", :os => "linux", :cpus => 1, :mem => 2048 },
+  { :name => "server-4", :ip => "192.168.57.19", :box => "generic/ubuntu2204",
+    :box_version => "4.3.12", :os => "linux", :cpus => 1, :mem => 2048 },
+]
+
+Vagrant.configure("2") do |config|
+  config.ssh.insert_key = false
+end

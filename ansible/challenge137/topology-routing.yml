@@ -1,0 +1,35 @@
+---
+# ansible/challenge137/topology-routing.yml
+# Configures RIP routing on all routers via FRR.
+# eth0 (NAT) and eth1 (management) are both passive — RIP must only run
+# on the r2r interfaces to enforce the multi-hop chain.
+#
+# router-5 here legitimately has no lan_subnet (no host/switch attached —
+# confirmed against the source XML's switches_detail, which only lists
+# switches for routers 1-4). rip_networks_lan is guarded so a null
+# lan_subnet contributes nothing to the RIP network list instead of
+# injecting a literal "None" into rip_networks, per the fix already
+# applied for this exact shape in Challenge101.
+
+- import_playbook: ../data.yml
+  vars:
+    data_path: "../ad/Challenge137/data"
+  tags: 'data'
+
+- name: "Configure RIP routing on all routers"
+  hosts: routers
+  become: true
+  roles:
+    - { role: 'network/rip', tags: 'rip' }
+  vars:
+    dict_key: "{{inventory_hostname}}"
+    routing_protocol: "{{lab.hosts[dict_key].protocol}}"
+    rip_networks_lan: >-
+      {{
+        [lab.hosts[dict_key].lan_subnet]
+        if (lab.hosts[dict_key].lan_subnet is defined and lab.hosts[dict_key].lan_subnet is not none)
+        else []
+      }}
+    rip_networks_r2r: "{{lab.hosts[dict_key].r2r_subnets | default([])}}"
+    rip_networks: "{{rip_networks_lan + rip_networks_r2r}}"
+    rip_passive_interfaces: ["eth0", "eth1"]

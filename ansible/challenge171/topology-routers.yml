@@ -1,0 +1,32 @@
+---
+# topology-routers.yml
+#
+# Adds each router's LAN-facing IP as a secondary address on eth1,
+# PERSISTENTLY, via a systemd oneshot unit (roles/network/persist_boot_commands).
+# r2r interface addressing is NOT handled here -- topology-links.yml's
+# r2r_link role fully and solely owns that.
+#
+# Uses persist_boot_commands rather than nmcli/network/interface for this
+# secondary IP -- a raw `ip addr add` has no persistence across reboot on
+# its own, and NetworkManager has no awareness of it either, so without this
+# the LAN IP (and anything routed through it) disappears the moment
+# reboot.yml or a `vagrant reload` runs.
+#
+# eth0 = NAT (do not touch), eth1 = management (192.168.57.x) + LAN IP (secondary, persisted)
+
+- import_playbook: ../data.yml
+  vars:
+    data_path: "../ad/Challenge171/data"
+  tags: 'data'
+
+- name: "Persist router LAN gateway IPs on eth1"
+  hosts: routers
+  become: true
+  roles:
+    - role: 'network/persist_boot_commands'
+      vars:
+        persist_unit_name: "lab-ip-eth1"
+        persist_description: "Persist router LAN gateway IP on eth1 across reboots"
+        persist_commands:
+          - "ip addr add {{lab.hosts[dict_key].ip4}} dev eth1 || true"
+      tags: 'routers'

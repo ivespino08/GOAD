@@ -40,6 +40,12 @@ class Config:
         config.set('aws', 'aws_region', 'eu-west-3')
         config.set('aws', 'aws_zone', 'eu-west-3c')
 
+        config.add_section('vmware')
+        config.set('vmware', '; explicit path to vmrun (leave unset to require it on PATH).')
+        config.set('vmware', "; Windows default: C:\\Program Files (x86)\\VMware\\VMware Workstation\\vmrun.exe")
+        config.set('vmware', '; used by fix_vmware_router_vnets (goad.py) for the hub-router vnet/PCI-slot fix.')
+        config.set('vmware', 'vmrun_path', '')
+
         config.add_section('azure')
         config.set('azure', 'az_location', 'westeurope')
 

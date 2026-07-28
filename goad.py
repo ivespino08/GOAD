@@ -1,10 +1,13 @@
 import cmd
 import argparse
+import os
+import subprocess
 import sys
 import time
 from goad.config import Config
 from goad.log import Log
 from goad.exceptions import JumpBoxInitFailed
+from goad.goadpath import GoadPath
 from goad.menu import print_menu, print_logo
 from goad.infos import *
 
@@ -115,6 +118,19 @@ class Goad(cmd.Cmd):
         result = self.lab_manager.get_current_instance_provider().install()
         if result:
             self.lab_manager.get_current_instance().set_status(PROVIDED)
+
+            # Fix hub-router adapter/vnet PCI-bridge-overflow misbindings
+            # (see scripts/fix_router_vnets.py) -- must run HERE, right after
+            # `vagrant up` completes and before jumpbox/Ansible provisioning
+            # starts. Deliberately NOT an Ansible role: for this framework's
+            # local-provisioning flow, ansible-playbook runs on the jumpbox
+            # VM itself, which never receives the workspace's `provider/`
+            # folder (see LocalJumpBox.sync_sources -- only top-level
+            # workspace files are synced) and therefore has no access to
+            # `.vmx` files or the `vmrun` CLI. Only the host process running
+            # goad.py (here, right now) does.
+            self.fix_vmware_router_vnets()
+
             # if ip range change after provisioning
             if self.lab_manager.get_current_instance_provider().update_ip_range:
                 Log.info('Update IP range')
@@ -127,6 +143,59 @@ class Goad(cmd.Cmd):
                     instance_id = self.lab_manager.get_current_instance_id()
                     self.do_load(instance_id)
                     self.refresh_prompt()
+
+    def fix_vmware_router_vnets(self):
+        """
+        Runs scripts/fix_router_vnets.py against the CURRENT instance's live
+        Vagrantfile/.vagrant state (workspace/<instance_id>/provider/), right
+        after `vagrant up` and before jumpbox/Ansible provisioning begins.
+
+        VMware-Workstation-specific: the PCI-bridge-slot-overflow bug this
+        fixes (any VM needing >4 total adapters spills extras onto a second
+        PCI bridge, which can desync vagrant-vmware-desktop's own vnet
+        auto-assignment) is a VMware Workstation virtual-hardware quirk --
+        this is a no-op for every other provider.
+
+        Safe to call unconditionally on every `provide`: the script itself
+        detects "everything already consistent" and does nothing in that
+        case (no VM is power-cycled), so this adds negligible overhead on
+        scenarios/instances that never trip the bug in the first place.
+        """
+        instance = self.lab_manager.get_current_instance()
+        if instance is None or instance.provider_name != 'vmware':
+            return
+
+        vagrantfile = os.path.join(instance.instance_provider_path, 'Vagrantfile')
+        machines_dir = os.path.join(instance.instance_provider_path, '.vagrant', 'machines')
+        script = GoadPath.get_script_file('fix_router_vnets.py')
+
+        if not os.path.isfile(vagrantfile):
+            Log.error(f'fix_vmware_router_vnets: Vagrantfile not found at {vagrantfile}, skipping')
+            return
+        if not os.path.isfile(script):
+            Log.error(f'fix_vmware_router_vnets: script not found at {script}, skipping')
+            return
+
+        # Optional explicit path to vmrun, read from ~/.goad/goad.ini's
+        # [vmware] section (vmrun_path key). Falls back to 'vmrun' (i.e.
+        # requires it on PATH) if unset -- vmrun.exe on Windows ships inside
+        # the Workstation install folder (commonly
+        # "C:\Program Files (x86)\VMware\VMware Workstation\vmrun.exe") but
+        # that folder isn't always added to PATH automatically.
+        vmrun_cmd = ['python3', script, '--vagrantfile', vagrantfile, '--machines-dir', machines_dir]
+        vmrun_path = self.lab_manager.config.get_value('vmware', 'vmrun_path', fallback=None)
+        if vmrun_path:
+            vmrun_cmd += ['--vmrun', vmrun_path]
+
+        Log.info('Checking for hub-router vnet/PCI-slot misbindings before jumpbox provisioning...')
+        result = subprocess.run(vmrun_cmd, capture_output=True, text=True)
+        for line in result.stdout.splitlines():
+            Log.info(f'[vnet-fix] {line}')
+        for line in result.stderr.splitlines():
+            Log.error(f'[vnet-fix] {line}')
+        if result.returncode != 0:
+            Log.error('fix_vmware_router_vnets: script exited non-zero -- '
+                       'review the output above before continuing to prepare_jumpbox/provision_lab')
 
     def do_provision(self, arg):
         if arg == '':

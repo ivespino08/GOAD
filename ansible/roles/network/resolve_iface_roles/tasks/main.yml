@@ -1,0 +1,46 @@
+---
+# roles/network/resolve_iface_roles/tasks/main.yml
+#
+# Exposes goad_mgmt_iface and goad_r2r_ifaces (a list, index-aligned with
+# lab.hosts[dict_key].r2r_interfaces | dict2items) for the CURRENT host.
+#
+# On the vast majority of VMs (<=4 total adapters, never hit the
+# PCI-bridge-overflow / vnet-misbinding bug), /etc/goad/iface-roles.env
+# won't exist -- this role does nothing, and topology files fall back to
+# the standard eth1 / eth{{ idx + 2 }} convention via `default()`, exactly
+# as before this role existed.
+#
+# On a router that DID hit the bug and was fixed via fix_router_netplan.py,
+# that script leaves /etc/goad/iface-roles.env with the ACTUAL current
+# eth-name for each role (re-resolved by MAC on every boot), and this role
+# exposes that instead -- so no topology file anywhere has to know or care
+# whether a given router was ever affected.
+#
+# Shared across every scenario: this file, and the two-line pattern that
+# uses it in a topology file, are meant to be copy-identical everywhere,
+# not re-derived per scenario.
+
+- name: "Check for a MAC-resolved interface-role override file"
+  ansible.builtin.stat:
+    path: /etc/goad/iface-roles.env
+  register: _goad_iface_roles_file
+
+- name: "Read GOAD_IFACE_MGMT from the override file, if present"
+  ansible.builtin.shell: "grep '^GOAD_IFACE_MGMT=' /etc/goad/iface-roles.env | cut -d= -f2"
+  register: _goad_mgmt_grep
+  changed_when: false
+  failed_when: false
+  when: _goad_iface_roles_file.stat.exists
+
+- name: "Read all GOAD_IFACE_R2R_* entries, sorted numerically by index"
+  ansible.builtin.shell: "grep '^GOAD_IFACE_R2R_' /etc/goad/iface-roles.env | sort -t_ -k4 -n | cut -d= -f2"
+  register: _goad_r2r_grep
+  changed_when: false
+  failed_when: false
+  when: _goad_iface_roles_file.stat.exists
+
+- name: "Expose resolved mgmt/r2r interface facts"
+  when: _goad_iface_roles_file.stat.exists
+  ansible.builtin.set_fact:
+    goad_mgmt_iface: "{{ _goad_mgmt_grep.stdout }}"
+    goad_r2r_ifaces: "{{ _goad_r2r_grep.stdout_lines }}"

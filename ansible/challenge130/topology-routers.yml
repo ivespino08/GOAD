@@ -7,16 +7,27 @@
 # — this order must match the :networks array in providers/vmware/Vagrantfile
 # for this router exactly, since Vagrant assigns adapters in array order.
 #
-# NOTE: router-1 has 4 r2r peers -> 6 total adapters (NAT+mgmt+4). This is the
-# exact adapter count flagged in the Challenge101 session log as triggering a
-# VMware PCI-bridge slot overflow / vmnet misbinding on the hub router. If
-# router-1 is unreachable via plain ssh after `vagrant up`, see that session's
-# MAC-address-based GUI-bypass fix before assuming the Ansible run is at fault.
+# ...UNLESS this router hit the PCI-bridge-overflow / vnet-misbinding bug
+# (any router needing >4 total adapters -- see GOAD_Scenario_Build_Summary.md
+# and fix_router_netplan.py), in which case eth-name position no longer
+# reliably maps to role. network/resolve_iface_roles reads the actual
+# current mapping (persisted by fix_router_netplan.py's oneshot service,
+# re-resolved by MAC on every boot) when it exists, and this file falls back
+# to the literal eth1/eth{{ idx + 2 }} convention via `default()` otherwise
+# -- so this same file works correctly whether or not router-1 (or any
+# future router) ever needed that fix.
 
 - import_playbook: ../data.yml
   vars:
     data_path: "../ad/Challenge130/data"
   tags: 'data'
+
+- name: "Resolve which physical interface holds each role (mgmt/r2r), MAC-based override if present"
+  hosts: routers
+  become: true
+  tasks:
+    - include_role:
+        name: network/resolve_iface_roles
 
 - name: "Configure router LAN gateway address"
   hosts: routers
@@ -28,8 +39,8 @@
     # to replace rather than add. This matches the doc's own description of
     # how Scenario3 does it, but wasn't verified against that role's actual
     # source in this session — flag for review before first real run.
-    - name: "Add this router's LAN gateway IP as a secondary address on eth1"
-      ansible.builtin.command: "ip addr add {{ lab.hosts[dict_key].ip4 }} dev eth1"
+    - name: "Add this router's LAN gateway IP as a secondary address on its mgmt interface"
+      ansible.builtin.command: "ip addr add {{ lab.hosts[dict_key].ip4 }} dev {{ goad_mgmt_iface | default('eth1') }}"
       register: lan_ip_add
       failed_when: lan_ip_add.rc != 0 and 'File exists' not in lan_ip_add.stderr
       changed_when: lan_ip_add.rc == 0
@@ -43,13 +54,13 @@
       include_role:
         name: network/interface
       vars:
-        interface_name: "eth{{ idx + 2 }}"
+        interface_name: "{{ goad_r2r_ifaces[idx] if goad_r2r_ifaces is defined else 'eth' ~ (idx + 2) }}"
         interface_ip4: "{{ item.value }}"
         # never_default4 handled inside the role when gateway_ip4 is omitted
       loop: "{{ lab.hosts[dict_key].r2r_interfaces | dict2items }}"
       loop_control:
         index_var: idx
-        label: "{{ item.key }} -> eth{{ idx + 2 }}"
+        label: "{{ item.key }} -> {{ goad_r2r_ifaces[idx] if goad_r2r_ifaces is defined else 'eth' ~ (idx + 2) }}"
 
 - name: "Configure router LAN-side switch membership"
   hosts: routers

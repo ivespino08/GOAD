@@ -2,13 +2,28 @@
 # Challenge130 / NewScenario22 — RIP routing on all 5 routers.
 # rip_networks = this router's own LAN subnet (if any) + all r2r_subnets it
 # participates in, read directly from config.json to avoid Jinja2 filtering
-# against the shared r2r_links list. Both eth0 (NAT) and eth1 (management)
-# stay passive so RIP only advertises/listens on the r2r interfaces.
+# against the shared r2r_links list. eth0 (NAT) and the mgmt interface stay
+# passive so RIP only advertises/listens on the r2r interfaces.
+#
+# mgmt interface resolved via network/resolve_iface_roles -- falls back to
+# the literal "eth1" for any router that never hit the PCI-bridge-overflow
+# bug (see topology-routers.yml for the full explanation). This matters
+# here specifically because getting this wrong doesn't just break one
+# router: it means RIP ends up passive on a real r2r link (breaking route
+# propagation to that peer) while active on the shared mgmt subnet
+# (192.168.57.x) instead -- which every VM in the scenario sits on.
 
 - import_playbook: ../data.yml
   vars:
     data_path: "../ad/Challenge130/data"
   tags: 'data'
+
+- name: "Resolve which physical interface holds each role (mgmt/r2r), MAC-based override if present"
+  hosts: routers
+  become: true
+  tasks:
+    - include_role:
+        name: network/resolve_iface_roles
 
 - name: "Configure RIP routing"
   hosts: routers
@@ -23,4 +38,4 @@
              + lab.hosts[dict_key].r2r_subnets }}
         rip_passive_interfaces:
           - eth0
-          - eth1
+          - "{{ goad_mgmt_iface | default('eth1') }}"

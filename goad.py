@@ -131,6 +131,17 @@ class Goad(cmd.Cmd):
             # goad.py (here, right now) does.
             self.fix_vmware_router_vnets()
 
+            # Fix guest-side interface-role misassignment (see
+            # scripts/fix_router_netplan.py) -- the OTHER, independent half
+            # of the same bug: even with .vmx vnet wiring corrected above,
+            # a VM that spilled onto the second PCI bridge can still have
+            # its guest kernel enumerate adapters in a different order than
+            # Vagrant assumed when it wrote each static IP, landing the
+            # wrong address on the wrong physical port. Runs after the
+            # vnet fix (that one may power-cycle a VM; this one needs the
+            # guest already up and reachable via `vagrant ssh` over NAT).
+            self.fix_vmware_router_netplan()
+
             # if ip range change after provisioning
             if self.lab_manager.get_current_instance_provider().update_ip_range:
                 Log.info('Update IP range')
@@ -195,6 +206,54 @@ class Goad(cmd.Cmd):
             Log.error(f'[vnet-fix] {line}')
         if result.returncode != 0:
             Log.error('fix_vmware_router_vnets: script exited non-zero -- '
+                       'review the output above before continuing to prepare_jumpbox/provision_lab')
+
+    def fix_vmware_router_netplan(self):
+        """
+        Runs scripts/fix_router_netplan.py against every VM in the CURRENT
+        instance, right after fix_vmware_router_vnets(). Fixes the guest-side
+        half of the PCI-bridge-overflow bug: rebinds each adapter's IP to
+        whatever the guest kernel CURRENTLY calls it (resolved by MAC, not
+        by udev rename -- confirmed non-functional on boxes booted with
+        net.ifnames=0), and persists that resolved mapping to
+        /etc/goad/iface-roles.env for network/resolve_iface_roles to pick
+        up in the Ansible run that follows.
+
+        Connects over `vagrant ssh` (NAT), independent of whatever the
+        private-network mgmt adapter is currently doing -- so it stays
+        reachable even on a VM whose mgmt IP is completely misdirected.
+
+        VMware-Workstation-specific, same reasoning as fix_vmware_router_vnets.
+        Safe to call unconditionally: the script checks each VM's actual
+        current state first and only writes/reboots a VM if it finds a
+        real mismatch -- everything else is left untouched.
+        """
+        instance = self.lab_manager.get_current_instance()
+        if instance is None or instance.provider_name != 'vmware':
+            return
+
+        vagrantfile = os.path.join(instance.instance_provider_path, 'Vagrantfile')
+        machines_dir = os.path.join(instance.instance_provider_path, '.vagrant', 'machines')
+        script = GoadPath.get_script_file('fix_router_netplan.py')
+
+        if not os.path.isfile(vagrantfile):
+            Log.error(f'fix_vmware_router_netplan: Vagrantfile not found at {vagrantfile}, skipping')
+            return
+        if not os.path.isfile(script):
+            Log.error(f'fix_vmware_router_netplan: script not found at {script}, skipping')
+            return
+
+        Log.info('Checking for guest-side interface-role misassignment before jumpbox provisioning...')
+        result = subprocess.run(
+            ['python3', script, '--vagrantfile', vagrantfile, '--machines-dir', machines_dir],
+            capture_output=True, text=True
+        )
+        for line in result.stdout.splitlines():
+            Log.info(f'[netplan-fix] {line}')
+        for line in result.stderr.splitlines():
+            Log.error(f'[netplan-fix] {line}')
+        if result.returncode != 0:
+            Log.error('fix_vmware_router_netplan: script exited non-zero -- '
                        'review the output above before continuing to prepare_jumpbox/provision_lab')
 
     def do_provision(self, arg):

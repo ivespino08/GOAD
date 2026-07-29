@@ -71,16 +71,6 @@ boxes.append(
 
       else
         target.vm.communicator = "ssh"
-
-        # Same fix as the VMware provider template -- generic/ubuntu2204
-        # stacks two timeouts on every boot in this air-gapped environment
-        # (snapd.seeded.service can never reach the Snap Store; router VMs'
-        # r2r-link adapters may have no carrier yet during a multi-VM boot,
-        # so systemd-networkd-wait-online.service also runs out its own
-        # timeout). Masking takes effect from the SECOND boot onward.
-        target.vm.provision "shell", inline: <<-SHELL
-          systemctl mask snapd.seeded.service snapd.service snapd.socket systemd-networkd-wait-online.service 2>/dev/null || true
-        SHELL
       end
 
       if box.has_key?(:forwarded_port)

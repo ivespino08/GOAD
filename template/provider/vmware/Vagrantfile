@@ -96,29 +96,6 @@ boxes.unshift(
         end
       else
         target.vm.communicator = "ssh"
-
-        # generic/ubuntu2204 (unlike PROVISIONING's bento/ubuntu-22.04) ships
-        # with two systemd units that stack two separate timeouts on every
-        # boot in this air-gapped, multi-adapter environment:
-        #   - snapd.seeded.service ("Wait until snapd is fully seeded"):
-        #     retries reaching the Snap Store, which these VMs can never
-        #     reach (no internet access by design) -- times out (~300s)
-        #     rather than failing fast.
-        #   - systemd-networkd-wait-online.service ("Network to be
-        #     configured"): blocks boot until EVERY configured interface
-        #     reports carrier -- an r2r-link adapter whose peer router isn't
-        #     up yet during a multi-VM `vagrant up` has no carrier yet, so
-        #     this also runs out its own timeout.
-        # Neither is load-bearing: no role in this repo depends on either
-        # target completing before it does its own IP/route configuration.
-        # Masking them here only takes effect on the box's SECOND+ boot
-        # (this provisioner itself has to wait through one slow first boot
-        # to run at all) -- but every later boot this framework triggers
-        # (reboot.yml, the vnet-fix script's vmrun power cycles, `vagrant
-        # reload`) benefits from here on.
-        target.vm.provision "shell", inline: <<-SHELL
-          systemctl mask snapd.seeded.service snapd.service snapd.socket systemd-networkd-wait-online.service 2>/dev/null || true
-        SHELL
       end
 
       if box.has_key?(:forwarded_port)

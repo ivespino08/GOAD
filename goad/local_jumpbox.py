@@ -25,7 +25,15 @@ class LocalJumpBox(JumpBox):
             # if is windows convert line ending
             self.run_command("sudo apt update && sudo apt install -y dos2unix", '~')
             self.run_command("dos2unix setup.sh", '~')
-        self.run_command('bash setup.sh', '~')
+        # Pass the CURRENT scenario/provider through as env vars so the
+        # script can scope its SSH-key-distribution scan to just this
+        # scenario's own inventory, instead of scanning every scenario
+        # under ~/GOAD/ad/ (which scales with total scenario count, not
+        # with this one deployment). This is available right here on
+        # self.lab_name / self.provider.provider_name (set in JumpBox.
+        # __init__) -- previously never threaded through to the remote
+        # command at all.
+        self.run_command(f"LAB_NAME='{self.lab_name}' PROVIDER_NAME='{self.provider.provider_name}' bash setup.sh", '~')
 
     def get_jumpbox_key(self, creation=False):
         if not creation:

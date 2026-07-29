@@ -56,38 +56,58 @@ ssh-keygen -y -f ~/.vagrant.d/insecure_private_key > ~/.vagrant.d/insecure_priva
 # ---------------------------------------------------------------------------
 # Distribute the SSH key.
 #
-# CHANGED FROM THE PREVIOUS VERSION OF THIS SCRIPT: that version took LAB and
-# PROVIDER as $1/$2 and only pushed keys for that one scenario's inventory.
-# local_jumpbox.py's provision() actually runs this script as plain
-# `bash setup.sh` -- confirmed from the real source, no arguments, no
-# environment variable, nothing that identifies which scenario is currently
-# being deployed. Under real GOAD usage (not a manual by-hand run with
-# explicit args), LAB would always fall back to its default and this script
-# would always distribute keys for the WRONG scenario except by coincidence
-# of overlapping IP ranges -- which is exactly what happened with Scenario12's
-# docker-1/6/7/8/9/10 (the addresses that don't happen to overlap with
-# Scenario3's router IPs).
+# HISTORY: an earlier version of this script took LAB/PROVIDER as $1/$2, but
+# local_jumpbox.py's provision() ran it as plain `bash setup.sh` with nothing
+# identifying which scenario was active -- so that version silently defaulted
+# to the wrong scenario except by coincidence of overlapping IP ranges (this
+# is exactly what caused Scenario12's docker-1/6/7/8/9/10 to get missed). The
+# fix at the time was to scan every scenario's inventory under
+# ~/GOAD/ad/*/providers/*/ and distribute to the union of all their host
+# IPs -- correct, but its cost scales with the TOTAL number of scenarios in
+# the repo, not just this one deployment, since it re-checks scenarios that
+# aren't even running right now.
 #
-# Fix: stop trying to guess which single scenario is "active" from inside
-# this script (there's no reliable signal available to do that with). Instead,
-# scan every scenario's provider inventory under ~/GOAD/ad/*/providers/*/ and
-# distribute the key to the union of all their host IPs. ssh-copy-id is cheap
-# and idempotent, and an IP whose VM isn't up yet (e.g. a different scenario
-# that isn't currently running) just fails fast with ConnectTimeout below --
-# so this is safe to run unconditionally on every jumpbox provision, and any
-# new scenario added later is covered automatically with no script changes.
+# CURRENT FIX: local_jumpbox.py's provision() now passes LAB_NAME/
+# PROVIDER_NAME as env vars (it always had this information on self.lab_name/
+# self.provider.provider_name -- it just was never threaded through to this
+# script). So this now scopes to just the current scenario's own inventory
+# file, which is O(1) regardless of how many other scenarios exist in the
+# repo. The all-scenario scan is kept below purely as a defensive fallback
+# -- e.g. if this script is ever run by hand without those env vars set, or
+# against an older goad.py that doesn't set them yet.
 # ---------------------------------------------------------------------------
 
 IP_RANGE=$(grep -oP '^ip_range\s*=\s*\K.*' ~/.goad/goad.ini 2>/dev/null || echo "192.168.57")
 
-echo "[*] Scanning all scenario provider inventories under ~/GOAD/ad/*/providers/*/..."
+if [ -n "${LAB_NAME:-}" ] && [ -n "${PROVIDER_NAME:-}" ]; then
+  INVENTORY_FILE="$HOME/GOAD/ad/${LAB_NAME}/providers/${PROVIDER_NAME}/inventory"
+  echo "[*] LAB_NAME=${LAB_NAME} PROVIDER_NAME=${PROVIDER_NAME} passed in -- scoping to this scenario's own inventory only."
+  if [ -f "$INVENTORY_FILE" ]; then
+    INVENTORY_GLOB="$INVENTORY_FILE"
+  else
+    echo "[!] Expected inventory file not found at $INVENTORY_FILE -- falling back to scanning all scenarios."
+    INVENTORY_GLOB=""
+  fi
+else
+  echo "[!] LAB_NAME/PROVIDER_NAME not set (running this script manually? older goad.py?) -- falling back to scanning all scenarios."
+  INVENTORY_GLOB=""
+fi
 
-mapfile -t ALL_HOSTS < <(
-  find ~/GOAD/ad -path '*/providers/*/inventory' -type f 2>/dev/null \
-    | xargs -r grep -ohP 'ansible_host=\{\{ip_range\}\}\.\K[0-9]+' 2>/dev/null \
-    | sed "s/^/${IP_RANGE}./" \
-    | sort -u
-)
+if [ -n "$INVENTORY_GLOB" ]; then
+  mapfile -t ALL_HOSTS < <(
+    grep -ohP 'ansible_host=\{\{ip_range\}\}\.\K[0-9]+' "$INVENTORY_GLOB" 2>/dev/null \
+      | sed "s/^/${IP_RANGE}./" \
+      | sort -u
+  )
+else
+  echo "[*] Scanning all scenario provider inventories under ~/GOAD/ad/*/providers/*/..."
+  mapfile -t ALL_HOSTS < <(
+    find ~/GOAD/ad -path '*/providers/*/inventory' -type f 2>/dev/null \
+      | xargs -r grep -ohP 'ansible_host=\{\{ip_range\}\}\.\K[0-9]+' 2>/dev/null \
+      | sed "s/^/${IP_RANGE}./" \
+      | sort -u
+  )
+fi
 
 if [ "${#ALL_HOSTS[@]}" -eq 0 ]; then
   echo "[!] No ansible_host={{ip_range}}.N entries found under ~/GOAD/ad/*/providers/*/inventory"

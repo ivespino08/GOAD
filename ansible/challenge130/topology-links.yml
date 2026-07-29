@@ -1,18 +1,26 @@
 ---
 # Challenge130 / NewScenario22 — router-to-router link configuration.
 #
-# interface_name for each side is derived the same way topology-routers.yml
-# assigned it: eth{{2 + position of peer in r2r_interfaces.keys()}}. Both
-# playbooks must agree on ordering — they both read the same
-# lab.hosts[<router>].r2r_interfaces dict from config.json, so this holds as
-# long as config.json's key order and the Vagrantfile's :networks order for
-# that router stay in sync (hand-maintained; nothing derives one from the
-# other automatically).
+# interface_name for each side resolves via network/resolve_iface_roles:
+# on a router that hit the PCI-bridge-overflow bug (see
+# GOAD_Scenario_Build_Summary.md and fix_router_netplan.py), this reads the
+# actual current MAC-resolved eth-name; otherwise it falls back to the
+# original eth{{2 + position of peer in r2r_interfaces.keys()}} convention,
+# unchanged. Both this file and topology-routers.yml/topology-routing.yml
+# must agree on r2r_interfaces key ordering either way -- they all read the
+# same lab.hosts[<router>].r2r_interfaces dict from config.json.
 
 - import_playbook: ../data.yml
   vars:
     data_path: "../ad/Challenge130/data"
   tags: 'data'
+
+- name: "Resolve which physical interface holds each role (mgmt/r2r), MAC-based override if present"
+  hosts: routers
+  become: true
+  tasks:
+    - include_role:
+        name: network/resolve_iface_roles
 
 - name: "Configure r2r link: router-2 <-> router-4 (10.78.182.0/24)"
   hosts: router-2:router-4
@@ -22,7 +30,8 @@
         name: network/r2r_link
       vars:
         interface_name: >-
-          eth{{ (lab.hosts[dict_key].r2r_interfaces.keys() | list).index(peer_router) + 2 }}
+          {%- set idx = (lab.hosts[dict_key].r2r_interfaces.keys() | list).index(peer_router) -%}
+          {{- goad_r2r_ifaces[idx] if goad_r2r_ifaces is defined else 'eth' ~ (idx + 2) -}}
         local_router: "{{ dict_key }}"
         local_ip4: "{{ lab.hosts[dict_key].r2r_interfaces[peer_router] }}"
         peer_router: "{{ 'router-4' if dict_key == 'router-2' else 'router-2' }}"
@@ -37,7 +46,8 @@
         name: network/r2r_link
       vars:
         interface_name: >-
-          eth{{ (lab.hosts[dict_key].r2r_interfaces.keys() | list).index(peer_router) + 2 }}
+          {%- set idx = (lab.hosts[dict_key].r2r_interfaces.keys() | list).index(peer_router) -%}
+          {{- goad_r2r_ifaces[idx] if goad_r2r_ifaces is defined else 'eth' ~ (idx + 2) -}}
         local_router: "{{ dict_key }}"
         local_ip4: "{{ lab.hosts[dict_key].r2r_interfaces[peer_router] }}"
         peer_router: "{{ 'router-4' if dict_key == 'router-1' else 'router-1' }}"
@@ -52,7 +62,8 @@
         name: network/r2r_link
       vars:
         interface_name: >-
-          eth{{ (lab.hosts[dict_key].r2r_interfaces.keys() | list).index(peer_router) + 2 }}
+          {%- set idx = (lab.hosts[dict_key].r2r_interfaces.keys() | list).index(peer_router) -%}
+          {{- goad_r2r_ifaces[idx] if goad_r2r_ifaces is defined else 'eth' ~ (idx + 2) -}}
         local_router: "{{ dict_key }}"
         local_ip4: "{{ lab.hosts[dict_key].r2r_interfaces[peer_router] }}"
         peer_router: "{{ 'router-3' if dict_key == 'router-1' else 'router-1' }}"
@@ -67,7 +78,8 @@
         name: network/r2r_link
       vars:
         interface_name: >-
-          eth{{ (lab.hosts[dict_key].r2r_interfaces.keys() | list).index(peer_router) + 2 }}
+          {%- set idx = (lab.hosts[dict_key].r2r_interfaces.keys() | list).index(peer_router) -%}
+          {{- goad_r2r_ifaces[idx] if goad_r2r_ifaces is defined else 'eth' ~ (idx + 2) -}}
         local_router: "{{ dict_key }}"
         local_ip4: "{{ lab.hosts[dict_key].r2r_interfaces[peer_router] }}"
         peer_router: "{{ 'router-5' if dict_key == 'router-1' else 'router-1' }}"
@@ -82,7 +94,8 @@
         name: network/r2r_link
       vars:
         interface_name: >-
-          eth{{ (lab.hosts[dict_key].r2r_interfaces.keys() | list).index(peer_router) + 2 }}
+          {%- set idx = (lab.hosts[dict_key].r2r_interfaces.keys() | list).index(peer_router) -%}
+          {{- goad_r2r_ifaces[idx] if goad_r2r_ifaces is defined else 'eth' ~ (idx + 2) -}}
         local_router: "{{ dict_key }}"
         local_ip4: "{{ lab.hosts[dict_key].r2r_interfaces[peer_router] }}"
         peer_router: "{{ 'router-2' if dict_key == 'router-1' else 'router-1' }}"
@@ -97,7 +110,8 @@
         name: network/r2r_link
       vars:
         interface_name: >-
-          eth{{ (lab.hosts[dict_key].r2r_interfaces.keys() | list).index(peer_router) + 2 }}
+          {%- set idx = (lab.hosts[dict_key].r2r_interfaces.keys() | list).index(peer_router) -%}
+          {{- goad_r2r_ifaces[idx] if goad_r2r_ifaces is defined else 'eth' ~ (idx + 2) -}}
         local_router: "{{ dict_key }}"
         local_ip4: "{{ lab.hosts[dict_key].r2r_interfaces[peer_router] }}"
         peer_router: "{{ 'router-5' if dict_key == 'router-3' else 'router-3' }}"

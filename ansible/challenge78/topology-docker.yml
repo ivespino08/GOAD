@@ -3,7 +3,26 @@
     data_path: "../ad/Challenge78/data"
   tags: 'data'
 
-- name: "Deploy vulnerable containers"
+# FIX (this session): originally a single task passing both
+# vuln_compose_src and vuln_deploy_dir via `| default(omit)`. That's
+# unreliable here -- `omit` only reliably drops a module parameter when
+# it's the directly-templated value in the SAME task; passed through
+# `vars:` on an `include_role:`, the variable still ends up "defined"
+# inside the role (holding the literal __omit_place_holder__... string),
+# not actually absent. Since docker/vuln_node branches internally on
+# `vuln_deploy_dir is defined` to pick directory-mode vs. single-file
+# mode, that meant EVERY host was forced into directory-mode --
+# docker-2 (which genuinely wants directory-mode) never noticed, but
+# docker-1/3/5 (single-compose-file, no vuln_deploy_dir in config.json)
+# failed trying to copy a directory literally named after the omit
+# placeholder: "files/__omit_place_holder__.../".
+#
+# Fixed by splitting into two task blocks, matching the pattern already
+# working in Challenge101/Challenge137 -- vuln_deploy_dir is only ever
+# included in `vars:` at all (never assigned via default(omit)) when
+# this vuln entry genuinely has one.
+
+- name: "Deploy vulnerable Docker nodes (single compose file, no deploy dir)"
   hosts: docker_nodes
   become: true
   tags: 'docker'
@@ -15,12 +34,33 @@
         hostname: "{{ lab.hosts[dict_key].hostname }}"
         vuln_name: "{{ item.vuln_name }}"
         container_name: "{{ item.container_name }}"
-        vuln_compose_src: "{{ item.vuln_compose_src | default(omit) }}"
-        vuln_deploy_dir: "{{ item.vuln_deploy_dir | default(omit) }}"
+        vuln_compose_src: "{{ item.vuln_compose_src }}"
       loop: "{{ lab.hosts[dict_key].vulns }}"
       loop_control:
         label: "{{ item.vuln_name }}"
-      when: lab.hosts[dict_key].vulns | length > 0
+      when:
+        - lab.hosts[dict_key].vulns | length > 0
+        - item.vuln_deploy_dir is not defined
+
+- name: "Deploy vulnerable Docker nodes (with deploy dir / build context)"
+  hosts: docker_nodes
+  become: true
+  tags: 'docker'
+  tasks:
+    - name: "Deploy vuln container(s) for this host"
+      include_role:
+        name: docker/vuln_node
+      vars:
+        hostname: "{{ lab.hosts[dict_key].hostname }}"
+        vuln_name: "{{ item.vuln_name }}"
+        container_name: "{{ item.container_name }}"
+        vuln_deploy_dir: "{{ item.vuln_deploy_dir }}"
+      loop: "{{ lab.hosts[dict_key].vulns }}"
+      loop_control:
+        label: "{{ item.vuln_name }}"
+      when:
+        - lab.hosts[dict_key].vulns | length > 0
+        - item.vuln_deploy_dir is defined
 
     # docker-4 is a decoy per designer instruction: it's typed "docker" and
     # sits in the topology like a real vuln node, but ships no vulhub

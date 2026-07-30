@@ -16,21 +16,33 @@
 # had no such requirement either.
 #
 # NEW GROUP: pcs:servers (see topology-hosts.yml's note on server-4).
+#
+# `dev` target resolved via network/resolve_iface_roles below -- falls
+# back to the literal "eth1" for any host that never hit the
+# PCI-bridge-overflow bug (see fix_router_netplan.py).
 
 - import_playbook: ../data.yml
   vars:
     data_path: "../ad/Challenge101/data"
   tags: 'data'
 
+- name: "Resolve which physical interface holds each role (mgmt/r2r), MAC-based override if present"
+  hosts: pcs:servers:docker_nodes
+  become: true
+  tasks:
+    - include_role:
+        name: network/resolve_iface_roles
+
 - name: "Persist default route via router LAN gateway"
   hosts: pcs:servers:docker_nodes
   become: true
-  roles:
-    - role: 'network/persist_boot_commands'
+  tasks:
+    - include_role:
+        name: network/persist_boot_commands
       vars:
         persist_unit_name: "lab-default-route"
         persist_description: "Persist default route via router LAN gateway across reboots"
         persist_after: ["lab-ip-eth1.service"]
         persist_commands:
-          - "ip route replace default via {{lab.hosts[dict_key].gateway}} dev eth1 || true"
+          - "ip route replace default via {{lab.hosts[dict_key].gateway}} dev {{ goad_mgmt_iface | default('eth1') }} || true"
       when: lab.hosts[dict_key].gateway is defined

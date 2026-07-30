@@ -1,7 +1,7 @@
 ---
 # ansible/challenge101/topology-routing.yml
 # Configures RIP routing on all routers via FRR.
-# eth0 (NAT) and eth1 (management) are both passive — RIP must only run
+# eth0 (NAT) and the mgmt interface are both passive — RIP must only run
 # on the r2r interfaces to enforce the multi-hop chain, same as Scenario3.
 #
 # PROACTIVE FIX (not a reproduction of a known bug): router-5 in this
@@ -13,25 +13,44 @@
 # it here now that it's known, rip_networks_lan below is guarded so a
 # null/undefined lan_subnet contributes nothing to the RIP network list
 # instead of injecting a literal "None" into rip_networks.
+#
+# rip_passive_interfaces: eth0 (NAT) is left as a literal name — per
+# fix_router_netplan.py's own docstring, eth0/NAT is never remapped, only
+# eth1+ are ever affected by the PCI-bridge-overflow bug, so eth0 is safe
+# to hardcode. The mgmt interface (originally eth1) is NOT safe to
+# hardcode, since that's exactly the adapter that can shift on an
+# affected router — resolved via network/resolve_iface_roles below,
+# falling back to eth1 on every router that was never affected.
 
 - import_playbook: ../data.yml
   vars:
     data_path: "../ad/Challenge101/data"
   tags: 'data'
 
+- name: "Resolve which physical interface holds each role (mgmt/r2r), MAC-based override if present"
+  hosts: routers
+  become: true
+  tasks:
+    - include_role:
+        name: network/resolve_iface_roles
+
 - name: "Configure RIP routing on all routers"
   hosts: routers
   become: true
-  roles:
-    - { role: 'network/rip', tags: 'rip' }
-  vars:
-    routing_protocol: "{{lab.hosts[dict_key].protocol}}"
-    rip_networks_lan: >-
-      {{
-        [lab.hosts[dict_key].lan_subnet]
-        if (lab.hosts[dict_key].lan_subnet is defined and lab.hosts[dict_key].lan_subnet is not none)
-        else []
-      }}
-    rip_networks_r2r: "{{lab.hosts[dict_key].r2r_subnets | default([])}}"
-    rip_networks: "{{rip_networks_lan + rip_networks_r2r}}"
-    rip_passive_interfaces: ["eth0", "eth1"]
+  tasks:
+    - include_role:
+        name: network/rip
+      vars:
+        routing_protocol: "{{lab.hosts[dict_key].protocol}}"
+        rip_networks_lan: >-
+          {{
+            [lab.hosts[dict_key].lan_subnet]
+            if (lab.hosts[dict_key].lan_subnet is defined and lab.hosts[dict_key].lan_subnet is not none)
+            else []
+          }}
+        rip_networks_r2r: "{{lab.hosts[dict_key].r2r_subnets | default([])}}"
+        rip_networks: "{{rip_networks_lan + rip_networks_r2r}}"
+        rip_passive_interfaces:
+          - eth0
+          - "{{ goad_mgmt_iface | default('eth1') }}"
+      tags: 'rip'

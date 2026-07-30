@@ -13,30 +13,43 @@
 # group to this play's `hosts:` line rather than writing a parallel task
 # block. If servers ever need something pcs don't (extra services,
 # different persist ordering), split it back out at that point.
+#
+# `dev` target resolved via network/resolve_iface_roles below -- falls
+# back to the literal "eth1" for any host that never hit the
+# PCI-bridge-overflow bug (see fix_router_netplan.py).
 
 - import_playbook: ../data.yml
   vars:
     data_path: "../ad/Challenge101/data"
   tags: 'data'
 
+- name: "Resolve which physical interface holds each role (mgmt/r2r), MAC-based override if present"
+  hosts: pcs:servers:docker_nodes
+  become: true
+  tasks:
+    - include_role:
+        name: network/resolve_iface_roles
+
 - name: "Persist PC/Server lab IPs on eth1"
   hosts: pcs:servers
   become: true
-  roles:
-    - role: 'network/persist_boot_commands'
+  tasks:
+    - include_role:
+        name: network/persist_boot_commands
       vars:
         persist_unit_name: "lab-ip-eth1"
         persist_description: "Persist lab IP on eth1 across reboots"
         persist_commands:
-          - "ip addr add {{lab.hosts[dict_key].ip4}} dev eth1 || true"
+          - "ip addr add {{lab.hosts[dict_key].ip4}} dev {{ goad_mgmt_iface | default('eth1') }} || true"
 
 - name: "Persist Docker host lab IPs on eth1"
   hosts: docker_nodes
   become: true
-  roles:
-    - role: 'network/persist_boot_commands'
+  tasks:
+    - include_role:
+        name: network/persist_boot_commands
       vars:
         persist_unit_name: "lab-ip-eth1"
         persist_description: "Persist lab IP on eth1 across reboots"
         persist_commands:
-          - "ip addr add {{lab.hosts[dict_key].ip4}} dev eth1 || true"
+          - "ip addr add {{lab.hosts[dict_key].ip4}} dev {{ goad_mgmt_iface | default('eth1') }} || true"

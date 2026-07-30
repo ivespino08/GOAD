@@ -9,34 +9,47 @@
 # This scenario has one Server-role node (server-4), same shape as
 # Challenge101's — functionally identical to a pc (static ip4 + gateway,
 # no vulns), handled by including "servers" in this play's hosts: line.
+#
+# `dev` target resolved via network/resolve_iface_roles below -- falls
+# back to the literal "eth1" for any host that never hit the
+# PCI-bridge-overflow bug (see fix_router_netplan.py).
 
 - import_playbook: ../data.yml
   vars:
     data_path: "../ad/Challenge137/data"
   tags: 'data'
 
+- name: "Resolve which physical interface holds each role (mgmt/r2r), MAC-based override if present"
+  hosts: pcs:servers:docker_nodes
+  become: true
+  tasks:
+    - include_role:
+        name: network/resolve_iface_roles
+
 - name: "Persist PC/Server lab IPs on eth1"
   hosts: pcs:servers
   become: true
   vars:
     dict_key: "{{inventory_hostname}}"
-  roles:
-    - role: 'network/persist_boot_commands'
+  tasks:
+    - include_role:
+        name: network/persist_boot_commands
       vars:
         persist_unit_name: "lab-ip-eth1"
         persist_description: "Persist lab IP on eth1 across reboots"
         persist_commands:
-          - "ip addr add {{lab.hosts[dict_key].ip4}} dev eth1 || true"
+          - "ip addr add {{lab.hosts[dict_key].ip4}} dev {{ goad_mgmt_iface | default('eth1') }} || true"
 
 - name: "Persist Docker host lab IPs on eth1"
   hosts: docker_nodes
   become: true
   vars:
     dict_key: "{{inventory_hostname}}"
-  roles:
-    - role: 'network/persist_boot_commands'
+  tasks:
+    - include_role:
+        name: network/persist_boot_commands
       vars:
         persist_unit_name: "lab-ip-eth1"
         persist_description: "Persist lab IP on eth1 across reboots"
         persist_commands:
-          - "ip addr add {{lab.hosts[dict_key].ip4}} dev eth1 || true"
+          - "ip addr add {{lab.hosts[dict_key].ip4}} dev {{ goad_mgmt_iface | default('eth1') }} || true"

@@ -18,21 +18,33 @@
 # as-is from the source XML's PlanPreview), it just isn't anyone's
 # gateway. No special-casing needed here; this play is generic over the
 # routers group either way.
+#
+# `dev` target resolved via network/resolve_iface_roles below -- falls
+# back to the literal "eth1" for any router that never hit the
+# PCI-bridge-overflow bug (see fix_router_netplan.py).
 
 - import_playbook: ../data.yml
   vars:
     data_path: "../ad/Challenge137/data"
   tags: 'data'
 
+- name: "Resolve which physical interface holds each role (mgmt/r2r), MAC-based override if present"
+  hosts: routers
+  become: true
+  tasks:
+    - include_role:
+        name: network/resolve_iface_roles
+
 - name: "Persist router LAN IP on eth1"
   hosts: routers
   become: true
   vars:
     dict_key: "{{inventory_hostname}}"
-  roles:
-    - role: 'network/persist_boot_commands'
+  tasks:
+    - include_role:
+        name: network/persist_boot_commands
       vars:
         persist_unit_name: "lab-ip-eth1"
         persist_description: "Persist router LAN gateway IP on eth1 across reboots"
         persist_commands:
-          - "ip addr add {{lab.hosts[dict_key].ip4}} dev eth1 || true"
+          - "ip addr add {{lab.hosts[dict_key].ip4}} dev {{ goad_mgmt_iface | default('eth1') }} || true"

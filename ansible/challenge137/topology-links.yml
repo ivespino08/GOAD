@@ -16,11 +16,27 @@
 # router-1 is the hub (degree 4 — appears in 4 of 6 r2r_links entries,
 # per the source XML's r2r_degree_preview: {"1":4,"2":2,"3":2,"4":2,"5":2}),
 # same shape as Challenge101's router-1 hub.
+#
+# interface_name resolution: idx is computed the same way as before
+# (this router's own position of the peer router within its own
+# r2r_interfaces dict, NOT loop position in lab.topology.r2r_links) —
+# goad_r2r_ifaces (from network/resolve_iface_roles below) is index-
+# aligned with that same r2r_interfaces ordering, so idx doubles as the
+# lookup key into it. On a router never affected by the
+# PCI-bridge-overflow bug, goad_r2r_ifaces is undefined and this falls
+# back to the eth{{ idx + 2 }} convention, unchanged.
 
 - import_playbook: ../data.yml
   vars:
     data_path: "../ad/Challenge137/data"
   tags: 'data'
+
+- name: "Resolve which physical interface holds each role (mgmt/r2r), MAC-based override if present"
+  hosts: routers
+  become: true
+  tasks:
+    - include_role:
+        name: network/resolve_iface_roles
 
 - name: "Configure router-to-router links"
   hosts: routers
@@ -39,13 +55,11 @@
         peer_router: "{{_ids[_peer_idx | int]}}"
         peer_ip4:    "{{_ips[_peer_idx | int]}}"
         link_subnet: "{{item.subnet}}"
-        # eth0=NAT, eth1=management, eth2+=r2r (offset +2).
+        # eth0=NAT, eth1=management, eth2+=r2r (offset +2) -- unless
+        # goad_r2r_ifaces says otherwise (see note above).
         interface_name: >-
-          {{"eth" + (
-            (lab.hosts[dict_key].r2r_interfaces.keys() | list).index(
-              _ids[_peer_idx | int]
-            ) + 2
-          ) | string}}
+          {%- set idx = (lab.hosts[dict_key].r2r_interfaces.keys() | list).index(_ids[_peer_idx | int]) -%}
+          {{- goad_r2r_ifaces[idx] if goad_r2r_ifaces is defined else 'eth' ~ (idx + 2) -}}
       loop: "{{lab.topology.r2r_links}}"
       when: dict_key in (item.routers | map(attribute='id') | list)
       loop_control:

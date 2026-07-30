@@ -3,6 +3,13 @@
     data_path: "../ad/Challenge78/data"
   tags: 'data'
 
+- name: "Resolve which physical interface holds each role (mgmt/r2r), MAC-based override if present"
+  hosts: routers
+  become: true
+  tasks:
+    - include_role:
+        name: network/resolve_iface_roles
+
 - name: "Configure r2r point-to-point links"
   hosts: routers
   become: true
@@ -12,11 +19,16 @@
       ansible.builtin.set_fact:
         my_r2r_peers: "{{ lab.hosts[dict_key].r2r_interfaces.keys() | list }}"
 
+    # interface_name resolved via network/resolve_iface_roles above --
+    # goad_r2r_ifaces is index-aligned with this same r2r_interfaces
+    # dict2items order, so idx doubles as the lookup key into it. Falls
+    # back to the eth{{2 + idx}} convention, unchanged, on any router
+    # never affected by the PCI-bridge-overflow bug.
     - name: "Configure r2r_link role for each peer"
       include_role:
         name: network/r2r_link
       vars:
-        interface_name: "eth{{ 2 + idx }}"
+        interface_name: "{{ goad_r2r_ifaces[idx] if goad_r2r_ifaces is defined else 'eth' ~ (2 + idx) }}"
         local_router: "{{ dict_key }}"
         local_ip4: "{{ item.value }}"
         peer_router: "router-{{ item.key }}"

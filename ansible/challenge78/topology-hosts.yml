@@ -3,6 +3,13 @@
     data_path: "../ad/Challenge78/data"
   tags: 'data'
 
+- name: "Resolve which physical interface holds each role (mgmt/r2r), MAC-based override if present"
+  hosts: docker_nodes:pcs:servers
+  become: true
+  tasks:
+    - include_role:
+        name: network/resolve_iface_roles
+
 # Corrected: non-router hosts get their LAN address the same way routers get
 # their switch subnets — a secondary `ip addr add` on eth1, alongside the
 # management IP Vagrant already assigned at boot. The earlier version called
@@ -12,13 +19,17 @@
 # eth1, the LAN subnet never actually landed on the interface — which is why
 # topology-services.yml's gateway route failed with "Nexthop has invalid
 # gateway" on every single host: eth1 only ever had the management address.
+#
+# `dev` target resolved via network/resolve_iface_roles above -- falls back
+# to the literal "eth1" for any host that never hit the PCI-bridge-overflow
+# bug (see fix_router_netplan.py).
 - name: "Add host LAN address as secondary on eth1"
   hosts: docker_nodes:pcs:servers
   become: true
   tags: 'hosts'
   tasks:
-    - name: "ip addr add {{ lab.hosts[dict_key].ip4 }} dev eth1"
-      ansible.builtin.command: "ip addr add {{ lab.hosts[dict_key].ip4 }} dev eth1"
+    - name: "ip addr add {{ lab.hosts[dict_key].ip4 }} dev {{ goad_mgmt_iface | default('eth1') }}"
+      ansible.builtin.command: "ip addr add {{ lab.hosts[dict_key].ip4 }} dev {{ goad_mgmt_iface | default('eth1') }}"
       register: addr_add_result
       failed_when:
         - addr_add_result.rc != 0

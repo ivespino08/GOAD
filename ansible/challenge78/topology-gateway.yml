@@ -3,6 +3,13 @@
     data_path: "../ad/Challenge78/data"
   tags: 'data'
 
+- name: "Resolve which physical interface holds each role (mgmt/r2r), MAC-based override if present"
+  hosts: docker_nodes:pcs:servers
+  become: true
+  tasks:
+    - include_role:
+        name: network/resolve_iface_roles
+
 # Runs LAST in playbooks.yml, after every apt-based install in the whole
 # scenario (topology-services.yml's HTTP install, topology-docker.yml's
 # Docker engine + vuln containers). Repointing a host's default route at
@@ -10,6 +17,10 @@
 # explicit metric on a manually-added route beats the DHCP-assigned NAT
 # default), which kills internet reachability for anything that still
 # needs apt afterward — so nothing that needs apt can run after this file.
+#
+# interface_name resolved via network/resolve_iface_roles above -- falls
+# back to the literal "eth1" for any host that never hit the
+# PCI-bridge-overflow bug (see fix_router_netplan.py).
 - name: "Set default gateway on non-router hosts (last network change of the run)"
   hosts: docker_nodes:pcs:servers
   become: true
@@ -19,7 +30,7 @@
       include_role:
         name: network/gateway
       vars:
-        interface_name: "eth1"
+        interface_name: "{{ goad_mgmt_iface | default('eth1') }}"
         interface_ip4: "{{ lab.hosts[dict_key].ip4 }}"
         gateway_ip4: "{{ lab.hosts[dict_key].gateway }}"
       when: lab.hosts[dict_key].gateway is defined

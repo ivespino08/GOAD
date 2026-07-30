@@ -3,9 +3,19 @@
     data_path: "../ad/Challenge78/data"
   tags: 'data'
 
+- name: "Resolve which physical interface holds each role (mgmt/r2r), MAC-based override if present"
+  hosts: routers
+  become: true
+  tasks:
+    - include_role:
+        name: network/resolve_iface_roles
+
 # Configure each router's r2r-facing adapters (eth2, eth3, ...) in the same
 # order as lab.hosts[dict_key].r2r_interfaces, matching the :networks order
-# in the Vagrantfile so eth{{2+idx}} always lands on the intended peer link.
+# in the Vagrantfile so eth{{2+idx}} always lands on the intended peer link
+# -- UNLESS this router hit the PCI-bridge-overflow bug (see
+# fix_router_netplan.py), in which case goad_r2r_ifaces (resolved above)
+# is used instead.
 - name: "Configure router r2r interfaces"
   hosts: routers
   become: true
@@ -15,20 +25,23 @@
       include_role:
         name: network/interface
       vars:
-        interface_name: "eth{{ 2 + idx }}"
+        interface_name: "{{ goad_r2r_ifaces[idx] if goad_r2r_ifaces is defined else 'eth' ~ (2 + idx) }}"
         interface_ip4: "{{ item.value }}"
       loop: "{{ lab.hosts[dict_key].r2r_interfaces | dict2items }}"
       loop_control:
         index_var: idx
         label: "eth{{ 2 + idx }} -> {{ item.value }}"
 
+# `dev` target resolved via network/resolve_iface_roles above -- falls back
+# to the literal "eth1" for any router that never hit the
+# PCI-bridge-overflow bug (see fix_router_netplan.py).
 - name: "Add router LAN (switch) subnets as secondary addresses on eth1"
   hosts: routers
   become: true
   tags: 'routers'
   tasks:
-    - name: "ip addr add {{ item.router_ip4 }} dev eth1"
-      ansible.builtin.command: "ip addr add {{ item.router_ip4 }} dev eth1"
+    - name: "ip addr add {{ item.router_ip4 }} dev {{ goad_mgmt_iface | default('eth1') }}"
+      ansible.builtin.command: "ip addr add {{ item.router_ip4 }} dev {{ goad_mgmt_iface | default('eth1') }}"
       register: addr_add_result
       failed_when:
         - addr_add_result.rc != 0

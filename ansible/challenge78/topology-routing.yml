@@ -3,12 +3,27 @@
     data_path: "../ad/Challenge78/data"
   tags: 'data'
 
+- name: "Resolve which physical interface holds each role (mgmt/r2r), MAC-based override if present"
+  hosts: routers
+  become: true
+  tasks:
+    - include_role:
+        name: network/resolve_iface_roles
+
 # Challenge78 is OSPFv2 (config.json / XML routing_protocol), not RIP —
 # uses the new network/ospf role. r2r subnets and this router's own LAN
 # (switch) subnets are all advertised via "network ... area 0"; eth0
-# (NAT) and eth1 (management, which also carries the LAN secondary IPs)
-# stay passive so OSPF adjacencies only form over the dedicated r2r
+# (NAT) and the mgmt interface (which also carries the LAN secondary
+# IPs) stay passive so OSPF adjacencies only form over the dedicated r2r
 # adapters (eth2+), never over management.
+#
+# ospf_passive_interfaces: eth0 (NAT) is left as a literal name — per
+# fix_router_netplan.py's own docstring, eth0/NAT is never remapped, only
+# eth1+ are ever affected by the PCI-bridge-overflow bug, so eth0 is safe
+# to hardcode. The mgmt interface (originally eth1) is NOT safe to
+# hardcode, since that's exactly the adapter that can shift on an
+# affected router — resolved via network/resolve_iface_roles above,
+# falling back to eth1 on every router that was never affected.
 - name: "Configure OSPFv2 routing"
   hosts: routers
   become: true
@@ -26,4 +41,4 @@
           }}
         ospf_passive_interfaces:
           - eth0
-          - eth1
+          - "{{ goad_mgmt_iface | default('eth1') }}"

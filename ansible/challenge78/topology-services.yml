@@ -3,6 +3,13 @@
     data_path: "../ad/Challenge78/data"
   tags: 'data'
 
+- name: "Resolve which physical interface holds each role (mgmt/r2r), MAC-based override if present"
+  hosts: docker_nodes:pcs:servers
+  become: true
+  tasks:
+    - include_role:
+        name: network/resolve_iface_roles
+
 # NOTE: the default-gateway play that used to live here has moved to
 # topology-gateway.yml, run LAST in playbooks.yml (after topology-docker.yml
 # and topology-traffic.yml). Setting each host's default route to its LAN
@@ -33,6 +40,9 @@
         enabled: true
       when: "'HTTP' in lab.hosts[dict_key].services"
 
+# interface_name resolved via network/resolve_iface_roles above -- falls
+# back to the literal "eth1" for any host that never hit the
+# PCI-bridge-overflow bug (see fix_router_netplan.py).
 - name: "Configure DHCPClient service on hosts advertising it"
   hosts: docker_nodes:pcs:servers
   become: true
@@ -42,7 +52,7 @@
       include_role:
         name: network/services/dhcp_client
       vars:
-        interface_name: "eth1"
+        interface_name: "{{ goad_mgmt_iface | default('eth1') }}"
         lan_subnet: "{{ lab.hosts[dict_key].lan_subnet }}"
         gateway_ip4: "{{ lab.hosts[dict_key].gateway }}"
       when: "'DHCPClient' in lab.hosts[dict_key].services"

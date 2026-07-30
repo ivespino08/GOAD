@@ -4,11 +4,24 @@
     data_path: "../ad/Challenge70/data"
   tags: 'data'
 
+- name: "Resolve which physical interface holds each role (mgmt/r2r), MAC-based override if present"
+  hosts: routers
+  become: true
+  tasks:
+    - include_role:
+        name: network/resolve_iface_roles
+
 # interface_name for each r2r link is derived from this router's own position
 # in lab.hosts[dict_key].r2r_interfaces (an ordered dict) — eth2 is the first
 # key, eth3 the second, etc. This MUST stay in the same order as the
 # Vagrantfile's :networks array for the same router, since both are
 # hand-maintained independently and nothing derives one from the other.
+#
+# goad_r2r_ifaces (from network/resolve_iface_roles above) is index-aligned
+# with this same dict2items order, so idx doubles as the lookup key into it.
+# On a router never affected by the PCI-bridge-overflow bug, goad_r2r_ifaces
+# is undefined and this falls back to the eth{{ idx + 2 }} convention,
+# unchanged.
 - name: "Configure r2r links on every router"
   hosts: routers
   become: true
@@ -19,7 +32,7 @@
       include_role:
         name: 'network/r2r_link'
       vars:
-        interface_name: "eth{{ idx + 2 }}"
+        interface_name: "{{ goad_r2r_ifaces[idx] if goad_r2r_ifaces is defined else 'eth' ~ (idx + 2) }}"
         local_router: "{{inventory_hostname}}"
         local_ip4: "{{item.value}}"
         peer_router: "{{item.key}}"

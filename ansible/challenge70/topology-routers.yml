@@ -4,23 +4,35 @@
     data_path: "../ad/Challenge70/data"
   tags: 'data'
 
+- name: "Resolve which physical interface holds each role (mgmt/r2r), MAC-based override if present"
+  hosts: routers
+  become: true
+  tasks:
+    - include_role:
+        name: network/resolve_iface_roles
+
 # Each router's own LAN-facing address (the switch/host-facing subnet) is
 # added as a SECONDARY address on the shared management interface (eth1) —
 # there is no dedicated LAN adapter, per the established GOAD-fork
 # convention. Uses persist_boot_commands so this survives reboot.yml at the
 # end of the run (bare `ip addr add` is pure runtime state and is silently
 # wiped on reboot otherwise).
+#
+# `dev` target resolved via network/resolve_iface_roles above -- falls back
+# to the literal "eth1" for any router that never hit the
+# PCI-bridge-overflow bug (see fix_router_netplan.py).
 - name: "Configure router LAN address (secondary on eth1)"
   hosts: routers
   become: true
   vars:
     dict_key: "{{inventory_hostname}}"
-  roles:
-    - role: 'network/persist_boot_commands'
-      when: lab.hosts[dict_key].lan_subnet is not none
+  tasks:
+    - include_role:
+        name: network/persist_boot_commands
       vars:
         persist_unit_name: "lab-router-lan-eth1"
         persist_description: "Persist router LAN IP on eth1 across reboots"
         persist_commands:
-          - "ip addr add {{lab.hosts[dict_key].ip4}} dev eth1 || true"
+          - "ip addr add {{lab.hosts[dict_key].ip4}} dev {{ goad_mgmt_iface | default('eth1') }} || true"
+      when: lab.hosts[dict_key].lan_subnet is not none
   tags: 'routers'

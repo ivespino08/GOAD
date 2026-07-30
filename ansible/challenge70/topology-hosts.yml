@@ -4,6 +4,13 @@
     data_path: "../ad/Challenge70/data"
   tags: 'data'
 
+- name: "Resolve which physical interface holds each role (mgmt/r2r), MAC-based override if present"
+  hosts: docker_nodes:pcs:servers
+  become: true
+  tasks:
+    - include_role:
+        name: network/resolve_iface_roles
+
 # Per the Challenge78 finding: non-router host LAN addresses must be added as
 # a SECONDARY address on eth1 via `ip addr add`, matching the router
 # convention exactly. Using `network/interface` (nmcli) here instead silently
@@ -11,16 +18,21 @@
 # management binding, breaking every later default-route task with
 # "Nexthop has invalid gateway". persist_boot_commands makes this survive
 # reboot.yml.
+#
+# `dev` target resolved via network/resolve_iface_roles above -- falls back
+# to the literal "eth1" for any host that never hit the PCI-bridge-overflow
+# bug (see fix_router_netplan.py).
 - name: "Configure docker/pc/server LAN address (secondary on eth1)"
   hosts: docker_nodes:pcs:servers
   become: true
   vars:
     dict_key: "{{inventory_hostname}}"
-  roles:
-    - role: 'network/persist_boot_commands'
+  tasks:
+    - include_role:
+        name: network/persist_boot_commands
       vars:
         persist_unit_name: "lab-ip-eth1"
         persist_description: "Persist lab IP on eth1 across reboots"
         persist_commands:
-          - "ip addr add {{lab.hosts[dict_key].ip4}} dev eth1 || true"
+          - "ip addr add {{lab.hosts[dict_key].ip4}} dev {{ goad_mgmt_iface | default('eth1') }} || true"
   tags: 'hosts'

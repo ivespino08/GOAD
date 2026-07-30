@@ -3,6 +3,7 @@ import argparse
 import os
 import subprocess
 import sys
+import tempfile
 import time
 from goad.config import Config
 from goad.log import Log
@@ -93,7 +94,12 @@ class Goad(cmd.Cmd):
 
     def do_destroy(self, arg=''):
         if self.lab_manager.get_current_instance_provider():
+            instance = self.lab_manager.get_current_instance()
+            # Must collect BEFORE destroy() -- vagrant destroy deletes the
+            # .vagrant/.vmx state this reads from.
+            vnet_state_file = self.collect_instance_vmware_vnets(instance)
             self.lab_manager.get_current_instance_provider().destroy()
+            self.cleanup_vmware_vnets(vnet_state_file)
 
     def do_destroy_vm(self, arg):
         if arg == '':
@@ -255,6 +261,100 @@ class Goad(cmd.Cmd):
         if result.returncode != 0:
             Log.error('fix_vmware_router_netplan: script exited non-zero -- '
                        'review the output above before continuing to prepare_jumpbox/provision_lab')
+
+    def collect_instance_vmware_vnets(self, instance):
+        """
+        Runs BEFORE `vagrant destroy`. Records which vmnetX adapters this
+        instance's own VMs reference (read straight from their live .vmx
+        files, same discovery fix_router_vnets.py already trusts) so they
+        can be freed up by cleanup_vmware_vnets() once destroy() tears the
+        .vagrant/.vmx state down. VMware-only; returns None (nothing
+        precise to clean up -- cleanup_vmware_vnets() will fall back to
+        --all) for any other provider, or if collection fails for any
+        reason.
+
+        This exists because VMware Workstation caps total vmnets at 20;
+        running scenarios back-to-back without freeing each one's vmnets
+        on destroy eventually exhausts that cap and the NEXT scenario's
+        `vagrant up` fails outright.
+        """
+        if instance is None or instance.provider_name != 'vmware':
+            return None
+
+        vagrantfile = os.path.join(instance.instance_provider_path, 'Vagrantfile')
+        machines_dir = os.path.join(instance.instance_provider_path, '.vagrant', 'machines')
+        script = GoadPath.get_script_file('cleanup_vmware_vnets.py')
+
+        if not os.path.isfile(vagrantfile) or not os.path.isdir(machines_dir) or not os.path.isfile(script):
+            Log.error('collect_instance_vmware_vnets: Vagrantfile/.vagrant state/script '
+                       'missing, skipping precise vnet collection (cleanup will fall back '
+                       'to --all after destroy)')
+            return None
+
+        instance_id = self.lab_manager.get_current_instance_id()
+        state_file = os.path.join(tempfile.gettempdir(), f'goad-vnets-{instance_id}.json')
+
+        result = subprocess.run(
+            ['python3', script, 'collect',
+             '--vagrantfile', vagrantfile,
+             '--machines-dir', machines_dir,
+             '--state-file', state_file],
+            capture_output=True, text=True
+        )
+        for line in result.stdout.splitlines():
+            Log.info(f'[vnet-cleanup] {line}')
+        for line in result.stderr.splitlines():
+            Log.error(f'[vnet-cleanup] {line}')
+
+        if result.returncode != 0 or not os.path.isfile(state_file):
+            Log.error('collect_instance_vmware_vnets: collection failed -- '
+                       'cleanup will fall back to --all after destroy')
+            return None
+        return state_file
+
+    def cleanup_vmware_vnets(self, state_file):
+        """
+        Runs AFTER `vagrant destroy` completes. Frees the vmnets this
+        instance was using (per state_file, if collection above succeeded)
+        or falls back to removing every non-protected vmnet currently
+        registered on the host if it didn't. Requires Administrator rights
+        for vnetlib.exe -- cleanup_vmware_vnets.py batches every removal
+        into a single elevation prompt rather than one per adapter.
+
+        Safe to call unconditionally: no-ops immediately (with a log line)
+        on any non-Windows host, since vnetlib.exe / this whole vmnet cap
+        is a VMware-Workstation-on-Windows-specific concern.
+        """
+        script = GoadPath.get_script_file('cleanup_vmware_vnets.py')
+        if not os.path.isfile(script):
+            return
+
+        vnetlib_path = self.lab_manager.config.get_value('vmware', 'vnetlib_path', fallback=None)
+
+        cmd = ['python3', script, 'apply']
+        if state_file and os.path.isfile(state_file):
+            cmd += ['--state-file', state_file]
+        else:
+            Log.info('No per-scenario vnet state available -- falling back to removing '
+                      'all non-protected vmnets currently registered on this host')
+            cmd += ['--all']
+        if vnetlib_path:
+            cmd += ['--vnetlib', vnetlib_path]
+
+        Log.info('Freeing VMware vmnets used by this scenario (may prompt for '
+                  'Administrator access)...')
+        result = subprocess.run(cmd, capture_output=True, text=True)
+        for line in result.stdout.splitlines():
+            Log.info(f'[vnet-cleanup] {line}')
+        for line in result.stderr.splitlines():
+            Log.error(f'[vnet-cleanup] {line}')
+
+        if state_file and os.path.isfile(state_file):
+            os.remove(state_file)
+
+        if result.returncode != 0:
+            Log.error('cleanup_vmware_vnets: script exited non-zero -- some vmnets may '
+                       'still be attached; review the output above')
 
     def do_provision(self, arg):
         if arg == '':

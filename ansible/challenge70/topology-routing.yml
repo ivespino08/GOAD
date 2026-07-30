@@ -4,23 +4,39 @@
     data_path: "../ad/Challenge70/data"
   tags: 'data'
 
+- name: "Resolve which physical interface holds each role (mgmt/r2r), MAC-based override if present"
+  hosts: routers
+  become: true
+  tasks:
+    - include_role:
+        name: network/resolve_iface_roles
+
 # routing_protocol is RIP per Challenge70_meta.json / the XML's Routing
 # section. rip_networks covers this router's own LAN subnet plus every r2r
 # subnet it participates in (read directly from r2r_subnets, per the
 # existing convention, to avoid complex Jinja2 filtering over r2r_links).
-# eth0 (NAT) and eth1 (management + LAN secondary) are passive so RIP only
-# runs on the dedicated r2r adapters (eth2+).
+#
+# rip_passive_interfaces: eth0 (NAT) is left as a literal name — per
+# fix_router_netplan.py's own docstring, eth0/NAT is never remapped, only
+# eth1+ are ever affected by the PCI-bridge-overflow bug, so eth0 is safe
+# to hardcode. The mgmt interface (originally eth1) is NOT safe to
+# hardcode, since that's exactly the adapter that can shift on an affected
+# router — resolved via network/resolve_iface_roles above, falling back to
+# eth1 on every router that was never affected.
 - name: "Configure RIP on every router"
   hosts: routers
   become: true
   vars:
     dict_key: "{{inventory_hostname}}"
-  roles:
-    - role: 'network/rip'
+  tasks:
+    - include_role:
+        name: network/rip
       vars:
         routing_protocol: "RIP"
         rip_networks: >-
           {{ ([lab.hosts[dict_key].lan_subnet] if lab.hosts[dict_key].lan_subnet is not none else [])
              + lab.hosts[dict_key].r2r_subnets }}
-        rip_passive_interfaces: ["eth0", "eth1"]
+        rip_passive_interfaces:
+          - eth0
+          - "{{ goad_mgmt_iface | default('eth1') }}"
   tags: 'routing'

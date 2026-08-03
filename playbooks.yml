@@ -113,6 +113,17 @@ Scenario12:
   - scenario12/topology-services.yml
   - reboot.yml
 
+Challenge43:
+  - challenge43/topology-routers.yml
+  - challenge43/topology-links.yml
+  - challenge43/topology-hosts.yml
+  - challenge43/topology-routing.yml
+  - challenge43/topology-services.yml
+  - challenge43/topology-docker.yml
+  - challenge43/topology-flags.yml
+  - challenge43/topology-traffic.yml
+  - reboot.yml
+
 Challenge6:
   - challenge6/topology-routers.yml
   - challenge6/topology-links.yml

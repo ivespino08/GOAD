@@ -8,7 +8,7 @@
 
 - import_playbook: ../data.yml
   vars:
-    data_path: "../ad/challenge43/data"
+    data_path: "../ad/Challenge43/data"
   tags: 'data'
 
 - name: "Resolve which physical interface holds each role (mgmt/r2r/lan), MAC-based override if present"

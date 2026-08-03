@@ -6,7 +6,7 @@
 
 - import_playbook: ../data.yml
   vars:
-    data_path: "../ad/challenge43/data"
+    data_path: "../ad/Challenge43/data"
   tags: 'data'
 
 - name: "Configure host lab-network addressing"

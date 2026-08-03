@@ -1,0 +1,73 @@
+---
+# Challenge43 / NewScenario22 — SSH/HTTP/DHCPClient services.
+# Per Challenge43.xml PlanPreview.services_preview:
+#   docker-1(6):  SSH, DHCPClient   docker-2(7):  SSH, HTTP
+#   docker-3(8):  SSH, DHCPClient   docker-4(9):  HTTP, DHCPClient
+#   docker-5(10): SSH, DHCPClient   pc-6(11):     SSH, HTTP
+#   pc-7(12):     HTTP, DHCPClient  server-8(13): HTTP
+#
+# HTTP is only installed as a plain apache2 page on docker-4/pc-6/pc-7/
+# server-8. docker-2's HTTP entry is the weblogic vuln container's own web
+# listener (see topology-docker.yml) — installing apache2 there too would
+# just fight it for port 80/8080, same reasoning as Challenge130's
+# pgadmin/adminer HTTP note. docker-1/3/5 have no HTTP entry at all in the
+# services_preview (their vulns are exploited via non-HTTP vectors: bash
+# CGI, PHP-FPM, joomla is HTTP but wasn't given the HTTP service tag here —
+# left as the XML specifies rather than "corrected").
+
+- import_playbook: ../data.yml
+  vars:
+    data_path: "../ad/challenge43/data"
+  tags: 'data'
+
+- name: "Ensure SSH is present and running on all lab hosts"
+  hosts: domain
+  become: true
+  tasks:
+    - name: "Update apt cache"
+      ansible.builtin.apt:
+        update_cache: yes
+        cache_valid_time: 3600
+
+    - name: "Install openssh-server"
+      ansible.builtin.package:
+        name: openssh-server
+        state: present
+
+    - name: "Ensure sshd is enabled and running"
+      ansible.builtin.systemd:
+        name: ssh
+        enabled: true
+        state: started
+
+- name: "Install a plain HTTP service on non-vuln HTTP-tagged hosts"
+  hosts: docker-4:pc-6:pc-7:server-8
+  become: true
+  tasks:
+    - name: "Install apache2"
+      ansible.builtin.apt:
+        name: apache2
+        state: present
+        update_cache: yes
+        cache_valid_time: 3600
+
+    - name: "Ensure apache2 is enabled and running"
+      ansible.builtin.systemd:
+        name: apache2
+        enabled: true
+        state: started
+
+- name: "Install DHCP client on DHCPClient-tagged hosts"
+  hosts: dhcp_clients
+  become: true
+  tasks:
+    # NOTE: installs/enables the DHCP client daemon package only. Does NOT
+    # switch eth1 to DHCP -- eth1 already carries a static lab-network IP
+    # from topology-hosts.yml, and this "service" tag is about the daemon
+    # being present/runnable (matching the XML's services_preview intent),
+    # not about re-addressing the management interface out from under the
+    # rest of the topology.
+    - name: "Install isc-dhcp-client"
+      ansible.builtin.package:
+        name: isc-dhcp-client
+        state: present

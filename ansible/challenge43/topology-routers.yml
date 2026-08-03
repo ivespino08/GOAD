@@ -1,0 +1,87 @@
+---
+# Challenge43 / NewScenario22 — router interface + LAN switch configuration.
+#
+# CORRECTED THIS SESSION against the real Challenge78 reference Vagrantfile:
+# an earlier draft of this file gave each of router-1/2/3's two LAN switches
+# its own dedicated adapter (eth6/eth7 for router-1). That was wrong. The
+# reference Vagrantfile's router-1 — same r2r degree (4) as this scenario's
+# router-1 — has exactly 4 :networks entries (one per r2r peer) and its own
+# comment confirms "6 total adapters incl. eth0/eth1" = NAT + mgmt + 4 r2r.
+# Zero adapters are spent on LAN switches there. So LAN-switch addressing is
+# a secondary IP on the SAME shared mgmt interface (eth1), same as
+# Challenge130's original single-switch comment said — just looped here
+# since Challenge43's router-1/2/3 each front two switches instead of one.
+#
+# eth0 = Vagrant NAT (never touch). eth1 = management, ALSO carries every
+# LAN switch's gateway IP as a secondary address. eth2..eth(1+r2r_count) =
+# one interface per r2r peer (same order as r2r_interfaces keys, matching
+# providers/vmware/Vagrantfile's :networks array — which per the reference
+# Vagrantfile is r2r-only, nothing else).
+#
+# router-1 has 4 r2r peers = 6 total adapters (NAT+mgmt+4×r2r), the same
+# PCI-bridge-overflow / vnet-misbinding condition documented in
+# GOAD_Scenario_Build_Summary.md and confirmed present on the reference
+# Challenge78 router-1 too. network/resolve_iface_roles is run first for
+# the mgmt/r2r interfaces it covers. LAN switches live entirely on eth1
+# (secondary IPs), so they aren't affected by that PCI-bridge condition at
+# all — the earlier eth6/eth7 concern in this file no longer applies.
+
+- import_playbook: ../data.yml
+  vars:
+    data_path: "../ad/challenge43/data"
+  tags: 'data'
+
+- name: "Resolve which physical interface holds each role (mgmt/r2r), MAC-based override if present"
+  hosts: routers
+  become: true
+  tasks:
+    - include_role:
+        name: network/resolve_iface_roles
+
+- name: "Configure router r2r interfaces"
+  hosts: routers
+  become: true
+  tasks:
+    - name: "Configure r2r interface for each peer"
+      include_role:
+        name: network/interface
+      vars:
+        interface_name: "{{ goad_r2r_ifaces[idx] if goad_r2r_ifaces is defined else 'eth' ~ (idx + 2) }}"
+        interface_ip4: "{{ item.value }}"
+      loop: "{{ lab.hosts[dict_key].r2r_interfaces | dict2items }}"
+      loop_control:
+        index_var: idx
+        label: "{{ item.key }} -> {{ goad_r2r_ifaces[idx] if goad_r2r_ifaces is defined else 'eth' ~ (idx + 2) }}"
+
+- name: "Configure router LAN gateway addresses, one secondary IP per lan_switches entry"
+  hosts: routers
+  become: true
+  tasks:
+    # Same nmcli-avoidance reasoning as Challenge130's topology-routers.yml:
+    # added as a plain secondary IP via `ip addr add` rather than
+    # re-invoking network/interface's nmcli-based task on eth1 a second
+    # time (nmcli modifying an existing connection profile's ip4 tends to
+    # replace rather than add). Looped here since a router may front more
+    # than one LAN switch.
+    - name: "Add this switch's gateway IP as a secondary address on the mgmt interface"
+      ansible.builtin.command: "ip addr add {{ item.ip4 }} dev {{ goad_mgmt_iface | default('eth1') }}"
+      register: lan_ip_add
+      failed_when: lan_ip_add.rc != 0 and 'File exists' not in lan_ip_add.stderr
+      changed_when: lan_ip_add.rc == 0
+      loop: "{{ lab.hosts[dict_key].lan_switches }}"
+      loop_control:
+        label: "{{ item.name }} ({{ item.ip4 }})"
+
+- name: "Configure router LAN-side switch membership, one per lan_switches entry"
+  hosts: routers
+  become: true
+  tasks:
+    - name: "Set up LAN switch/bridge for each segment this router fronts"
+      include_role:
+        name: network/switch_membership
+      vars:
+        switch_name: "{{ item.name }}"
+        hosts_in_segment: "{{ item.hosts }}"
+      loop: "{{ lab.hosts[dict_key].lan_switches }}"
+      loop_control:
+        label: "{{ item.name }}"

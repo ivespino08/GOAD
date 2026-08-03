@@ -1,0 +1,50 @@
+---
+# Challenge43 / NewScenario22 — OSPFv2 routing on all 5 routers.
+#
+# Matches Challenge78's confirmed-working topology-routing.yml structure
+# exactly: network/ospf role (NOT network/rip — that role's real source
+# never reads a routing_protocol var at all and unconditionally deploys
+# RIP-only FRR config, so passing routing_protocol into it, as an earlier
+# draft of this file did, would have silently done nothing). Same
+# routing_protocol/ospf_networks/ospf_passive_interfaces var names as the
+# Challenge78 reference, kept even though ospf_main.yml's own tasks don't
+# read routing_protocol either — matching the confirmed-working shape
+# rather than dropping a var that "looks" unused, same principle as the
+# Challenge130 resolve_iface_roles rollout in the build summary.
+#
+# ospf_networks: this router's own LAN subnets (via lan_switches, plural
+# here — see topology-routers.yml for why Challenge43 diverges from
+# Challenge78/Challenge130's single-switch-per-router shape) plus every
+# r2r_subnet it participates in. eth0 (NAT) and the mgmt interface stay
+# passive so OSPF adjacencies only form over the dedicated r2r adapters.
+
+- import_playbook: ../data.yml
+  vars:
+    data_path: "../ad/challenge43/data"
+  tags: 'data'
+
+- name: "Resolve which physical interface holds each role (mgmt/r2r), MAC-based override if present"
+  hosts: routers
+  become: true
+  tasks:
+    - include_role:
+        name: network/resolve_iface_roles
+
+- name: "Configure OSPFv2 routing"
+  hosts: routers
+  become: true
+  tags: 'routing'
+  tasks:
+    - name: "Configure network/ospf"
+      include_role:
+        name: network/ospf
+      vars:
+        routing_protocol: "OSPFv2"
+        ospf_networks: >-
+          {{
+            lab.hosts[dict_key].r2r_subnets
+            + (lab.hosts[dict_key].lan_switches | map(attribute='subnet') | list)
+          }}
+        ospf_passive_interfaces:
+          - eth0
+          - "{{ goad_mgmt_iface | default('eth1') }}"

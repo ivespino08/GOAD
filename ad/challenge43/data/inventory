@@ -4,10 +4,14 @@ router-2
 router-3
 router-4
 router-5
+pc-6
+pc-7
+server-8
 docker-1
 docker-2
-pc-3
-server-4
+docker-3
+docker-4
+docker-5
 
 [routers]
 router-1
@@ -17,16 +21,25 @@ router-4
 router-5
 
 [pcs]
-pc-3
-server-4
+pc-6
+pc-7
+
+[servers]
+server-8
 
 [docker_nodes]
 docker-1
 docker-2
-
-[hitl_router]
+docker-3
+docker-4
+docker-5
 
 [dhcp_clients]
+docker-1
+docker-3
+docker-4
+docker-5
+pc-7
 
 [linux_domain:children]
 domain
@@ -36,4 +49,4 @@ domain
 [all:vars]
 ansible_user=vagrant
 ansible_connection=ssh
-domain_name=Challenge200
+domain_name=Challenge43

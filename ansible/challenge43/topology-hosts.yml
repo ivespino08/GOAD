@@ -1,0 +1,28 @@
+---
+# Challenge43 / NewScenario22 — non-router host interface configuration.
+# Same pattern as Challenge130: each host's lab-network IP goes on eth1
+# (mgmt) as a secondary address, default route toward its router's LAN
+# gateway IP on that same switch.
+
+- import_playbook: ../data.yml
+  vars:
+    data_path: "../ad/challenge43/data"
+  tags: 'data'
+
+- name: "Configure host lab-network addressing"
+  hosts: pcs:servers:docker_nodes
+  become: true
+  tasks:
+    - name: "Add this host's lab-network IP as a secondary address on eth1"
+      ansible.builtin.command: "ip addr add {{ lab.hosts[dict_key].ip4 }} dev eth1"
+      register: host_ip_add
+      failed_when: host_ip_add.rc != 0 and 'File exists' not in host_ip_add.stderr
+      changed_when: host_ip_add.rc == 0
+
+    - name: "Set default gateway toward this host's router"
+      include_role:
+        name: network/gateway
+      vars:
+        interface_name: "eth1"
+        interface_ip4: "{{ lab.hosts[dict_key].ip4 }}"
+        gateway_ip4: "{{ lab.hosts[dict_key].gateway }}"

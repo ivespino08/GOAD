@@ -1,0 +1,101 @@
+---
+# Challenge43 / NewScenario22 — vuln container deployment.
+#
+# Vuln-to-host mapping taken from Challenge43.xml PlanPreview
+# ("vulnerabilities_by_node") as authoritative, per instruction — NOT from
+# Challenge43_vulns.json, which assigns a conflicting set (weblogic on
+# docker-5, joomla+php both on docker-1, bash on docker-3, nothing on
+# docker-2). The XML is what carries real vulhub docker-compose.yml paths
+# (Vulnerabilities section <item v_path=...>), so it's what actually gets
+# deployed:
+#   docker-1 -> bash/CVE-2014-6271       docker-3 -> joomla/CVE-2017-8917
+#   docker-2 -> weblogic/CVE-2018-2628   docker-5 -> php/CVE-2019-11043
+#   docker-4 -> no vuln (docker_capacity_repair: required_docker_hosts=4,
+#               current_docker_hosts=5 — docker-4 is the spare/red-herring
+#               node, same role Challenge130's pc-3/server-4 played)
+#
+# container_name follows the {app}-vuln-{cve_id|lower} convention from
+# Challenge130 (build summary, "Docker Container Lookup Mismatch" session)
+# so ctf/flags can agree on the same container name in topology-flags.yml
+# without re-deriving it differently.
+#
+# DIRECTORY MODE vs SINGLE-FILE MODE, corrected against the real
+# vuln_main.yml source (this session): the directory-mode task copies
+# `files/{{ vuln_deploy_dir }}/` wholesale and NEVER references
+# vuln_compose_src -- so in directory mode, vuln_compose_src is unused
+# dead weight, and the compose file must live INSIDE vuln_deploy_dir/,
+# named literally docker-compose.yml (docker compose up -d runs with
+# chdir there and looks for the default filename). My first pass had the
+# compose file as a sibling to the directory, which would have deployed
+# the support files with no compose file present at all -- caught by
+# reading the role source rather than at `vagrant up` time.
+#
+# Checked against each vuln's real vulhub docker-compose.yml content
+# (fetched from vulhub/vulhub):
+#   - bash/CVE-2014-6271's compose mounts ./safe.cgi and ./victim.cgi as
+#     volumes -> DIRECTORY mode. files/bash-cve-2014-6271/{docker-compose.yml,
+#     safe.cgi,victim.cgi}.
+#   - php/CVE-2019-11043's compose mounts ./www and ./default.conf as
+#     volumes -> DIRECTORY mode. files/php-cve-2019-11043/{docker-compose.yml,
+#     default.conf,www/index.php}.
+#   - weblogic/CVE-2018-2628 and joomla/CVE-2017-8917's composes reference
+#     only remote images, no local volumes -> SINGLE-FILE mode
+#     (vuln_compose_src), same as Challenge130's pgadmin/adminer.
+#
+# Per the Challenge78 lesson (GOAD_Scenario_Build_Summary.md): never pass
+# both vuln_compose_src and vuln_deploy_dir through a shared
+# `item.X | default(omit)` into one include_role's vars: — default(omit)
+# doesn't vanish across that boundary. Separate plays per mode, each
+# setting only the var its mode needs, sidesteps that entirely (and here,
+# additionally avoids setting a var the role wouldn't even read).
+
+- import_playbook: ../data.yml
+  vars:
+    data_path: "../ad/challenge43/data"
+  tags: 'data'
+
+- name: "Deploy bash/CVE-2014-6271 on docker-1 (directory mode — has local CGI volumes)"
+  hosts: docker-1
+  become: true
+  roles:
+    - { role: 'docker/vuln_node', tags: 'docker' }
+  vars:
+    hostname: "{{ lab.hosts[dict_key].hostname }}"
+    vuln_name: "bash/CVE-2014-6271"
+    container_name: "bash-vuln-cve-2014-6271"
+    vuln_deploy_dir: "bash-cve-2014-6271"
+
+- name: "Deploy weblogic/CVE-2018-2628 on docker-2 (single-file mode)"
+  hosts: docker-2
+  become: true
+  roles:
+    - { role: 'docker/vuln_node', tags: 'docker' }
+  vars:
+    hostname: "{{ lab.hosts[dict_key].hostname }}"
+    vuln_name: "weblogic/CVE-2018-2628"
+    container_name: "weblogic-vuln-cve-2018-2628"
+    vuln_compose_src: "weblogic-cve-2018-2628-docker-compose.yml"
+
+- name: "Deploy joomla/CVE-2017-8917 on docker-3 (single-file mode)"
+  hosts: docker-3
+  become: true
+  roles:
+    - { role: 'docker/vuln_node', tags: 'docker' }
+  vars:
+    hostname: "{{ lab.hosts[dict_key].hostname }}"
+    vuln_name: "joomla/CVE-2017-8917"
+    container_name: "joomla-vuln-cve-2017-8917"
+    vuln_compose_src: "joomla-cve-2017-8917-docker-compose.yml"
+
+- name: "Deploy php/CVE-2019-11043 on docker-5 (directory mode — has local nginx/www volumes)"
+  hosts: docker-5
+  become: true
+  roles:
+    - { role: 'docker/vuln_node', tags: 'docker' }
+  vars:
+    hostname: "{{ lab.hosts[dict_key].hostname }}"
+    vuln_name: "php/CVE-2019-11043"
+    container_name: "php-vuln-cve-2019-11043"
+    vuln_deploy_dir: "php-cve-2019-11043"
+
+# docker-4 intentionally has no play here — no vuln assigned in the XML.

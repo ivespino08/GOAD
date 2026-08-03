@@ -1,0 +1,103 @@
+---
+# Challenge43 / NewScenario22 — flag injection.
+#
+# Flag placement comes from Challenge43_solution.json, keyed by node id —
+# NOT by vuln name, so it's unaffected by the vulns.json/XML vuln-mapping
+# conflict noted in topology-docker.yml. Node ids in solution.json
+# (10, 6, 8, 7) match the XML's own node ids for docker-5/docker-1/
+# docker-3/docker-2 respectively, so the chain below is:
+#
+#   docker-5 (10) --textfile_username_password--> FLAG{249b4538a75184f3cebd3c08}
+#   docker-1 (6)  --binary_embed_text-->           FLAG{37fdd2ac9bf7c9717fadff30}
+#     (edges 6->6 and 6->8 both cite this same flag/file — a duplicate/
+#     degenerate self-loop in solution.json, not two separate flags; only
+#     one flag is placed on docker-1)
+#   docker-3 (8)  --binary_embed_text-->           FLAG{0a7cd277729cceae887ff6b8}
+#   docker-2 (7)  --textfile_username_password-->   FLAG{97b1fdfa66659328d46d6a15}
+#     (terminal node: has its own generator/resolved_outputs in solution.json's
+#     "nodes" array, but is never a "source" in "edges" — nothing further to
+#     unlock after it, matches solve-order intent: docker-2 is the last flag)
+#
+# docker-4 gets no flag (no vuln, no chain entry — the red herring, see
+# topology-docker.yml).
+#
+# CONFIRMED against the real ctf/flags/tasks/main.yml (this session): the
+# src convention is exactly files/{{hostname}}_{{item.filename}} and the
+# task logic needs no changes on this file's end — hostname/filename/
+# container_path/mode below already match what the role expects.
+#
+# GAP FOUND AND FIXED: this file referenced files/{{hostname}}_secrets.txt
+# for all four hosts without those files actually existing anywhere in
+# roles/ctf/flags/files/ — would have failed at the "Copy flag artifacts"
+# task on a real run. Created challenge43-docker-{1,2,3,5}_secrets.txt,
+# each containing its FLAG{...} value from Challenge43_solution.json.
+#
+# REMAINING ASSUMPTION (flagged, not confirmed): content is a bare
+# FLAG{...} line for all four, regardless of whether solution.json labels
+# the generator "textfile_username_password" or "binary_embed_text" — no
+# generator template was available to confirm what either kind actually
+# produces (e.g. a real username:password-formatted credentials file for
+# the former, or the flag embedded inside an actual binary rather than
+# plain text for the latter). If your generator catalog has a fixed output
+# format per kind, these four files should be regenerated to match it.
+#
+# hostname is scenario-prefixed ("challenge43-...") purely for the
+# files/{{hostname}}_{{filename}} lookup path, same reasoning as
+# Challenge130 (docker-1/2/3/5 are reused host names across scenarios).
+
+- import_playbook: ../data.yml
+  vars:
+    data_path: "../ad/challenge43/data"
+  tags: 'data'
+
+- name: "Inject flag into docker-5 (php — chain step 1)"
+  hosts: docker-5
+  become: true
+  roles:
+    - { role: 'ctf/flags', tags: 'flags' }
+  vars:
+    hostname: "challenge43-{{ lab.hosts[dict_key].hostname }}"
+    container_name: "php-vuln-cve-2019-11043"
+    flag_files:
+      - filename: "secrets.txt"
+        container_path: "/tmp/secrets.txt"
+        mode: "0644"
+
+- name: "Inject flag into docker-1 (bash — chain step 2)"
+  hosts: docker-1
+  become: true
+  roles:
+    - { role: 'ctf/flags', tags: 'flags' }
+  vars:
+    hostname: "challenge43-{{ lab.hosts[dict_key].hostname }}"
+    container_name: "bash-vuln-cve-2014-6271"
+    flag_files:
+      - filename: "secrets.txt"
+        container_path: "/tmp/secrets.txt"
+        mode: "0644"
+
+- name: "Inject flag into docker-3 (joomla — chain step 3)"
+  hosts: docker-3
+  become: true
+  roles:
+    - { role: 'ctf/flags', tags: 'flags' }
+  vars:
+    hostname: "challenge43-{{ lab.hosts[dict_key].hostname }}"
+    container_name: "joomla-vuln-cve-2017-8917"
+    flag_files:
+      - filename: "secrets.txt"
+        container_path: "/tmp/secrets.txt"
+        mode: "0644"
+
+- name: "Inject flag into docker-2 (weblogic — chain step 4, terminal)"
+  hosts: docker-2
+  become: true
+  roles:
+    - { role: 'ctf/flags', tags: 'flags' }
+  vars:
+    hostname: "challenge43-{{ lab.hosts[dict_key].hostname }}"
+    container_name: "weblogic-vuln-cve-2018-2628"
+    flag_files:
+      - filename: "secrets.txt"
+        container_path: "/tmp/secrets.txt"
+        mode: "0644"

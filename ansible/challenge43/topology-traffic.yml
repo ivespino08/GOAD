@@ -1,0 +1,74 @@
+---
+# Challenge43 / NewScenario22 — background traffic.
+# 5 flows from Challenge43.xml PlanPreview.traffic_summary (all TCP,
+# continuous, 128 kbps; the XML's Traffic section also weights UDP at 0.5
+# but no UDP flows were actually realized in traffic_summary/preview_flows,
+# so none are configured here):
+#   docker-2 -> docker-3  port 5008
+#   docker-3 -> docker-5  port 5010
+#   docker-4 -> docker-5  port 5011
+#   docker-5 -> pc-6      port 5011
+#   docker-1 -> pc-6      port 5012
+
+- import_playbook: ../data.yml
+  vars:
+    data_path: "../ad/challenge43/data"
+  tags: 'data'
+
+- name: "Deploy traffic senders"
+  hosts: docker-1:docker-2:docker-3:docker-4:docker-5
+  become: true
+  tasks:
+    - name: "Ensure /opt/traffic exists"
+      ansible.builtin.file:
+        path: /opt/traffic
+        state: directory
+        mode: "0755"
+
+    - name: "Deploy sender for each flow originating on this host"
+      include_role:
+        name: network/traffic/sender
+      vars:
+        flow: "{{ item }}"
+        src_ip4: "{{ lab.hosts[dict_key].ip4 | ansible.utils.ipaddr('address') }}"
+        dst_ip4: "{{ item.dst_ip4 }}"
+        protocol: "{{ item.protocol }}"
+        rate_kbps: "{{ item.rate_kbps }}"
+        pattern: "{{ item.pattern }}"
+        script_dest: "/opt/traffic/traffic_sender_{{ item.dst_port }}.py"
+      loop: "{{ lab.topology.traffic | selectattr('src', 'equalto', dict_key) | list }}"
+      loop_control:
+        label: "{{ item.src }} -> {{ item.dst }}:{{ item.dst_port }}"
+
+- name: "Deploy traffic receivers"
+  hosts: docker-3:docker-5:pc-6
+  become: true
+  tasks:
+    - name: "Ensure /opt/traffic exists"
+      ansible.builtin.file:
+        path: /opt/traffic
+        state: directory
+        mode: "0755"
+
+    - name: "Deploy receiver for each flow terminating on this host"
+      include_role:
+        name: network/traffic/receiver
+      vars:
+        flow: "{{ item }}"
+        bind_ip4: "{{ lab.hosts[dict_key].ip4 | ansible.utils.ipaddr('address') }}"
+        protocol: "{{ item.protocol }}"
+        rate_kbps: "{{ item.rate_kbps }}"
+        pattern: "{{ item.pattern }}"
+        script_dest: "/opt/traffic/traffic_receiver_{{ item.dst_port }}.py"
+      loop: "{{ lab.topology.traffic | selectattr('dst', 'equalto', dict_key) | list }}"
+      loop_control:
+        label: "{{ item.src }} -> {{ item.dst }}:{{ item.dst_port }}"
+
+- name: "Start traffic scripts"
+  hosts: docker-1:docker-2:docker-3:docker-4:docker-5:pc-6
+  become: true
+  tasks:
+    - include_role:
+        name: network/traffic/start
+      vars:
+        traffic_script_dir: "/opt/traffic"

@@ -13,12 +13,25 @@
       - python3-netaddr
     state: present
 
+# CHANGED (Challenge43 session): ip4 now resolves from an explicit
+# switch_gateway_ip4 var if the caller passes one, falling back to
+# lab.hosts[dict_key].ip4 unchanged for any caller that doesn't (preserves
+# Challenge130's exact prior behavior -- it never passes this var, and its
+# config.json gives every router a single top-level ip4, so
+# default(lab.hosts[dict_key].ip4) resolves exactly as before).
+#
+# Needed because this role assumed exactly one LAN switch per router (one
+# router = one ip4 = one bridge). Challenge43's routers front up to two LAN
+# switches each, so a single router-level ip4 can't disambiguate which
+# switch's gateway address a given include_role call is for --
+# topology-routers.yml now passes switch_gateway_ip4 explicitly per loop
+# iteration over lan_switches instead.
 - name: "Create bridge {{switch_name | regex_replace('[./]', '-')}}"
   ansible.builtin.nmcli:
     conn_name: "br-{{switch_name | regex_replace('[./]', '-')}}"
     ifname: "br-{{switch_name | regex_replace('[./]', '-')}}"
     type: bridge
-    ip4: "{{lab.hosts[dict_key].ip4}}"
+    ip4: "{{ switch_gateway_ip4 | default(lab.hosts[dict_key].ip4) }}"
     autoconnect: yes
     state: present
   register: bridge_result

@@ -82,6 +82,11 @@
       vars:
         switch_name: "{{ item.name }}"
         hosts_in_segment: "{{ item.hosts }}"
+        # Required since roles/network/switch_membership was patched this
+        # session to accept this instead of always reading
+        # lab.hosts[dict_key].ip4 (which doesn't exist here — Challenge43's
+        # routers have no single top-level ip4, only lan_switches).
+        switch_gateway_ip4: "{{ item.ip4 }}"
       loop: "{{ lab.hosts[dict_key].lan_switches }}"
       loop_control:
         label: "{{ item.name }}"

@@ -6,6 +6,24 @@
 # the management adapters eth0/eth1, active only on r2r adapters) but
 # enables ospfd instead of ripd.
 
+# FIX (Challenge43 session): network/rip's first task is "Enable IP
+# forwarding" (net.ipv4.ip_forward=1) -- this role never carried that step
+# over despite the header comment above claiming to mirror rip's structure
+# "exactly". Without it, none of these routers can forward packets between
+# LAN segments or out through eth0's NAT at all; OSPF still computes
+# correct routes, but the kernel silently drops anything not addressed to
+# the router itself. Surfaced as hosts behind OSPF routers being unable to
+# reach any external address (e.g. apt's package mirrors) even though
+# routing/adjacencies looked fine. Likely affects Challenge78 too, since
+# it's the only other scenario using this role.
+- name: "Enable IP forwarding"
+  ansible.posix.sysctl:
+    name: net.ipv4.ip_forward
+    value: "1"
+    sysctl_set: yes
+    state: present
+    reload: yes
+
 - name: "Update apt cache before installing frr"
   ansible.builtin.apt:
     update_cache: yes

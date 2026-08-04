@@ -17,7 +17,7 @@
         hostname: "docker-1"
         vuln_name: "php/CVE-2019-11043"
         vuln_deploy_dir: "php-cve-2019-11043"
-        container_name: "challenge70-docker-1-php"
+        container_name: "php-vuln-cve-2019-11043"
   tags: 'docker'
 
 # docker-2: struts2/s2-053 (Freemarker double-parse -> OGNL injection via

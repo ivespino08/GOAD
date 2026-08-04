@@ -16,7 +16,7 @@
     - { role: 'ctf/flags', tags: 'flags' }
   vars:
     hostname: "challenge70-docker-1"
-    container_name: "challenge70-docker-1-php"
+    container_name: "php-vuln-cve-2019-11043"
     flag_files:
       - filename: "secrets.txt"
         container_path: "/var/www/html/secrets.txt"

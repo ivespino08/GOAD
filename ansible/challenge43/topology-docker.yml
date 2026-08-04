@@ -96,6 +96,16 @@
     hostname: "{{ lab.hosts[dict_key].hostname }}"
     vuln_name: "php/CVE-2019-11043"
     container_name: "php-vuln-cve-2019-11043"
+    # files/php-cve-2019-11043/ is shared with Challenge70's docker-1 (same
+    # vuln, same compose). Both scenarios now use the same generic
+    # container_name ("php-vuln-cve-2019-11043"/"-nginx"), matching the
+    # {app}-vuln-{cve_id|lower} convention this repo already uses elsewhere
+    # (Challenge130's pgadmin/adminer) — Challenge70 previously baked in a
+    # scenario-specific name ("challenge70-docker-1-php") instead, which is
+    # what caused the collision in the first place; that's been aligned to
+    # the generic name too (see ansible/challenge70/topology-docker.yml and
+    # topology-flags.yml) rather than forking the shared compose file per
+    # scenario.
     vuln_deploy_dir: "php-cve-2019-11043"
 
 # docker-4 intentionally has no play here — no vuln assigned in the XML.

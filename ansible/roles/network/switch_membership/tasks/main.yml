@@ -41,6 +41,38 @@
     cmd: nmcli connection up "br-{{switch_name | regex_replace('[./]', '-')}}"
   when: bridge_result.changed
 
+# PATCHED (Challenge43 session): same root cause and same fix pattern as
+# roles/network/r2r_link's documented patch. generic/ubuntu2204's netplan
+# renderer is networkd, and eth0 (Vagrant's own NAT adapter, pre-addressed
+# by base-box provisioning before any of this repo's roles run) is already
+# owned by netplan on this box image -- NetworkManager reports it "strictly
+# unmanaged" and nmcli refuses to touch it, exactly like the r2r interfaces
+# did before that role was patched.
+#
+# Unlike r2r_link, there's no netplan-applied bridge-membership to verify
+# here (netplan only gives eth0 its NAT/DHCP address, nothing about
+# bridging) -- so when eth0 is unmanaged, these two tasks are skipped
+# rather than failing. This bridge's own address
+# (switch_gateway_ip4/lab.hosts[dict_key].ip4) is already reachable via the
+# secondary-IP-on-mgmt-interface task in topology-routers.yml regardless of
+# whether eth0 ever gets attached as a slave, so a skip here does not by
+# itself leave the router unaddressed on this LAN segment. Whether hosts on
+# this switch still get real L2 connectivity to the router without the
+# eth0 slave attached depends on how the VMware/Vagrant provider wires this
+# switch's vmnet — not verified this session; if hosts on a LAN switch turn
+# out to be unreachable from their router after this, that's the next
+# thing to check, not assume this skip is sufficient on its own.
+
+- name: "Check NetworkManager's management state for eth0"
+  ansible.builtin.command:
+    cmd: nmcli -t -f DEVICE,STATE device status
+  register: nm_device_status
+  changed_when: false
+
+- name: "Set fact: is eth0 unmanaged (networkd/netplan owns it)?"
+  ansible.builtin.set_fact:
+    switch_eth0_unmanaged: "{{ ('eth0:unmanaged') in nm_device_status.stdout }}"
+
 - name: "Attach LAN interface eth0 to bridge"
   ansible.builtin.nmcli:
     conn_name: "br-slave-eth0"
@@ -50,8 +82,20 @@
     autoconnect: yes
     state: present
   register: slave_result
+  when: not switch_eth0_unmanaged
 
 - name: "Bring up bridge slave eth0"
   ansible.builtin.command:
     cmd: nmcli connection up "br-slave-eth0"
-  when: slave_result.changed
+  when:
+    - not switch_eth0_unmanaged
+    - slave_result.changed | default(false)
+
+- name: "eth0 is networkd-managed — bridge slave attachment skipped"
+  ansible.builtin.debug:
+    msg: >-
+      eth0 is unmanaged by NetworkManager (networkd/netplan owns it), so it
+      was not attached to br-{{switch_name | regex_replace('[./]', '-')}}
+      as a bridge slave. The bridge itself still exists with its own IP;
+      this only affects whether eth0 specifically is bonded into it.
+  when: switch_eth0_unmanaged

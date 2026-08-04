@@ -1,14 +1,14 @@
 {
-  "_comment": "Challenge43 / NewScenario22. Extracted from Challenge43.xml PlanPreview. Router entries deliberately have NO top-level ip4/switch/lan_subnet keys (unlike Challenge130) -- routers here front 1 or 2 LAN switches each, so lan_switches is a list. See topology-routers.yml header for why. CORRECTED: wrapped under top-level 'lab' key -- data.yml loads config.json via vars_files, meaning its top-level JSON keys become Ansible vars directly, and the task `set_fact: lab: \"{{lab}}\"` requires a pre-existing 'lab' var. Earlier version had 'hosts'/'topology' as top-level keys instead of nesting under 'lab', so the var never existed -- caused the exact 'lab is undefined' failure at that task.",
+  "_comment": "Challenge43 / NewScenario22. Extracted from Challenge43.xml PlanPreview. Router entries deliberately have NO top-level ip4/switch/lan_subnet keys (unlike Challenge130) -- routers here front 1 or 2 LAN switches each, so lan_switches is a list. See topology-routers.yml header for why. CORRECTED: wrapped under top-level 'lab' key -- data.yml loads config.json via vars_files, meaning its top-level JSON keys become Ansible vars directly, and the task `set_fact: lab: \"{{lab}}\"` requires a pre-existing 'lab' var. Earlier version had 'hosts'/'topology' as top-level keys instead of nesting under 'lab', so the var never existed -- caused the exact 'lab is undefined' failure at that task. FIXED: r2r_interfaces keys renamed from bare peer IDs ('2','3',...) to full 'router-N' strings -- topology-links.yml's interface_name Jinja does r2r_interfaces.keys().index(peer_router), and peer_router is always constructed as the full 'router-N' string, so bare-digit keys never matched, causing 'router-4 is not in list' etc. Key order preserved exactly (still same r2r peer order per router), so dict2items-based interface index assignment in topology-routers.yml/topology-routing.yml is unaffected.",
   "lab": {
     "hosts": {
       "router-1": {
         "kind": "router",
         "r2r_interfaces": {
-          "2": "10.103.31.1/24",
-          "3": "172.31.90.1/24",
-          "4": "192.168.47.1/24",
-          "5": "192.168.31.1/24"
+          "router-2": "10.103.31.1/24",
+          "router-3": "172.31.90.1/24",
+          "router-4": "192.168.47.1/24",
+          "router-5": "192.168.31.1/24"
         },
         "r2r_subnets": [
           "10.103.31.0/24",
@@ -38,8 +38,8 @@
       "router-2": {
         "kind": "router",
         "r2r_interfaces": {
-          "1": "10.103.31.2/24",
-          "4": "10.78.182.1/24"
+          "router-1": "10.103.31.2/24",
+          "router-4": "10.78.182.1/24"
         },
         "r2r_subnets": [
           "10.103.31.0/24",
@@ -67,8 +67,8 @@
       "router-3": {
         "kind": "router",
         "r2r_interfaces": {
-          "1": "172.31.90.2/24",
-          "5": "172.24.71.1/24"
+          "router-1": "172.31.90.2/24",
+          "router-5": "172.24.71.1/24"
         },
         "r2r_subnets": [
           "172.31.90.0/24",
@@ -96,8 +96,8 @@
       "router-4": {
         "kind": "router",
         "r2r_interfaces": {
-          "1": "192.168.47.2/24",
-          "2": "10.78.182.2/24"
+          "router-1": "192.168.47.2/24",
+          "router-2": "10.78.182.2/24"
         },
         "r2r_subnets": [
           "192.168.47.0/24",
@@ -117,8 +117,8 @@
       "router-5": {
         "kind": "router",
         "r2r_interfaces": {
-          "1": "192.168.31.2/24",
-          "3": "172.24.71.2/24"
+          "router-1": "192.168.31.2/24",
+          "router-3": "172.24.71.2/24"
         },
         "r2r_subnets": [
           "192.168.31.0/24",

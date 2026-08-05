@@ -1,17 +1,45 @@
+# roles/network/traffic/start/tasks/main.yml
+#
+# PATCHED: the original "Start each traffic script as a background
+# process" task used bare `nohup ... &`, invisible to systemd/cron/anything
+# else — reboot.yml (the last step of every scenario's playbooks.yml
+# sequence) kills it with zero trace and zero error at boot time. Confirmed
+# dead on Challenge130's pc-3/server-4 traffic flow after a full reboot
+# cycle; same non-persistence bug class as the LAN-IP/gateway fixes
+# elsewhere in this repo, just never caught here before now since nothing
+# had checked traffic flows post-reboot. Shared role, so this affects every
+# scenario using network/traffic/start, not just Challenge130.
+#
+# Fix: wrap the launch in network/persist_boot_commands instead, one unit
+# per discovered script (name derived from the script's own filename, so
+# multiple scripts on one host — e.g. a host that's both a sender and a
+# receiver for different flows — each get their own persistent unit rather
+# than colliding on one). The pgrep guard keeps a manual re-run of this
+# playbook (without an intervening reboot) from double-launching an
+# already-running script.
+
 - name: "Find all traffic scripts on {{inventory_hostname}}"
   ansible.builtin.find:
     paths: "{{traffic_script_dir}}"
     patterns: "*.py"
   register: traffic_scripts
 
-- name: "Start each traffic script as a background process"
-  ansible.builtin.shell:
-    cmd: "nohup python3 {{item.path}} > {{item.path}}.log 2>&1 &"
-  loop: "{{traffic_scripts.files}}"
+- name: "Persist each traffic script's launch across reboots (and apply now)"
+  include_role:
+    name: network/persist_boot_commands
+  vars:
+    persist_unit_name: >-
+      goad-traffic-{{ item.path | basename
+                       | regex_replace('\.py$', '')
+                       | regex_replace('[^A-Za-z0-9_-]', '_') }}
+    persist_description: "GOAD traffic script {{ item.path | basename }}"
+    persist_commands:
+      - >-
+        pgrep -f "python3 {{ item.path }}" > /dev/null ||
+        nohup python3 {{ item.path }} > {{ item.path }}.log 2>&1 &
+  loop: "{{ traffic_scripts.files }}"
   loop_control:
-    label: "{{item.path | basename}}"
-  register: start_result
-  changed_when: start_result.rc == 0
+    label: "{{ item.path | basename }}"
 
 - name: "Confirm traffic scripts are running"
   ansible.builtin.shell:

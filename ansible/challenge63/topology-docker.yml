@@ -1,0 +1,47 @@
+---
+- import_playbook: ../data.yml
+  vars:
+    data_path: "../ad/Challenge63/data"
+  tags: 'data'
+
+- name: "Install Docker engine on every docker node"
+  hosts: docker_nodes
+  become: true
+  tasks:
+    - name: "Update apt cache"
+      ansible.builtin.apt:
+        update_cache: yes
+        cache_valid_time: 3600
+
+    - name: "Install docker.io"
+      ansible.builtin.apt:
+        name: docker.io
+        state: present
+
+    - name: "Enable and start docker"
+      ansible.builtin.systemd:
+        name: docker
+        enabled: true
+        state: started
+
+# docker-4 is a deliberate decoy (per designer instruction, matching the
+# Challenge78 docker-4 pattern) — bare Docker engine, no vulhub container,
+# no flag. Its config.json `vulns` list is empty, so this loop is simply a
+# no-op for that host; nothing decoy-specific needs to happen here.
+- name: "Deploy the vulnerable vulhub container for each docker node's vuln(s)"
+  hosts: docker_nodes
+  become: true
+  vars:
+    dict_key: "{{inventory_hostname}}"
+  tasks:
+    - name: "Deploy vuln container(s)"
+      include_role:
+        name: docker/vuln_node
+      vars:
+        hostname: "{{ lab.hosts[dict_key].hostname }}"
+        vuln_name: "{{ vuln_item.vuln_name }}"
+        container_name: "{{ vuln_item.container_name }}"
+        vuln_compose_src: "{{ vuln_item.vuln_compose_src }}"
+      loop: "{{ lab.hosts[dict_key].vulns }}"
+      loop_control:
+        loop_var: vuln_item

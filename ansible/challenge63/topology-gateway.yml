@@ -1,0 +1,24 @@
+---
+- import_playbook: ../data.yml
+  vars:
+    data_path: "../ad/Challenge63/data"
+  tags: 'data'
+
+# Must run after every apt-based install in this scenario's playbook
+# sequence (services, docker engine, FRR, network-manager, everything) —
+# once a host's default route points at its LAN gateway (which has no path
+# to the internet), it loses its only route out and every later apt task
+# fails with a generic "unknown reason". See playbooks.yml ordering note.
+- name: "Set default gateway on non-router hosts"
+  hosts: docker_nodes:pcs:servers
+  become: true
+  vars:
+    dict_key: "{{inventory_hostname}}"
+  tasks:
+    - name: "Point default route at this host's LAN gateway"
+      include_role:
+        name: network/gateway
+      vars:
+        interface_name: "eth1"
+        interface_ip4: "{{ lab.hosts[dict_key].ip4 }}"
+        gateway_ip4: "{{ lab.hosts[dict_key].gateway }}"

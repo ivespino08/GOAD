@@ -1,0 +1,263 @@
+{
+  "lab": {
+    "hosts": {
+      "router-1": {
+        "hostname": "router-1",
+        "type": "router",
+        "r2r_interfaces": {
+          "router-4": "192.168.47.1/24",
+          "router-3": "10.245.168.1/24",
+          "router-5": "192.168.31.1/24",
+          "router-2": "10.0.103.1/24"
+        },
+        "r2r_subnets": [
+          "192.168.47.0/24",
+          "10.245.168.0/24",
+          "192.168.31.0/24",
+          "10.0.103.0/24"
+        ],
+        "switches": [
+          {
+            "name": "rsw-1-1",
+            "lan_subnet": "192.168.35.0/24",
+            "router_ip4": "192.168.35.1/24",
+            "hosts": ["docker-1"]
+          },
+          {
+            "name": "rsw-1-2",
+            "lan_subnet": "192.168.39.0/24",
+            "router_ip4": "192.168.39.1/24",
+            "hosts": ["pc-6"]
+          }
+        ]
+      },
+      "router-2": {
+        "hostname": "router-2",
+        "type": "router",
+        "r2r_interfaces": {
+          "router-4": "10.0.78.1/24",
+          "router-1": "10.0.103.2/24"
+        },
+        "r2r_subnets": [
+          "10.0.78.0/24",
+          "10.0.103.0/24"
+        ],
+        "switches": [
+          {
+            "name": "rsw-2-1",
+            "lan_subnet": "10.204.200.0/24",
+            "router_ip4": "10.204.200.1/24",
+            "hosts": ["docker-2"]
+          },
+          {
+            "name": "rsw-2-2",
+            "lan_subnet": "10.0.131.0/24",
+            "router_ip4": "10.0.131.1/24",
+            "hosts": ["pc-7"]
+          }
+        ]
+      },
+      "router-3": {
+        "hostname": "router-3",
+        "type": "router",
+        "r2r_interfaces": {
+          "router-1": "10.245.168.2/24",
+          "router-5": "10.132.126.1/24"
+        },
+        "r2r_subnets": [
+          "10.245.168.0/24",
+          "10.132.126.0/24"
+        ],
+        "switches": [
+          {
+            "name": "rsw-3-1",
+            "lan_subnet": "10.124.131.0/24",
+            "router_ip4": "10.124.131.1/24",
+            "hosts": ["docker-3"]
+          },
+          {
+            "name": "rsw-3-2",
+            "lan_subnet": "172.26.24.0/24",
+            "router_ip4": "172.26.24.1/24",
+            "hosts": ["server-8"]
+          }
+        ]
+      },
+      "router-4": {
+        "hostname": "router-4",
+        "type": "router",
+        "r2r_interfaces": {
+          "router-2": "10.0.78.2/24",
+          "router-1": "192.168.47.2/24"
+        },
+        "r2r_subnets": [
+          "10.0.78.0/24",
+          "192.168.47.0/24"
+        ],
+        "switches": [
+          {
+            "name": "rsw-4-1",
+            "lan_subnet": "192.168.101.0/24",
+            "router_ip4": "192.168.101.1/24",
+            "hosts": ["docker-4"]
+          }
+        ]
+      },
+      "router-5": {
+        "hostname": "router-5",
+        "type": "router",
+        "r2r_interfaces": {
+          "router-1": "192.168.31.2/24",
+          "router-3": "10.132.126.2/24"
+        },
+        "r2r_subnets": [
+          "192.168.31.0/24",
+          "10.132.126.0/24"
+        ],
+        "switches": [
+          {
+            "name": "rsw-5-1",
+            "lan_subnet": "192.168.33.0/24",
+            "router_ip4": "192.168.33.1/24",
+            "hosts": ["docker-5"]
+          }
+        ]
+      },
+
+      "docker-1": {
+        "hostname": "docker-1",
+        "type": "docker",
+        "ip4": "192.168.35.3/24",
+        "lan_subnet": "192.168.35.0/24",
+        "gateway": "192.168.35.1",
+        "router": "router-1",
+        "switch": "rsw-1-1",
+        "services": ["SSH", "DHCPClient"],
+        "vulns": [
+          {
+            "vuln_name": "jboss/CVE-2017-12149",
+            "container_name": "jboss-vuln-cve-2017-12149",
+            "vuln_compose_src": "jboss-cve-2017-12149-docker-compose.yml"
+          }
+        ]
+      },
+      "docker-2": {
+        "hostname": "docker-2",
+        "type": "docker",
+        "ip4": "10.204.200.3/24",
+        "lan_subnet": "10.204.200.0/24",
+        "gateway": "10.204.200.1",
+        "router": "router-2",
+        "switch": "rsw-2-1",
+        "services": ["SSH", "HTTP"],
+        "vulns": [
+          {
+            "vuln_name": "opentsdb/CVE-2023-25826",
+            "container_name": "opentsdb-vuln-cve-2023-25826",
+            "vuln_compose_src": "opentsdb-cve-2023-25826-docker-compose.yml"
+          }
+        ]
+      },
+      "docker-3": {
+        "hostname": "docker-3",
+        "type": "docker",
+        "ip4": "10.124.131.3/24",
+        "lan_subnet": "10.124.131.0/24",
+        "gateway": "10.124.131.1",
+        "router": "router-3",
+        "switch": "rsw-3-1",
+        "services": ["SSH", "DHCPClient"],
+        "vulns": [
+          {
+            "vuln_name": "geoserver/CVE-2021-40822",
+            "container_name": "geoserver-vuln-cve-2021-40822",
+            "vuln_compose_src": "geoserver-cve-2021-40822-docker-compose.yml"
+          }
+        ]
+      },
+      "docker-4": {
+        "hostname": "docker-4",
+        "type": "docker",
+        "ip4": "192.168.101.3/24",
+        "lan_subnet": "192.168.101.0/24",
+        "gateway": "192.168.101.1",
+        "router": "router-4",
+        "switch": "rsw-4-1",
+        "services": ["HTTP", "DHCPClient"],
+        "vulns": [],
+        "decoy": true
+      },
+      "docker-5": {
+        "hostname": "docker-5",
+        "type": "docker",
+        "ip4": "192.168.33.3/24",
+        "lan_subnet": "192.168.33.0/24",
+        "gateway": "192.168.33.1",
+        "router": "router-5",
+        "switch": "rsw-5-1",
+        "services": ["SSH", "DHCPClient"],
+        "vulns": [
+          {
+            "vuln_name": "weblogic/CVE-2018-2628",
+            "container_name": "weblogic-vuln-cve-2018-2628",
+            "vuln_compose_src": "weblogic-cve-2018-2628-docker-compose.yml"
+          }
+        ]
+      },
+
+      "pc-6": {
+        "hostname": "pc-6",
+        "type": "pc",
+        "ip4": "192.168.39.3/24",
+        "lan_subnet": "192.168.39.0/24",
+        "gateway": "192.168.39.1",
+        "router": "router-1",
+        "switch": "rsw-1-2",
+        "services": ["SSH", "HTTP"],
+        "vulns": []
+      },
+      "pc-7": {
+        "hostname": "pc-7",
+        "type": "pc",
+        "ip4": "10.0.131.3/24",
+        "lan_subnet": "10.0.131.0/24",
+        "gateway": "10.0.131.1",
+        "router": "router-2",
+        "switch": "rsw-2-2",
+        "services": ["HTTP", "DHCPClient"],
+        "vulns": []
+      },
+      "server-8": {
+        "hostname": "server-8",
+        "type": "server",
+        "ip4": "172.26.24.3/24",
+        "lan_subnet": "172.26.24.0/24",
+        "gateway": "172.26.24.1",
+        "router": "router-3",
+        "switch": "rsw-3-2",
+        "services": ["HTTP"],
+        "vulns": []
+      }
+    },
+
+    "topology": {
+      "seed": 899128307,
+      "routing_protocol": "OSPFv2",
+      "r2r_links": [
+        { "routers": ["router-2", "router-4"], "subnet": "10.0.78.0/24" },
+        { "routers": ["router-1", "router-4"], "subnet": "192.168.47.0/24" },
+        { "routers": ["router-1", "router-3"], "subnet": "10.245.168.0/24" },
+        { "routers": ["router-1", "router-5"], "subnet": "192.168.31.0/24" },
+        { "routers": ["router-1", "router-2"], "subnet": "10.0.103.0/24" },
+        { "routers": ["router-3", "router-5"], "subnet": "10.132.126.0/24" }
+      ],
+      "traffic": [
+        { "src": "docker-1", "dst": "docker-4", "protocol": "TCP", "dst_port": 5009, "rate_kbps": 128, "pattern": "burst", "period_s": 2.0, "jitter_pct": 35.0 },
+        { "src": "server-8",  "dst": "docker-5", "protocol": "TCP", "dst_port": 5010, "rate_kbps": 128, "pattern": "burst", "period_s": 2.0, "jitter_pct": 35.0 },
+        { "src": "docker-3", "dst": "docker-2", "protocol": "TCP", "dst_port": 5007, "rate_kbps": 128, "pattern": "burst", "period_s": 2.0, "jitter_pct": 35.0 },
+        { "src": "docker-5", "dst": "pc-7",     "protocol": "TCP", "dst_port": 5012, "rate_kbps": 128, "pattern": "burst", "period_s": 2.0, "jitter_pct": 35.0 },
+        { "src": "pc-6",     "dst": "docker-2", "protocol": "TCP", "dst_port": 5008, "rate_kbps": 128, "pattern": "burst", "period_s": 2.0, "jitter_pct": 35.0 }
+      ]
+    }
+  }
+}

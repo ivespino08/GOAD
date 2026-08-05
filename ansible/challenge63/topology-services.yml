@@ -1,0 +1,56 @@
+---
+- import_playbook: ../data.yml
+  vars:
+    data_path: "../ad/Challenge63/data"
+  tags: 'data'
+
+- name: "Install and enable per-host services"
+  hosts: docker_nodes:pcs:servers
+  become: true
+  vars:
+    dict_key: "{{inventory_hostname}}"
+  tasks:
+    - name: "Update apt cache"
+      ansible.builtin.apt:
+        update_cache: yes
+        cache_valid_time: 3600
+
+    - name: "SSH — ensure openssh-server present and running"
+      ansible.builtin.apt:
+        name: openssh-server
+        state: present
+      when: "'SSH' in lab.hosts[dict_key].services"
+
+    - name: "SSH — enable and start sshd"
+      ansible.builtin.systemd:
+        name: ssh
+        enabled: true
+        state: started
+      when: "'SSH' in lab.hosts[dict_key].services"
+
+    - name: "HTTP — ensure apache2 present and running"
+      ansible.builtin.apt:
+        name: apache2
+        state: present
+      when: "'HTTP' in lab.hosts[dict_key].services"
+
+    - name: "HTTP — enable and start apache2"
+      ansible.builtin.systemd:
+        name: apache2
+        enabled: true
+        state: started
+      when: "'HTTP' in lab.hosts[dict_key].services"
+
+    # NOTE: this installs the DHCP client tooling only — it does not
+    # re-negotiate eth1's address over DHCP. eth1 already carries this
+    # host's static LAN IP (topology-hosts.yml, secondary `ip addr add`,
+    # coexisting with the mgmt IP Vagrant assigned at boot). Re-running
+    # dhclient against eth1 would fight that static assignment. If a given
+    # host actually needs a DHCP-negotiated address for the CTF scenario
+    # itself, wire network/services/dhcp_client against a dedicated
+    # interface for that host instead of eth1.
+    - name: "DHCPClient — ensure isc-dhcp-client present"
+      ansible.builtin.apt:
+        name: isc-dhcp-client
+        state: present
+      when: "'DHCPClient' in lab.hosts[dict_key].services"

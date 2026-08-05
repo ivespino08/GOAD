@@ -1,0 +1,35 @@
+---
+- import_playbook: ../data.yml
+  vars:
+    data_path: "../ad/Challenge63/data"
+  tags: 'data'
+
+- name: "Resolve which physical interface holds each role (mgmt/r2r)"
+  hosts: routers
+  become: true
+  tasks:
+    - include_role:
+        name: network/resolve_iface_roles
+
+- name: "Configure OSPFv2 via FRR"
+  hosts: routers
+  become: true
+  vars:
+    dict_key: "{{inventory_hostname}}"
+    routing_protocol: "OSPFv2"
+    # Advertise both this router's r2r subnets (active — adjacencies form
+    # here) and every LAN subnet it hosts (passive — reachable, but no
+    # adjacency should ever form on a switch-facing address).
+    ospf_networks: >-
+      {{ lab.hosts[dict_key].r2r_subnets
+         + (lab.hosts[dict_key].switches | map(attribute='lan_subnet') | list) }}
+    # eth0 (NAT) is never remapped and always stays a literal here, per
+    # fix_router_netplan.py's own docstring. eth1 (mgmt + every LAN subnet
+    # riding on it as a secondary address) is resolved through
+    # network/resolve_iface_roles so this stays correct even on router-1's
+    # remapped adapters.
+    ospf_passive_interfaces:
+      - "eth0"
+      - "{{ goad_mgmt_iface | default('eth1') }}"
+  roles:
+    - { role: 'network/ospf', tags: 'routing' }

@@ -1,0 +1,53 @@
+---
+- import_playbook: ../data.yml
+  vars:
+    data_path: "../ad/Challenge63/data"
+  tags: 'data'
+
+# router-1 has r2r degree 4 (6 total adapters) — the same >4-adapter
+# PCI-bridge overflow trigger seen on Challenge78/101/130. Resolve real
+# interface names via /etc/goad/iface-roles.env when present; every other
+# router falls straight through to the eth1 / eth{{ idx + 2 }} defaults.
+- name: "Resolve which physical interface holds each role (mgmt/r2r)"
+  hosts: routers
+  become: true
+  tasks:
+    - include_role:
+        name: network/resolve_iface_roles
+
+- name: "Bring up r2r interface IPs on each router"
+  hosts: routers
+  become: true
+  vars:
+    dict_key: "{{inventory_hostname}}"
+  tasks:
+    - name: "Configure r2r-facing interface for each peer"
+      include_role:
+        name: network/interface
+      vars:
+        interface_name: >-
+          {{ goad_r2r_ifaces[idx] if goad_r2r_ifaces is defined
+             else 'eth' ~ (idx + 2) }}
+        interface_ip4: "{{ peer_ip4 }}"
+      loop: "{{ lab.hosts[dict_key].r2r_interfaces | dict2items }}"
+      loop_control:
+        index_var: idx
+        loop_var: r2r_item
+      vars:
+        peer_ip4: "{{ r2r_item.value }}"
+
+- name: "Add each hosted LAN subnet as a secondary address on the mgmt interface"
+  hosts: routers
+  become: true
+  vars:
+    dict_key: "{{inventory_hostname}}"
+  tasks:
+    - name: "ip addr add {{ item.router_ip4 }} for switch {{ item.name }}"
+      ansible.builtin.command: >-
+        ip addr add {{ item.router_ip4 }} dev {{ goad_mgmt_iface | default('eth1') }}
+      register: lan_addr_result
+      failed_when: >-
+        lan_addr_result.rc != 0 and 'File exists' not in lan_addr_result.stderr
+      changed_when: >-
+        lan_addr_result.rc == 0
+      loop: "{{ lab.hosts[dict_key].switches }}"

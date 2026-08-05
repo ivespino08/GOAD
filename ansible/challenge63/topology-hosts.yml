@@ -1,0 +1,40 @@
+---
+- import_playbook: ../data.yml
+  vars:
+    data_path: "../ad/Challenge63/data"
+  tags: 'data'
+
+- name: "Create a Linux bridge per LAN switch and attach its hosts"
+  hosts: routers
+  become: true
+  vars:
+    dict_key: "{{inventory_hostname}}"
+  tasks:
+    - name: "Set up switch membership for each of this router's switches"
+      include_role:
+        name: network/switch_membership
+      vars:
+        switch_name: "{{ item.name }}"
+        hosts_in_segment: "{{ item.hosts }}"
+      loop: "{{ lab.hosts[dict_key].switches }}"
+
+# LAN addresses on non-router hosts coexist with the mgmt IP Vagrant already
+# put on eth1 — nmcli's `state: present` doesn't guarantee it becomes the
+# *active* connection over whatever Vagrant already bound, so this uses the
+# same secondary `ip addr add` pattern as the router LAN IPs above, not
+# network/interface. (Same fix Challenge78 needed after nmcli silently left
+# the LAN subnet unconfigured on every non-router host.)
+- name: "Assign static LAN IP to each non-router host"
+  hosts: docker_nodes:pcs:servers
+  become: true
+  vars:
+    dict_key: "{{inventory_hostname}}"
+  tasks:
+    - name: "ip addr add {{ lab.hosts[dict_key].ip4 }} dev eth1"
+      ansible.builtin.command: >-
+        ip addr add {{ lab.hosts[dict_key].ip4 }} dev eth1
+      register: host_addr_result
+      failed_when: >-
+        host_addr_result.rc != 0 and 'File exists' not in host_addr_result.stderr
+      changed_when: >-
+        host_addr_result.rc == 0

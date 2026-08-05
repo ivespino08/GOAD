@@ -1,0 +1,58 @@
+---
+- import_playbook: ../data.yml
+  vars:
+    data_path: "../ad/Challenge63/data"
+  tags: 'data'
+
+- name: "Deploy traffic sender scripts"
+  hosts: docker_nodes:pcs:servers
+  become: true
+  vars:
+    dict_key: "{{inventory_hostname}}"
+  tasks:
+    - name: "Deploy sender for flows originating here"
+      include_role:
+        name: network/traffic/sender
+      vars:
+        flow: "{{ flow_item }}"
+        src_ip4: "{{ lab.hosts[dict_key].ip4.split('/')[0] }}"
+        dst_ip4: "{{ lab.hosts[flow_item.dst].ip4.split('/')[0] }}"
+        protocol: "{{ flow_item.protocol }}"
+        rate_kbps: "{{ flow_item.rate_kbps }}"
+        pattern: "{{ flow_item.pattern }}"
+        script_dest: "/opt/traffic/traffic_{{ dict_key }}_to_{{ flow_item.dst }}.py"
+      loop: "{{ lab.topology.traffic }}"
+      loop_control:
+        loop_var: flow_item
+      when: flow_item.src == dict_key
+
+- name: "Deploy traffic receiver scripts"
+  hosts: docker_nodes:pcs:servers
+  become: true
+  vars:
+    dict_key: "{{inventory_hostname}}"
+  tasks:
+    - name: "Deploy receiver for flows terminating here"
+      include_role:
+        name: network/traffic/receiver
+      vars:
+        flow: "{{ flow_item }}"
+        bind_ip4: "{{ lab.hosts[dict_key].ip4.split('/')[0] }}"
+        protocol: "{{ flow_item.protocol }}"
+        rate_kbps: "{{ flow_item.rate_kbps }}"
+        pattern: "{{ flow_item.pattern }}"
+        script_dest: "/opt/traffic/traffic_{{ flow_item.src }}_to_{{ dict_key }}_recv.py"
+      loop: "{{ lab.topology.traffic }}"
+      loop_control:
+        loop_var: flow_item
+      when: flow_item.dst == dict_key
+
+- name: "Start all deployed traffic scripts"
+  hosts: docker_nodes:pcs:servers
+  become: true
+  tasks:
+    - name: "Start sender/receiver background processes"
+      include_role:
+        name: network/traffic/start
+      vars:
+        traffic_script_dir: "/opt/traffic"

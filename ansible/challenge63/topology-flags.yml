@@ -1,0 +1,63 @@
+---
+- import_playbook: ../data.yml
+  vars:
+    data_path: "../ad/Challenge63/data"
+  tags: 'data'
+
+- name: "Inject flag into docker-1"
+  hosts: docker-1
+  become: true
+  roles:
+    - { role: 'ctf/flags', tags: 'flags' }
+  vars:
+    hostname: "challenge63-{{lab.hosts[dict_key].hostname}}"
+    dict_key: "docker-1"
+    container_name: "jboss-vuln-cve-2017-12149"
+    flag_files:
+      - filename: "secrets.txt"
+        container_path: "/root/secrets.txt"
+        mode: "0644"
+
+- name: "Inject flag into docker-2"
+  hosts: docker-2
+  become: true
+  roles:
+    - { role: 'ctf/flags', tags: 'flags' }
+  vars:
+    hostname: "challenge63-{{lab.hosts[dict_key].hostname}}"
+    dict_key: "docker-2"
+    container_name: "opentsdb-vuln-cve-2023-25826"
+    flag_files:
+      - filename: "secrets.txt"
+        container_path: "/root/secrets.txt"
+        mode: "0644"
+
+- name: "Inject flag into docker-3"
+  hosts: docker-3
+  become: true
+  roles:
+    - { role: 'ctf/flags', tags: 'flags' }
+  vars:
+    hostname: "challenge63-{{lab.hosts[dict_key].hostname}}"
+    dict_key: "docker-3"
+    container_name: "geoserver-vuln-cve-2021-40822"
+    flag_files:
+      - filename: "secrets.txt"
+        container_path: "/root/secrets.txt"
+        mode: "0644"
+
+- name: "Inject flag into docker-5"
+  hosts: docker-5
+  become: true
+  roles:
+    - { role: 'ctf/flags', tags: 'flags' }
+  vars:
+    hostname: "challenge63-{{lab.hosts[dict_key].hostname}}"
+    dict_key: "docker-5"
+    container_name: "weblogic-vuln-cve-2018-2628"
+    flag_files:
+      - filename: "secrets.txt"
+        container_path: "/root/secrets.txt"
+        mode: "0644"
+
+# docker-4 is the decoy — no flag, intentionally absent from this file.

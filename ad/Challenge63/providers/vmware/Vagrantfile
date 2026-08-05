@@ -1,0 +1,52 @@
+# Challenge63 / NewScenario22 — lab Vagrantfile (VMware provider)
+#
+# :networks order on each router MUST match the key order of that router's
+# r2r_interfaces dict in ad/Challenge63/data/config.json — both drive the
+# eth{{ idx + 2 }} positional assignment used by topology-routers.yml /
+# topology-links.yml (or, on routers that trip the >4-adapter PCI-bridge
+# overflow, the network/resolve_iface_roles MAC-based override instead).
+#
+# router-1 has r2r degree 4 (6 total adapters incl. eth0/NAT + eth1/mgmt) —
+# same overflow trigger documented for Challenge78/101/130. Expect it may
+# need scripts/fix_router_vnets.py + scripts/fix_router_netplan.py after
+# first `vagrant up`, same as those scenarios.
+
+boxes = [
+  { :name => "router-1", :ip => "192.168.57.11", :box => "generic/ubuntu2204",
+    :box_version => "4.3.12", :os => "linux", :cpus => 1, :mem => 2048,
+    :networks => ["192.168.47.1", "10.245.168.1", "192.168.31.1", "10.0.103.1"] },
+  { :name => "router-2", :ip => "192.168.57.12", :box => "generic/ubuntu2204",
+    :box_version => "4.3.12", :os => "linux", :cpus => 1, :mem => 2048,
+    :networks => ["10.0.78.1", "10.0.103.2"] },
+  { :name => "router-3", :ip => "192.168.57.13", :box => "generic/ubuntu2204",
+    :box_version => "4.3.12", :os => "linux", :cpus => 1, :mem => 2048,
+    :networks => ["10.245.168.2", "10.132.126.1"] },
+  { :name => "router-4", :ip => "192.168.57.14", :box => "generic/ubuntu2204",
+    :box_version => "4.3.12", :os => "linux", :cpus => 1, :mem => 2048,
+    :networks => ["10.0.78.2", "192.168.47.2"] },
+  { :name => "router-5", :ip => "192.168.57.15", :box => "generic/ubuntu2204",
+    :box_version => "4.3.12", :os => "linux", :cpus => 1, :mem => 2048,
+    :networks => ["192.168.31.2", "10.132.126.2"] },
+
+  { :name => "pc-6", :ip => "192.168.57.26", :box => "generic/ubuntu2204",
+    :box_version => "4.3.12", :os => "linux", :cpus => 1, :mem => 1536 },
+  { :name => "pc-7", :ip => "192.168.57.27", :box => "generic/ubuntu2204",
+    :box_version => "4.3.12", :os => "linux", :cpus => 1, :mem => 1536 },
+  { :name => "server-8", :ip => "192.168.57.28", :box => "generic/ubuntu2204",
+    :box_version => "4.3.12", :os => "linux", :cpus => 1, :mem => 1536 },
+
+  { :name => "docker-1", :ip => "192.168.57.31", :box => "generic/ubuntu2204",
+    :box_version => "4.3.12", :os => "linux", :cpus => 2, :mem => 3072 },
+  { :name => "docker-2", :ip => "192.168.57.32", :box => "generic/ubuntu2204",
+    :box_version => "4.3.12", :os => "linux", :cpus => 2, :mem => 3072 },
+  { :name => "docker-3", :ip => "192.168.57.33", :box => "generic/ubuntu2204",
+    :box_version => "4.3.12", :os => "linux", :cpus => 2, :mem => 3072 },
+  { :name => "docker-4", :ip => "192.168.57.34", :box => "generic/ubuntu2204",
+    :box_version => "4.3.12", :os => "linux", :cpus => 1, :mem => 2048 },
+  { :name => "docker-5", :ip => "192.168.57.35", :box => "generic/ubuntu2204",
+    :box_version => "4.3.12", :os => "linux", :cpus => 2, :mem => 3072 },
+]
+
+Vagrant.configure("2") do |config|
+  config.ssh.insert_key = false
+end

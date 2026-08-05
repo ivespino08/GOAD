@@ -1,0 +1,37 @@
+---
+- import_playbook: ../data.yml
+  vars:
+    data_path: "../ad/Challenge63/data"
+  tags: 'data'
+
+- name: "Resolve which physical interface holds each role (mgmt/r2r)"
+  hosts: routers
+  become: true
+  tasks:
+    - include_role:
+        name: network/resolve_iface_roles
+
+- name: "Configure each r2r link (nmcli connection + static route)"
+  hosts: routers
+  become: true
+  vars:
+    dict_key: "{{inventory_hostname}}"
+  tasks:
+    - name: "Set up r2r_link for links this router participates in"
+      include_role:
+        name: network/r2r_link
+      vars:
+        local_router: "{{ inventory_hostname }}"
+        peer_router: "{{ (link.routers | reject('equalto', inventory_hostname) | list)[0] }}"
+        local_ip4: "{{ lab.hosts[dict_key].r2r_interfaces[peer_router] }}"
+        peer_ip4: "{{ lab.hosts[peer_router].r2r_interfaces[inventory_hostname] }}"
+        link_subnet: "{{ link.subnet }}"
+        interface_name: >-
+          {%- set peer_order = lab.hosts[dict_key].r2r_interfaces.keys() | list -%}
+          {%- set idx = peer_order.index(peer_router) -%}
+          {{- goad_r2r_ifaces[idx] if goad_r2r_ifaces is defined
+              else 'eth' ~ (idx + 2) -}}
+      loop: "{{ lab.topology.r2r_links }}"
+      loop_control:
+        loop_var: link
+      when: inventory_hostname in link.routers

@@ -178,6 +178,7 @@ Challenge130:
   - challenge130/topology-docker.yml
   - challenge130/topology-flags.yml
   - challenge130/topology-traffic.yml
+  - challenge130/topology-gateway.yml
   - reboot.yml
 
 Challenge137:

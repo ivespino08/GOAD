@@ -2,9 +2,12 @@
 #
 # :networks order on each router MUST match the key order of that router's
 # r2r_interfaces dict in ad/Challenge63/data/config.json — both drive the
-# eth{{ idx + 2 }} positional assignment used by topology-routers.yml /
+# eth-index-plus-2 positional assignment used by topology-routers.yml /
 # topology-links.yml (or, on routers that trip the >4-adapter PCI-bridge
 # overflow, the network/resolve_iface_roles MAC-based override instead).
+# NOTE: this file is Jinja2-rendered by goad.py itself before Vagrant ever
+# sees it — do not put literal double-curly-brace syntax anywhere in here,
+# not even inside a comment.
 #
 # router-1 has r2r degree 4 (6 total adapters incl. eth0/NAT + eth1/mgmt) —
 # same overflow trigger documented for Challenge78/101/130. Expect it may

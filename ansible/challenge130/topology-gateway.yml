@@ -1,0 +1,50 @@
+---
+# Challenge130 / NewScenario22 — default route to each non-router host's LAN
+# gateway. Deliberately its own file, registered LAST in playbooks.yml
+# (after topology-docker.yml/topology-traffic.yml, immediately before
+# reboot.yml) — same fix Challenge78 needed: setting this route ahead of
+# any pending apt-based install (openssh-server/apache2 in
+# topology-services.yml, docker.io in topology-docker.yml) hijacks the NAT
+# default route (network/gateway's raw `ip route add` has no explicit
+# metric, so it wins over the NAT route's DHCP-assigned metric 100) and
+# breaks every later apt task on that host with a generic
+# "Failed to update apt cache: unknown reason".
+#
+# This IS a one-way trade-off by design, not a bug to "fix" further: once
+# this route is in place, that host's default route points into the CTF
+# lab mesh instead of out through NAT, and it stays that way going forward
+# (matching the existing convention — see GOAD_Scenario_Build_Summary.md's
+# Challenge78 session log). Any future re-run of an apt-touching playbook
+# against an already-gatewayed host will hit the same apt failure again;
+# that's expected, not a regression, given this scenario's network design.
+#
+# NOT using network/gateway's own include here: that role's raw fallback
+# path (the only path taken when the interface is netplan/networkd-managed,
+# which is the case throughout this scenario) is a bare, non-persistent
+# `ip route add` with the same issue topology-hosts.yml's LAN IP had —
+# reboot.yml runs immediately after this file and would wipe it right back
+# out. Wrapping the route directly in persist_boot_commands instead, so it
+# both applies now and survives every future boot.
+
+- import_playbook: ../data.yml
+  vars:
+    data_path: "../ad/Challenge130/data"
+  tags: 'data'
+
+- name: "Persist default route to each host's LAN gateway"
+  hosts: pcs:servers:docker_nodes
+  become: true
+  tasks:
+    - name: "Persist default route via this host's LAN gateway on eth1"
+      include_role:
+        name: network/persist_boot_commands
+      vars:
+        persist_unit_name: "lab-gateway-eth1"
+        persist_description: "Persist default route via LAN gateway across reboots"
+        # Waits for the lab IP unit from topology-hosts.yml — the gateway
+        # needs to already be within an on-link subnet on eth1 first.
+        persist_after:
+          - "lab-ip-eth1.service"
+        persist_commands:
+          - "ip route replace default via {{ lab.hosts[dict_key].gateway }} dev eth1 || true"
+      when: lab.hosts[dict_key].gateway is not none

@@ -1,8 +1,14 @@
 ---
 # Challenge130 / NewScenario22 — non-router host interface configuration.
 # Each host gets its lab-network IP as a secondary address on eth1 (the same
-# management interface used for 192.168.57.x), with a default route pointed
-# at its router's LAN gateway IP.
+# management interface used for 192.168.57.x).
+#
+# The default-route-to-LAN-gateway task used to live in this file too, but
+# was pulled out into its own topology-gateway.yml, run LAST in this
+# scenario's playbooks.yml sequence — see that file's header for why
+# (same ordering bug already diagnosed for Challenge78: a gateway route set
+# ahead of pending apt-based installs hijacks the NAT default route and
+# breaks every later apt task on that host).
 
 - import_playbook: ../data.yml
   vars:
@@ -13,19 +19,18 @@
   hosts: pcs:servers:docker_nodes
   become: true
   tasks:
-    # See NOTE in topology-routers.yml: secondary IP added directly rather
-    # than re-running the nmcli-based network/interface role on an interface
-    # that already carries the 192.168.57.x management address.
-    - name: "Add this host's lab-network IP as a secondary address on eth1"
-      ansible.builtin.command: "ip addr add {{ lab.hosts[dict_key].ip4 }} dev eth1"
-      register: host_ip_add
-      failed_when: host_ip_add.rc != 0 and 'File exists' not in host_ip_add.stderr
-      changed_when: host_ip_add.rc == 0
-
-    - name: "Set default gateway toward this host's router"
+    # FIX (previously diagnosed for Scenario3/pc-4, never ported here): a
+    # bare `ip addr add` is invisible to NetworkManager and gets silently
+    # wiped by reboot.yml at the end of this scenario's playbook sequence,
+    # with no error at boot time. Confirmed live on docker-1: lab IP and
+    # LAN-gateway route both gone after reboot, NAT route left as the only
+    # one present. network/persist_boot_commands wraps this in a systemd
+    # oneshot unit so it both applies now AND re-applies on every future boot.
+    - name: "Persist this host's lab-network IP as a secondary address on eth1"
       include_role:
-        name: network/gateway
+        name: network/persist_boot_commands
       vars:
-        interface_name: "eth1"
-        interface_ip4: "{{ lab.hosts[dict_key].ip4 }}"
-        gateway_ip4: "{{ lab.hosts[dict_key].gateway }}"
+        persist_unit_name: "lab-ip-eth1"
+        persist_description: "Persist lab IP on eth1 across reboots"
+        persist_commands:
+          - "ip addr add {{ lab.hosts[dict_key].ip4 }} dev eth1 || true"

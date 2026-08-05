@@ -33,17 +33,20 @@
   hosts: routers
   become: true
   tasks:
-    # NOTE / ASSUMPTION: added as a plain secondary IP via `ip addr add` rather
-    # than re-invoking network/interface's nmcli-based task on eth1 a second
-    # time, since nmcli modifying an existing connection profile's ip4 tends
-    # to replace rather than add. This matches the doc's own description of
-    # how Scenario3 does it, but wasn't verified against that role's actual
-    # source in this session — flag for review before first real run.
-    - name: "Add this router's LAN gateway IP as a secondary address on its mgmt interface"
-      ansible.builtin.command: "ip addr add {{ lab.hosts[dict_key].ip4 }} dev {{ goad_mgmt_iface | default('eth1') }}"
-      register: lan_ip_add
-      failed_when: lan_ip_add.rc != 0 and 'File exists' not in lan_ip_add.stderr
-      changed_when: lan_ip_add.rc == 0
+    # FIX (previously diagnosed for Scenario3/pc-4, never ported into this
+    # per-scenario file): a bare `ip addr add` here is invisible to
+    # NetworkManager and gets silently wiped by reboot.yml at the end of
+    # this scenario's playbook sequence, with no error at boot time.
+    # network/persist_boot_commands wraps it in a systemd oneshot unit so
+    # it both applies now AND re-applies on every future boot.
+    - name: "Persist this router's LAN gateway IP as a secondary address on its mgmt interface"
+      include_role:
+        name: network/persist_boot_commands
+      vars:
+        persist_unit_name: "lab-ip-{{ goad_mgmt_iface | default('eth1') }}"
+        persist_description: "Persist router LAN gateway IP across reboots"
+        persist_commands:
+          - "ip addr add {{ lab.hosts[dict_key].ip4 }} dev {{ goad_mgmt_iface | default('eth1') }} || true"
       when: lab.hosts[dict_key].ip4 is not none
 
 - name: "Configure router r2r interfaces"

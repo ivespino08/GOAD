@@ -1,6 +1,28 @@
-# NewScenario22 / Challenge130 — 5 routers (RIP), pc-3, server-4, docker-1, docker-2
+# Challenge130 — bento/ubuntu-22.04 TEST COPY (not the working baseline)
 #
-# KNOWN RISK (see GOAD_Scenario_Build_Summary.md, Challenge101 session log):
+# Swapped generic/ubuntu2204 -> bento/ubuntu-22.04, same version PROVISIONING
+# already runs successfully (202401.31.0). Everything else is unchanged from
+# the working Vagrantfile in this same directory.
+#
+# Why this box, why now: PROVISIONING (bento/ubuntu-22.04, single adapter,
+# no r2r links, no FRR/nmcli role usage) confirmed:
+#   - net.ifnames=0 biosdevname=0 present -> eth0/eth1 legacy naming holds
+#   - Vagrant's private_network write (50-vagrant.yaml, renderer: networkd,
+#     eth1: addresses: [...]) is byte-shape-identical to what generic/
+#     ubuntu2204's router-1 produces -> looks like Vagrant's own behavior,
+#     not a generic-box-specific default
+#   - cloud-init has network: {config: disabled} -> won't clobber netplan
+#     on later boots
+# None of that exercises the one thing this scenario actually tests: r2r
+# links + FRR + the nmcli-managed/unmanaged branching in network/interface,
+# network/gateway, network/r2r_link under multiple adapters, and whether
+# router-1's r2r degree 4 (6 total adapters) trips the same PCI-bridge
+# overflow signature fix_router_vnets.py/fix_router_netplan.py were built
+# against on generic/ubuntu2204 — or a different one, or none at all.
+#
+# ORIGINAL KNOWN RISK (see GOAD_Scenario_Build_Summary.md, Challenge101
+# session log), carried over unchanged since it's about VMware Workstation
+# adapter counts, not the guest OS:
 # router-1 is the hub (r2r degree 4) and therefore needs 6 total adapters
 # (NAT + management + 4 r2r links). On VMware Workstation this is the exact
 # adapter count that previously triggered a PCI-bridge slot overflow, causing
@@ -9,32 +31,34 @@
 # unreachable via plain `ssh` (while `vagrant ssh router-1` still works),
 # see that session's "Major finding" section for the MAC-address-based
 # GUI-bypass fix — do not rely on vagrant reload/halt/up to fix it, those
-# will re-assert the wrong mapping every time.
+# will re-assert the wrong mapping every time. Whether the same fix applies
+# as-is on bento, or needs its detection logic adjusted, is exactly what
+# this test copy exists to find out.
 
 boxes = [
-  { :name => "router-1", :ip => "192.168.57.41", :box => "generic/ubuntu2204",
-    :box_version => "4.3.12", :os => "linux", :cpus => 1, :mem => 2048,
+  { :name => "router-1", :ip => "192.168.57.41", :box => "bento/ubuntu-22.04",
+    :box_version => "202401.31.0", :os => "linux", :cpus => 1, :mem => 2048,
     :networks => ["10.0.47.1", "192.168.245.1", "10.0.31.1", "10.103.31.1"] },
-  { :name => "router-2", :ip => "192.168.57.42", :box => "generic/ubuntu2204",
-    :box_version => "4.3.12", :os => "linux", :cpus => 1, :mem => 2048,
+  { :name => "router-2", :ip => "192.168.57.42", :box => "bento/ubuntu-22.04",
+    :box_version => "202401.31.0", :os => "linux", :cpus => 1, :mem => 2048,
     :networks => ["10.78.182.1", "10.103.31.2"] },
-  { :name => "router-3", :ip => "192.168.57.43", :box => "generic/ubuntu2204",
-    :box_version => "4.3.12", :os => "linux", :cpus => 1, :mem => 2048,
+  { :name => "router-3", :ip => "192.168.57.43", :box => "bento/ubuntu-22.04",
+    :box_version => "202401.31.0", :os => "linux", :cpus => 1, :mem => 2048,
     :networks => ["192.168.245.2", "192.168.132.1"] },
-  { :name => "router-4", :ip => "192.168.57.44", :box => "generic/ubuntu2204",
-    :box_version => "4.3.12", :os => "linux", :cpus => 1, :mem => 2048,
+  { :name => "router-4", :ip => "192.168.57.44", :box => "bento/ubuntu-22.04",
+    :box_version => "202401.31.0", :os => "linux", :cpus => 1, :mem => 2048,
     :networks => ["10.78.182.2", "10.0.47.2"] },
-  { :name => "router-5", :ip => "192.168.57.45", :box => "generic/ubuntu2204",
-    :box_version => "4.3.12", :os => "linux", :cpus => 1, :mem => 2048,
+  { :name => "router-5", :ip => "192.168.57.45", :box => "bento/ubuntu-22.04",
+    :box_version => "202401.31.0", :os => "linux", :cpus => 1, :mem => 2048,
     :networks => ["10.0.31.2", "192.168.132.2"] },
-  { :name => "pc-3", :ip => "192.168.57.53", :box => "generic/ubuntu2204",
-    :box_version => "4.3.12", :os => "linux", :cpus => 1, :mem => 2048 },
-  { :name => "server-4", :ip => "192.168.57.54", :box => "generic/ubuntu2204",
-    :box_version => "4.3.12", :os => "linux", :cpus => 1, :mem => 2048 },
-  { :name => "docker-1", :ip => "192.168.57.61", :box => "generic/ubuntu2204",
-    :box_version => "4.3.12", :os => "linux", :cpus => 2, :mem => 2048 },
-  { :name => "docker-2", :ip => "192.168.57.62", :box => "generic/ubuntu2204",
-    :box_version => "4.3.12", :os => "linux", :cpus => 2, :mem => 2048 },
+  { :name => "pc-3", :ip => "192.168.57.53", :box => "bento/ubuntu-22.04",
+    :box_version => "202401.31.0", :os => "linux", :cpus => 1, :mem => 2048 },
+  { :name => "server-4", :ip => "192.168.57.54", :box => "bento/ubuntu-22.04",
+    :box_version => "202401.31.0", :os => "linux", :cpus => 1, :mem => 2048 },
+  { :name => "docker-1", :ip => "192.168.57.61", :box => "bento/ubuntu-22.04",
+    :box_version => "202401.31.0", :os => "linux", :cpus => 2, :mem => 2048 },
+  { :name => "docker-2", :ip => "192.168.57.62", :box => "bento/ubuntu-22.04",
+    :box_version => "202401.31.0", :os => "linux", :cpus => 2, :mem => 2048 },
 ]
 
 Vagrant.configure("2") do |config|

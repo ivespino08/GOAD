@@ -1,22 +1,28 @@
 # roles/network/traffic/start/tasks/main.yml
 #
-# PATCHED: the original "Start each traffic script as a background
-# process" task used bare `nohup ... &`, invisible to systemd/cron/anything
-# else — reboot.yml (the last step of every scenario's playbooks.yml
-# sequence) kills it with zero trace and zero error at boot time. Confirmed
-# dead on Challenge130's pc-3/server-4 traffic flow after a full reboot
-# cycle; same non-persistence bug class as the LAN-IP/gateway fixes
-# elsewhere in this repo, just never caught here before now since nothing
-# had checked traffic flows post-reboot. Shared role, so this affects every
-# scenario using network/traffic/start, not just Challenge130.
+# SECOND PATCH — the first attempt (wrapping `nohup ... &` in
+# network/persist_boot_commands, a Type=oneshot + RemainAfterExit=yes unit)
+# looked like it should work and did apply/enable cleanly, but confirmed
+# dead on Challenge130's pc-3: `systemctl status` showed
+# `active (exited)`/`status=0/SUCCESS` with `Tasks: 0` in the unit's
+# cgroup — the wrapping `sh -c 'pgrep ... || nohup ... &'` process exits
+# almost immediately (that's the whole point of nohup-and-background), and
+# systemd tears down every process left in a oneshot unit's cgroup once
+# that unit is considered "done" transitioning out of activating.
+# RemainAfterExit=yes only keeps the *unit's reported state* as active —
+# it does not protect orphaned children from that cleanup. nohup only
+# guards against SIGHUP on terminal disconnect; it does nothing against a
+# cgroup teardown. persist_boot_commands was built for quick, idempotent,
+# run-and-exit-for-real commands (ip addr add, ip route add) — reusing it
+# for a long-running daemon was the wrong tool for this case specifically.
 #
-# Fix: wrap the launch in network/persist_boot_commands instead, one unit
-# per discovered script (name derived from the script's own filename, so
-# multiple scripts on one host — e.g. a host that's both a sender and a
-# receiver for different flows — each get their own persistent unit rather
-# than colliding on one). The pgrep guard keeps a manual re-run of this
-# playbook (without an intervening reboot) from double-launching an
-# already-running script.
+# Fix: a dedicated Type=simple unit per script (traffic_script.service.j2)
+# where systemd supervises the Python process directly as the unit's own
+# main PID. No backgrounding, no nohup, no wrapping shell to be reaped —
+# systemd IS the process supervisor here, used the way it's meant to be.
+# Restart=on-failure covers a script that crashes; WantedBy=multi-user.target
+# covers reboot persistence, the original problem this whole chain started
+# from.
 
 - name: "Find all traffic scripts on {{inventory_hostname}}"
   ansible.builtin.find:
@@ -24,22 +30,42 @@
     patterns: "*.py"
   register: traffic_scripts
 
-- name: "Persist each traffic script's launch across reboots (and apply now)"
-  include_role:
-    name: network/persist_boot_commands
-  vars:
-    persist_unit_name: >-
-      goad-traffic-{{ item.path | basename
-                       | regex_replace('\.py$', '')
-                       | regex_replace('[^A-Za-z0-9_-]', '_') }}
-    persist_description: "GOAD traffic script {{ item.path | basename }}"
-    persist_commands:
-      - >-
-        pgrep -f "python3 {{ item.path }}" > /dev/null ||
-        nohup python3 {{ item.path }} > {{ item.path }}.log 2>&1 &
+- name: "Deploy a dedicated systemd unit for each traffic script"
+  ansible.builtin.template:
+    src: traffic_script.service.j2
+    dest: >-
+      /etc/systemd/system/goad-traffic-{{ item.path | basename
+                                           | regex_replace('\.py$', '')
+                                           | regex_replace('[^A-Za-z0-9_-]', '_') }}.service
+    mode: "0644"
   loop: "{{ traffic_scripts.files }}"
   loop_control:
     label: "{{ item.path | basename }}"
+  register: traffic_unit_deploy
+
+- name: "Reload systemd units"
+  ansible.builtin.systemd:
+    daemon_reload: yes
+  when: traffic_unit_deploy.changed
+
+- name: "Enable and (re)start each traffic script unit"
+  ansible.builtin.systemd:
+    name: >-
+      goad-traffic-{{ item.item.path | basename
+                       | regex_replace('\.py$', '')
+                       | regex_replace('[^A-Za-z0-9_-]', '_') }}.service
+    enabled: yes
+    # state: restarted, not started -- a stale unit left over from the
+    # first (oneshot/nohup) attempt would already report "active" under
+    # its old definition, and `state: started` is a no-op against an
+    # already-active unit regardless of whether its underlying file just
+    # changed. Forcing a restart guarantees the new Type=simple config
+    # actually takes effect the first time this runs against a host that
+    # already has the old unit installed, not just on a fresh host.
+    state: restarted
+  loop: "{{ traffic_unit_deploy.results }}"
+  loop_control:
+    label: "{{ item.item.path | basename }}"
 
 - name: "Confirm traffic scripts are running"
   ansible.builtin.shell:

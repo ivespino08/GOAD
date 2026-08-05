@@ -1,0 +1,15 @@
+[Unit]
+Description=GOAD traffic script {{ item.path | basename }}
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 {{ item.path }}
+Restart=on-failure
+RestartSec=5
+StandardOutput=append:{{ item.path }}.log
+StandardError=append:{{ item.path }}.log
+
+[Install]
+WantedBy=multi-user.target

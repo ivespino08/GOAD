@@ -2,6 +2,16 @@
 # Challenge130 / NewScenario22 — background traffic.
 # Single flow from the source XML's traffic_summary: pc-3 -> server-4, TCP,
 # continuous, 128 kbps, port 5009.
+#
+# FIX: network/traffic/sender and network/traffic/receiver's own .j2
+# templates hardcoded port 9000 regardless of what was configured — dst_port
+# was never wired through at all. Both templates now accept dst_port/
+# bind_port (defaulting to 9000 for any other caller that doesn't pass one,
+# so this doesn't change behavior anywhere else in the repo), and this file
+# now passes the real configured port through explicitly instead of leaving
+# it to the old hardcoded default. Confirmed working on port 9000 before
+# this fix (real bidirectional traffic, just on the wrong port); this makes
+# it actually match config.json's dst_port: 5009 as originally intended.
 
 - import_playbook: ../data.yml
   vars:
@@ -24,6 +34,7 @@
         flow: "{{ lab.topology.traffic[0] }}"
         src_ip4: "{{ lab.hosts['pc-3'].ip4 | ansible.utils.ipaddr('address') }}"
         dst_ip4: "{{ lab.hosts['server-4'].ip4 | ansible.utils.ipaddr('address') }}"
+        dst_port: "{{ lab.topology.traffic[0].dst_port }}"
         protocol: "TCP"
         rate_kbps: 128
         pattern: "continuous"
@@ -44,6 +55,7 @@
       vars:
         flow: "{{ lab.topology.traffic[0] }}"
         bind_ip4: "{{ lab.hosts['server-4'].ip4 | ansible.utils.ipaddr('address') }}"
+        bind_port: "{{ lab.topology.traffic[0].dst_port }}"
         protocol: "TCP"
         rate_kbps: 128
         pattern: "continuous"

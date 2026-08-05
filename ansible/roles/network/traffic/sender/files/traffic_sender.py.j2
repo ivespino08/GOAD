@@ -8,7 +8,7 @@ import time
 import sys
 
 DST_IP   = "{{dst_ip4}}"
-DST_PORT = 9000
+DST_PORT = {{ dst_port | default(9000) }}
 RATE_BPS = {{rate_kbps}} * 1024
 CHUNK    = 1024  # bytes per send
 

@@ -4,11 +4,28 @@
 # lab.topology.traffic. This scenario has a single TCP flow (docker-2 ->
 # docker-1, burst pattern, 128kbps) per the source XML's
 # traffic_summary/Traffic section.
+#
+# FIX: originally deployed to /tmp/traffic (inherited from Challenge101,
+# which inherited it from Scenario3) — confirmed broken on a real
+# Challenge101 build (systemd stuck in an infinite restart loop, "Failed
+# at step STDOUT spawning /usr/bin/python3: No such file or directory",
+# because /tmp/traffic doesn't survive reboot.yml). Same fix ported here
+# proactively rather than waiting to reproduce it: moved to /opt/traffic,
+# matching every other scenario (Challenge70/101/130).
 
 - import_playbook: ../data.yml
   vars:
     data_path: "../ad/Challenge137/data"
   tags: 'data'
+
+- name: "Ensure /opt/traffic exists"
+  hosts: domain
+  become: true
+  tasks:
+    - ansible.builtin.file:
+        path: /opt/traffic
+        state: directory
+        mode: "0755"
 
 - name: "Deploy traffic sender scripts"
   hosts: domain
@@ -25,7 +42,7 @@
         protocol: "{{item.protocol}}"
         rate_kbps: "{{item.rate_kbps}}"
         pattern: "{{item.pattern}}"
-        script_dest: "/tmp/traffic/traffic_{{dict_key}}_send{{loop_idx + 1}}.py"
+        script_dest: "/opt/traffic/traffic_{{dict_key}}_send{{loop_idx + 1}}.py"
       loop: >-
         {{
           lab.topology.traffic
@@ -50,7 +67,7 @@
         protocol: "{{item.protocol}}"
         rate_kbps: "{{item.rate_kbps}}"
         pattern: "{{item.pattern}}"
-        script_dest: "/tmp/traffic/traffic_{{dict_key}}_recv{{loop_idx + 1}}.py"
+        script_dest: "/opt/traffic/traffic_{{dict_key}}_recv{{loop_idx + 1}}.py"
       loop: >-
         {{
           lab.topology.traffic
@@ -68,4 +85,4 @@
     - include_role:
         name: "network/traffic/start"
       vars:
-        traffic_script_dir: "/tmp/traffic"
+        traffic_script_dir: "/opt/traffic"

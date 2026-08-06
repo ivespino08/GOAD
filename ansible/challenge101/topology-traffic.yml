@@ -3,11 +3,35 @@
 # Logic unchanged from Scenario3's — generic over lab.topology.traffic.
 # This scenario has a single TCP flow (docker-2 -> docker-1, burst
 # pattern, 128kbps) per the source XML's traffic_summary/Traffic section.
+#
+# FIX: originally deployed to /tmp/traffic (inherited from Scenario3).
+# Confirmed broken on a real build: /tmp isn't guaranteed to survive a
+# reboot, and reboot.yml runs at the end of every scenario's playbook
+# sequence — the deployed .py script itself was gone afterward, and the
+# (correctly persisted, since it lives under /etc/systemd/system/) systemd
+# unit was left in an infinite restart loop trying to launch a script that
+# no longer existed:
+#   "Failed at step STDOUT spawning /usr/bin/python3: No such file or
+#   directory" (systemd couldn't even set up the append-log redirect,
+#   since /tmp/traffic itself was gone, not just the script).
+# Moved to /opt/traffic, matching every other scenario (Challenge70/130/
+# 137). network/traffic/sender and network/traffic/receiver only create
+# /tmp/traffic internally (dead weight now, harmless) — this file creates
+# /opt/traffic explicitly before deploying into it, same as the others.
 
 - import_playbook: ../data.yml
   vars:
     data_path: "../ad/Challenge101/data"
   tags: 'data'
+
+- name: "Ensure /opt/traffic exists"
+  hosts: domain
+  become: true
+  tasks:
+    - ansible.builtin.file:
+        path: /opt/traffic
+        state: directory
+        mode: "0755"
 
 - name: "Deploy traffic sender scripts"
   hosts: domain
@@ -22,7 +46,7 @@
         protocol: "{{item.protocol}}"
         rate_kbps: "{{item.rate_kbps}}"
         pattern: "{{item.pattern}}"
-        script_dest: "/tmp/traffic/traffic_{{dict_key}}_send{{loop_idx + 1}}.py"
+        script_dest: "/opt/traffic/traffic_{{dict_key}}_send{{loop_idx + 1}}.py"
       loop: >-
         {{
           lab.topology.traffic
@@ -45,7 +69,7 @@
         protocol: "{{item.protocol}}"
         rate_kbps: "{{item.rate_kbps}}"
         pattern: "{{item.pattern}}"
-        script_dest: "/tmp/traffic/traffic_{{dict_key}}_recv{{loop_idx + 1}}.py"
+        script_dest: "/opt/traffic/traffic_{{dict_key}}_recv{{loop_idx + 1}}.py"
       loop: >-
         {{
           lab.topology.traffic
@@ -63,4 +87,4 @@
     - include_role:
         name: "network/traffic/start"
       vars:
-        traffic_script_dir: "/tmp/traffic"
+        traffic_script_dir: "/opt/traffic"

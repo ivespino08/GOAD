@@ -21,6 +21,7 @@
       vars:
         src_ip4: "{{lab.hosts['server-4'].ip4 | ansible.utils.ipaddr('address')}}"
         dst_ip4: "{{lab.hosts['pc-3'].ip4 | ansible.utils.ipaddr('address')}}"
+        dst_port: "{{flow.dst_port}}"
         protocol: "{{flow.protocol}}"
         rate_kbps: "{{flow.rate_kbps}}"
         pattern: "{{flow.pattern}}"
@@ -43,6 +44,7 @@
         name: 'network/traffic/receiver'
       vars:
         bind_ip4: "{{lab.hosts['pc-3'].ip4 | ansible.utils.ipaddr('address')}}"
+        bind_port: "{{flow.dst_port}}"
         protocol: "{{flow.protocol}}"
         rate_kbps: "{{flow.rate_kbps}}"
         pattern: "{{flow.pattern}}"

@@ -15,24 +15,47 @@
 # topology-traffic.yml, immediately before reboot.yml). Nothing in this
 # scenario's playbook sequence needs `apt` after this file runs.
 #
-# `network/gateway` uses the NetworkManager managed-state guard (added for
-# Challenge78) before touching `nmcli`, since generic/ubuntu2204's netplan
-# already owns eth1 and `nmcli connection up` fails on an unmanaged device.
+# FIX: previously included network/gateway directly. Two problems with
+# that, found when this scenario's actual build showed the route present
+# immediately after a manual `ip route add` but NOT present after the
+# Ansible-driven run reported the equivalent task as "changed":
+#   1. network/gateway's raw ip-route fallback (the only path taken here,
+#      since eth1 is netplan-managed, not NetworkManager-managed) is a bare
+#      `ip route add`, invisible to systemd — exactly the same
+#      non-persistence bug already found and fixed for Challenge130's
+#      router/host LAN IPs. This is why Challenge130/Challenge101/
+#      Challenge137's gateway files all bypass network/gateway entirely and
+#      call persist_boot_commands directly instead — this file should have
+#      gotten the same treatment the first time through and didn't.
+#   2. network/gateway also installs the network-manager package as a side
+#      effect, unconditionally, even on hosts where eth1 is netplan-managed
+#      and nmcli can't touch it anyway (its own managed-state guard skips
+#      the nmcli tasks, but not the apt install). Installing and starting
+#      NetworkManager for the first time, immediately after adding a static
+#      route by hand, is a plausible source of a race: if netplan's
+#      NM-unmanaged hint for eth1 hasn't been regenerated to account for NM
+#      only just now being present, NM's own startup device-scan could
+#      claim eth1 and reset it, wiping the route with no error anywhere.
+#      Bypassing network/gateway avoids installing network-manager at all
+#      here, which removes this risk entirely rather than just working
+#      around it.
 #
 # interface_name resolved via network/resolve_iface_roles above -- falls
 # back to the literal "eth1" for any host that never hit the
 # PCI-bridge-overflow bug (see fix_router_netplan.py).
-- name: "Set default gateway on every docker/pc/server host"
+- name: "Persist default route via router LAN gateway"
   hosts: docker_nodes:pcs:servers
   become: true
   vars:
     dict_key: "{{inventory_hostname}}"
   tasks:
     - include_role:
-        name: network/gateway
+        name: network/persist_boot_commands
       vars:
-        interface_name: "{{ goad_mgmt_iface | default('eth1') }}"
-        interface_ip4: "{{lab.hosts[dict_key].ip4}}"
-        gateway_ip4: "{{lab.hosts[dict_key].gateway}}"
+        persist_unit_name: "lab-default-route"
+        persist_description: "Persist default route via router LAN gateway across reboots"
+        persist_after: ["lab-ip-eth1.service"]
+        persist_commands:
+          - "ip route replace default via {{lab.hosts[dict_key].gateway}} dev {{ goad_mgmt_iface | default('eth1') }} || true"
       when: lab.hosts[dict_key].gateway is defined and lab.hosts[dict_key].gateway is not none
   tags: 'gateway'

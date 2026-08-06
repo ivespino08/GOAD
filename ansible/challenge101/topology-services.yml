@@ -1,48 +1,31 @@
 ---
 # ansible/challenge101/topology-services.yml
-# Adds a default route via each pc/server/docker host's router LAN
-# gateway, PERSISTENTLY, same persist_boot_commands pattern as Scenario3.
-# persist_after ensures this only runs once lab-ip-eth1 (topology-hosts.yml)
-# has already applied the host's lab IP.
 #
 # "services" in this scenario's config.json/services_preview (SSH/HTTP
-# counts per host) is scenario-planner bookkeeping, same as
-# "DHCPClient" was in Scenario3 — not read here. The actual attacker-
-# facing services are the vulnerable Solr/Airflow apps themselves,
-# deployed by topology-docker.yml. If you want SSH/HTTP stood up as
-# real services on pc-3/server-4 (i.e. actual decoy/pivot services, not
-# just planner metadata) let me know and I'll add a role for that —
-# nothing in the uploaded Scenario3 files does this, since Scenario3
-# had no such requirement either.
+# counts per host) is scenario-planner bookkeeping, same as "DHCPClient"
+# was in Scenario3 — not read here. The actual attacker-facing services
+# are the vulnerable Solr/Airflow apps themselves, deployed by
+# topology-docker.yml. If you want SSH/HTTP stood up as real services on
+# pc-3/server-4 (i.e. actual decoy/pivot services, not just planner
+# metadata) let me know and I'll add a role for that — nothing in the
+# uploaded Scenario3 files does this, since Scenario3 had no such
+# requirement either.
 #
-# NEW GROUP: pcs:servers (see topology-hosts.yml's note on server-4).
-#
-# `dev` target resolved via network/resolve_iface_roles below -- falls
-# back to the literal "eth1" for any host that never hit the
-# PCI-bridge-overflow bug (see fix_router_netplan.py).
+# The default-route task that used to live in this file has moved to
+# topology-gateway.yml, run LAST (after topology-docker.yml and
+# topology-traffic.yml, before reboot.yml) — same fix already applied to
+# Challenge130/Challenge70: docker/vuln_node does a real apt-based
+# docker-ce install (apt-transport-https, apt_key, apt_repository, then
+# docker-ce/docker-ce-cli) in topology-docker.yml, which ran AFTER this
+# file when the gateway task lived here — meaning the LAN-gateway default
+# route (no path to the internet) got set and persisted before that
+# install ever ran, which should have broken it with the same
+# "Failed to update apt cache: unknown reason" symptom Challenge78
+# diagnosed. Not confirmed broken here specifically (this scenario hadn't
+# been built yet), but the ordering was identical to the confirmed-broken
+# case, so fixing it now rather than waiting to reproduce it.
 
 - import_playbook: ../data.yml
   vars:
     data_path: "../ad/Challenge101/data"
   tags: 'data'
-
-- name: "Resolve which physical interface holds each role (mgmt/r2r), MAC-based override if present"
-  hosts: pcs:servers:docker_nodes
-  become: true
-  tasks:
-    - include_role:
-        name: network/resolve_iface_roles
-
-- name: "Persist default route via router LAN gateway"
-  hosts: pcs:servers:docker_nodes
-  become: true
-  tasks:
-    - include_role:
-        name: network/persist_boot_commands
-      vars:
-        persist_unit_name: "lab-default-route"
-        persist_description: "Persist default route via router LAN gateway across reboots"
-        persist_after: ["lab-ip-eth1.service"]
-        persist_commands:
-          - "ip route replace default via {{lab.hosts[dict_key].gateway}} dev {{ goad_mgmt_iface | default('eth1') }} || true"
-      when: lab.hosts[dict_key].gateway is defined

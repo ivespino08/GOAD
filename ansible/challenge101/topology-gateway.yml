@@ -1,0 +1,46 @@
+---
+# ansible/challenge101/topology-gateway.yml
+#
+# Moved out of topology-services.yml — see that file's header for why.
+# Deliberately placed last in playbooks.yml (after topology-docker.yml and
+# topology-traffic.yml, immediately before reboot.yml). Nothing in this
+# scenario's playbook sequence needs `apt` after this file runs — in
+# particular, docker/vuln_node's apt-transport-https/apt_key/
+# apt_repository/docker-ce install in topology-docker.yml must finish
+# before this runs, or it loses its route to the internet mid-install.
+#
+# Adds a default route via each pc/server/docker host's router LAN
+# gateway, PERSISTENTLY, same persist_boot_commands pattern as
+# Scenario3/Challenge130/Challenge70. persist_after ensures this only
+# applies once lab-ip-eth1 (topology-hosts.yml) has already set the host's
+# lab IP.
+#
+# `dev` target resolved via network/resolve_iface_roles below -- falls
+# back to the literal "eth1" for any host that never hit the
+# PCI-bridge-overflow bug (see fix_router_netplan.py).
+
+- import_playbook: ../data.yml
+  vars:
+    data_path: "../ad/Challenge101/data"
+  tags: 'data'
+
+- name: "Resolve which physical interface holds each role (mgmt/r2r), MAC-based override if present"
+  hosts: pcs:servers:docker_nodes
+  become: true
+  tasks:
+    - include_role:
+        name: network/resolve_iface_roles
+
+- name: "Persist default route via router LAN gateway"
+  hosts: pcs:servers:docker_nodes
+  become: true
+  tasks:
+    - include_role:
+        name: network/persist_boot_commands
+      vars:
+        persist_unit_name: "lab-default-route"
+        persist_description: "Persist default route via router LAN gateway across reboots"
+        persist_after: ["lab-ip-eth1.service"]
+        persist_commands:
+          - "ip route replace default via {{lab.hosts[dict_key].gateway}} dev {{ goad_mgmt_iface | default('eth1') }} || true"
+      when: lab.hosts[dict_key].gateway is defined

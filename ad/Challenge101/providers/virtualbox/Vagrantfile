@@ -1,4 +1,4 @@
-# ad/Challenge101/providers/vmware/Vagrantfile
+# ad/Challenge101/providers/virtualbox/Vagrantfile
 #
 # Box swapped generic/ubuntu2204 -> bento/ubuntu-22.04, same version
 # PROVISIONING already runs (202401.31.0). Validated end-to-end on
@@ -31,7 +31,7 @@
 # manual fix.
 #
 # Same substitution mechanism as Scenario3's: GOAD drops this file's
-# content into template/provider/vmware/Vagrantfile's "lab" placeholder
+# content into template/provider/virtualbox/Vagrantfile's "lab" placeholder
 # (written here without literal double-curly-brace syntax deliberately —
 # this file is itself Jinja2-rendered by goad.py before Vagrant ever sees
 # it, so writing the literal placeholder syntax in a comment here would

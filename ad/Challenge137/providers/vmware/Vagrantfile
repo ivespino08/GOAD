@@ -1,13 +1,28 @@
 # Challenge137 (NewScenario22 topology) — VMware Vagrantfile
 #
+# Box swapped generic/ubuntu2204 -> bento/ubuntu-22.04, same version
+# PROVISIONING already runs (202401.31.0). Validated end-to-end on
+# Challenge130 first (same non-uniform mesh shape, router-1 hub with r2r
+# degree 4, RIP, persist_boot_commands-based LAN/gateway addressing,
+# network/traffic — all confirmed working including full reboot-survival
+# testing), then rolled out to Challenge70 and Challenge101 before this one.
+# This scenario's topology files were already clean going in — gateway
+# already split into its own file and correctly ordered last, both
+# providers already present, no dst_port gap in its traffic flow, no
+# no double-curly-brace landmine comments — so the box swap is the only change
+# needed here.
+#
 # NOTE: router-1 has r2r degree 4 (6 total adapters: NAT + mgmt + 4 r2r
-# links). Per the documented lesson from Challenge101/Challenge130/
-# Challenge78, expect the PCI-bridge slot overflow / vnet misbinding on
-# router-1 the first time this box is brought up fresh — budget time
-# for the manual GUI vnet-reassignment fix (or check whether this box's
-# .vmx wiring is already correct despite the guest-naming scramble) if
-# router-1 is unreachable via plain ssh even though `vagrant ssh router-1`
-# and `ip -br a` inside the guest both look correct.
+# links) — same PCI-bridge slot overflow trigger seen on Challenge101/
+# Challenge78/Challenge130, and confirmed to reproduce identically on bento
+# (Challenge130's router-1 hit the exact same guest-eth-naming scramble).
+# Not a new risk from this swap: network/resolve_iface_roles +
+# fix_router_netplan.py already resolve it automatically via MAC-based
+# reassignment (confirmed working on bento, zero code changes needed). If
+# router-1 is unreachable via plain `ssh` while `vagrant ssh router-1`
+# still works, that's this exact signature — check
+# /etc/goad/iface-roles.env on router-1 rather than reaching for a manual
+# fix.
 #
 # :networks order on each router MUST match that router's r2r_interfaces
 # key order in ../../data/config.json — both are hand-maintained, nothing
@@ -20,30 +35,30 @@
 #   router-5: router-1, router-3
 
 boxes = [
-  { :name => "router-1", :ip => "192.168.57.181", :box => "generic/ubuntu2204",
-    :box_version => "4.3.12", :os => "linux", :cpus => 1, :mem => 2048,
+  { :name => "router-1", :ip => "192.168.57.181", :box => "bento/ubuntu-22.04",
+    :box_version => "202401.31.0", :os => "linux", :cpus => 1, :mem => 2048,
     :networks => ["172.18.244.1", "10.0.245.1", "172.17.254.1", "10.103.31.1"] },
-  { :name => "router-2", :ip => "192.168.57.182", :box => "generic/ubuntu2204",
-    :box_version => "4.3.12", :os => "linux", :cpus => 1, :mem => 2048,
+  { :name => "router-2", :ip => "192.168.57.182", :box => "bento/ubuntu-22.04",
+    :box_version => "202401.31.0", :os => "linux", :cpus => 1, :mem => 2048,
     :networks => ["10.78.182.1", "10.103.31.2"] },
-  { :name => "router-3", :ip => "192.168.57.183", :box => "generic/ubuntu2204",
-    :box_version => "4.3.12", :os => "linux", :cpus => 1, :mem => 2048,
+  { :name => "router-3", :ip => "192.168.57.183", :box => "bento/ubuntu-22.04",
+    :box_version => "202401.31.0", :os => "linux", :cpus => 1, :mem => 2048,
     :networks => ["10.0.245.2", "10.0.132.1"] },
-  { :name => "router-4", :ip => "192.168.57.184", :box => "generic/ubuntu2204",
-    :box_version => "4.3.12", :os => "linux", :cpus => 1, :mem => 2048,
+  { :name => "router-4", :ip => "192.168.57.184", :box => "bento/ubuntu-22.04",
+    :box_version => "202401.31.0", :os => "linux", :cpus => 1, :mem => 2048,
     :networks => ["10.78.182.2", "172.18.244.2"] },
-  { :name => "router-5", :ip => "192.168.57.185", :box => "generic/ubuntu2204",
-    :box_version => "4.3.12", :os => "linux", :cpus => 1, :mem => 2048,
+  { :name => "router-5", :ip => "192.168.57.185", :box => "bento/ubuntu-22.04",
+    :box_version => "202401.31.0", :os => "linux", :cpus => 1, :mem => 2048,
     :networks => ["172.17.254.2", "10.0.132.2"] },
 
-  { :name => "docker-1", :ip => "192.168.57.186", :box => "generic/ubuntu2204",
-    :box_version => "4.3.12", :os => "linux", :cpus => 1, :mem => 2048 },
-  { :name => "docker-2", :ip => "192.168.57.187", :box => "generic/ubuntu2204",
-    :box_version => "4.3.12", :os => "linux", :cpus => 1, :mem => 2048 },
-  { :name => "pc-3", :ip => "192.168.57.188", :box => "generic/ubuntu2204",
-    :box_version => "4.3.12", :os => "linux", :cpus => 1, :mem => 1024 },
-  { :name => "server-4", :ip => "192.168.57.189", :box => "generic/ubuntu2204",
-    :box_version => "4.3.12", :os => "linux", :cpus => 1, :mem => 1024 },
+  { :name => "docker-1", :ip => "192.168.57.186", :box => "bento/ubuntu-22.04",
+    :box_version => "202401.31.0", :os => "linux", :cpus => 1, :mem => 2048 },
+  { :name => "docker-2", :ip => "192.168.57.187", :box => "bento/ubuntu-22.04",
+    :box_version => "202401.31.0", :os => "linux", :cpus => 1, :mem => 2048 },
+  { :name => "pc-3", :ip => "192.168.57.188", :box => "bento/ubuntu-22.04",
+    :box_version => "202401.31.0", :os => "linux", :cpus => 1, :mem => 1024 },
+  { :name => "server-4", :ip => "192.168.57.189", :box => "bento/ubuntu-22.04",
+    :box_version => "202401.31.0", :os => "linux", :cpus => 1, :mem => 1024 },
 ]
 
 Vagrant.configure("2") do |config|

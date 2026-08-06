@@ -31,7 +31,7 @@
     - { role: 'ctf/flags', tags: 'flags' }
   vars:
     hostname: "challenge70-docker-2"
-    container_name: "challenge70-docker-2-struts2"
+    container_name: "struts2-vuln-s2-053"
     flag_files:
       - filename: "secrets.bin"
         container_path: "/tmp/secrets.bin"

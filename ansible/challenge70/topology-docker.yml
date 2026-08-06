@@ -31,5 +31,5 @@
         hostname: "docker-2"
         vuln_name: "struts2/s2-053"
         vuln_compose_src: "struts2-s2-053-docker-compose.yml"
-        container_name: "challenge70-docker-2-struts2"
+        container_name: "struts2-vuln-s2-053"
   tags: 'docker'
